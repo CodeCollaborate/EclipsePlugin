@@ -82,13 +82,10 @@ public class DocumentManager {
 		editor.getSite().getSelectionProvider().setSelection(selection);
 	}
 
-	public void applyPatch(String fileName, List<Patch> patches) throws BadLocationException {
+	public void applyPatch(String fileName, List<Patch> patches){
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
-			public void run() {
-
-				// CAUSING GLITCHES BECAUSE OF PUTTING ITEMS BETWEEN \r\n ->
-				// \ra\n
+			public void run() {		
 				ITextEditor editor = getEditor(fileName);
 				AbstractDocument document = getDocumentForEditor(editor);
 				// ITextSelection currSelection = getSelectionForEditor(editor);
@@ -114,8 +111,9 @@ public class DocumentManager {
 						if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
 								&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
 								&& document.get().charAt(diff.getStartIndex()) == '\n') {
-							diff = diff.getOffsetDiff(-1);
-							System.out.println("Inserted between \\r and \\n");
+//							diff = diff.getOffsetDiff(-1);
+//							System.out.println("Inserted between \\r and \\n");
+							throw new IllegalArgumentException("Tried to insert between \\r and \\n");
 						}
 
 						if (currFile.equals(fileName)) {
