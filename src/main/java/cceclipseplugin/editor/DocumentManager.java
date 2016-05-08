@@ -1,17 +1,23 @@
 package cceclipseplugin.editor;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Queue;
 
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
+import org.junit.Assert;
+import org.junit.Test;
 
-import cceclipseplugin.editor.listeners.EditorChangeListener;
+import patcher.Diff;
 import patcher.Patch;
 
 public class DocumentManager {
@@ -19,9 +25,8 @@ public class DocumentManager {
 	private static DocumentManager instance = null;
 
 	private String currFile = null;
-	public ITextEditor currEditor = null;
 	private HashMap<String, ITextEditor> openEditors = new HashMap<>();
-	private Queue<Patch> appliedPatches = new LinkedList<>();
+	private Queue<Diff> appliedDiffs = new LinkedList<>();
 
 	public static DocumentManager getInstance() {
 		if (instance == null) {
@@ -61,8 +66,8 @@ public class DocumentManager {
 		return this.openEditors.get(fileName);
 	}
 
-	public Queue<Patch> getAppliedPatches() {
-		return appliedPatches;
+	public Queue<Diff> getAppliedDiffs() {
+		return appliedDiffs;
 	}
 
 	private AbstractDocument getDocumentForEditor(ITextEditor editor) {
@@ -77,51 +82,77 @@ public class DocumentManager {
 		editor.getSite().getSelectionProvider().setSelection(selection);
 	}
 
-	public void applyPatch(String fileName, Patch patch) throws BadLocationException {
-		Display.getDefault().syncExec(new Runnable() {
+	public void applyPatch(String fileName, List<Patch> patches) throws BadLocationException {
+		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
 
 				// CAUSING GLITCHES BECAUSE OF PUTTING ITEMS BETWEEN \r\n ->
 				// \ra\n
-				ITextEditor editor = currEditor;
+				ITextEditor editor = getEditor(fileName);
 				AbstractDocument document = getDocumentForEditor(editor);
-				ITextSelection currSelection = getSelectionForEditor(editor);
+				// ITextSelection currSelection = getSelectionForEditor(editor);
 
-				if (document.get().length() >= patch.getStartIndex() + 2
-						&& document.get().substring(patch.getStartIndex(), patch.getStartIndex() + 2).equals("\r\n")) {
-					throw new IllegalArgumentException("Inserted between \\r and \\n");
-				}
-				if (currFile.equals(fileName)) {
-					appliedPatches.add(patch);
-				}
+				String newDocument = document.get();
 
-				try {
-					if (patch.getRemovals() > 0) {
-						document.replace(patch.getStartIndex(), patch.getRemovals(), "");
-						// if (currSelection.getOffset() >=
-						// patch.getStartIndex() + patch.getRemovals()) {
-						// editor.selectAndReveal(currSelection.getOffset() -
-						// patch.getRemovals(), 0);
-						// } else if (currSelection.getOffset() >=
-						// patch.getStartIndex()) {
-						// editor.selectAndReveal(patch.getStartIndex(), 0);
-						// }
-					} else if (!patch.getInsertions().isEmpty()) {
-						document.replace(patch.getStartIndex(), 0, patch.getInsertions());
-						// if (currSelection.getOffset() >=
-						// patch.getStartIndex()) {
-						// editor.selectAndReveal(currSelection.getOffset() +
-						// patch.getInsertions().length(), 0);
-						// }
-					} else {
-						throw new IllegalArgumentException("Invalid patch; no operation described");
+				// If more CRLFs are found, re-analyze, using the new start
+				// index
+				for (Patch patch : patches) {
+					patch.convertToCRLF(newDocument);
+
+					// ListIterator<Diff> itr =
+					// patch.getDiffs().listIterator(patch.getDiffs().size());
+					// while (itr.hasPrevious()) {
+					// Apply patches starting at the end; that way, insertions
+					// or deletions do not affect
+					// indices of subsequent diffs.
+
+					for (Diff diff : patch.getDiffs()) {
+
+						// Throw errors if we are trying to insert between \r
+						// and \n
+						if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
+								&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
+								&& document.get().charAt(diff.getStartIndex()) == '\n') {
+							diff = diff.getOffsetDiff(-1);
+							System.out.println("Inserted between \\r and \\n");
+						}
+
+						if (currFile.equals(fileName)) {
+							appliedDiffs.add(diff);
+						}
+
+						try {
+							if (diff.isInsertion()) {
+								document.replace(diff.getStartIndex(), 0, diff.getChanges());
+								// if (currSelection.getOffset() >=
+								// patch.getStartIndex()) {
+								// editor.selectAndReveal(currSelection.getOffset()
+								// +
+								// patch.getInsertions().length(),
+								// currSelection.getLength());
+								// }
+							} else {
+								document.replace(diff.getStartIndex(), diff.getLength(), "");
+								// if (currSelection.getOffset() >=
+								// patch.getStartIndex() + patch.getRemovals())
+								// {
+								// editor.selectAndReveal(currSelection.getOffset()
+								// -
+								// patch.getRemovals(),
+								// currSelection.getLength());
+								// } else if (currSelection.getOffset() >=
+								// patch.getStartIndex()) {
+								// editor.selectAndReveal(patch.getStartIndex(),
+								// currSelection.getLength());
+								// }
+							}
+						} catch (BadLocationException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
-				} catch (BadLocationException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
-
 			}
 		});
 	}

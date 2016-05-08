@@ -1,93 +1,83 @@
 package patcher;
 
-import cceclipseplugin.utils.Utils;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Patch {
-	private int startIndex;
-	private int removals;
-	private String insertions;
 
-	public Patch(int startIndex, int removals, String insertions) {
-		this.startIndex = startIndex;
-		this.removals = removals;
-		this.insertions = insertions;
+	private final int baseVersion;
+	private final List<Diff> diffs;
+
+	public Patch(int baseVersion, List<Diff> diffs) {
+		this.baseVersion = baseVersion;
+		this.diffs = diffs;
 	}
 
 	public Patch(String str) {
-		String[] parts = str.split(":");
-		
-		if (parts.length != 2){
-			throw new IllegalArgumentException("Illegal patch format; should be %d:-%d or %d:+%s");
-		}
-		
-		try {
-			this.startIndex = Integer.parseInt(parts[0]);
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Invalid offset: " + parts[0], e);
-		}
-		switch (parts[1].charAt(0)) {
-		case '+':
-			this.insertions = Utils.urlDecode(parts[1].substring(1));
-			break;
-		case '-':
-			try {
-				this.removals = Integer.parseInt(parts[1].substring(1));
-			} catch (NumberFormatException e) {
-				throw new IllegalArgumentException("Invalid removal count: " + parts[1].substring(1), e);
-			}
-			break;
-		default:
-			throw new IllegalArgumentException("Invalid operation: " + parts[1].charAt(0));
+		String[] parts = str.split(":\n");
+		this.baseVersion = Integer.parseInt(parts[0].substring(1));
+
+		String[] diffStrs = parts[1].split(",\n");
+		diffs = new ArrayList<>();
+
+		for (String diffStr : diffStrs) {
+			diffs.add(new Diff(diffStr));
 		}
 	}
 
-	public int getStartIndex() {
-		return startIndex;
+	public List<Diff> getDiffs() {
+		return diffs;
 	}
 
-	public void setStartIndex(int startIndex) {
-		this.startIndex = startIndex;
+	public int getBaseVersion() {
+		return baseVersion;
 	}
 
-	public int getRemovals() {
-		return removals;
+	public Patch convertToCRLF(String base) {
+		List<Diff> CRLFDiffs = new ArrayList<Diff>();
+		for (Diff diff : diffs) {
+			CRLFDiffs.add(diff.convertToCRLF(base));
+		}
+		return new Patch(baseVersion, CRLFDiffs);
 	}
 
-	public void setRemovals(int removals) {
-		this.removals = removals;
+	public Patch convertToLF(String base) {
+		List<Diff> LFDiffs = new ArrayList<Diff>();
+		for (Diff diff : diffs) {
+			LFDiffs.add(diff.convertToLF(base));
+		}
+		return new Patch(baseVersion, LFDiffs);
 	}
 
-	public String getInsertions() {
-		return insertions;
-	}
-
-	public void setInsertions(String insertions) {
-		this.insertions = insertions;
+	public Patch getUndo() {
+		List<Diff> undoDiffs = new ArrayList<Diff>();
+		for (Diff diff : diffs) {
+			undoDiffs.add(diff.getUndo());
+		}
+		return new Patch(baseVersion, undoDiffs);
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
+		sb.append("v");
+		sb.append(baseVersion);
 
-		if (removals > 0) {
-			sb.append(String.format("%d:-%d", startIndex, removals));
-		}
-		if (!insertions.isEmpty()) {
-			// TODO: Do we need to change all line-breaks to CRLF?
-			// or replace \v with \n?
-			sb.append(String.format("%d:+%s", startIndex, Utils.urlEncode(insertions)));
+		sb.append(":\n");
+		for (Diff diff : diffs) {
+			sb.append(diff);
+			sb.append(",\n");
 		}
 
-		return sb.toString();
+		return sb.substring(0, sb.length() - 2);
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((insertions == null) ? 0 : insertions.hashCode());
-		result = prime * result + removals;
-		result = prime * result + startIndex;
+		result = prime * result + baseVersion;
+		result = prime * result + ((diffs == null) ? 0 : diffs.hashCode());
 		return result;
 	}
 
@@ -100,16 +90,36 @@ public class Patch {
 		if (getClass() != obj.getClass())
 			return false;
 		Patch other = (Patch) obj;
-		if (insertions == null) {
-			if (other.insertions != null)
+		if (baseVersion != other.baseVersion)
+			return false;
+		if (diffs == null) {
+			if (other.diffs != null)
 				return false;
-		} else if (!insertions.equals(other.insertions))
-			return false;
-		if (removals != other.removals)
-			return false;
-		if (startIndex != other.startIndex)
+		} else if (!diffs.equals(other.diffs))
 			return false;
 		return true;
 	}
 
+	public Patch transform(List<Patch> patches) {
+		return transform(patches.toArray(new Patch[patches.size()]));
+	}
+
+	public Patch transform(Patch... patches) {
+		List<Diff> intermediateDiffs = diffs;
+		int maxVersionSeen = baseVersion;
+
+		for (Patch patch : patches) {
+			// Must be able to transform backwards as well?
+			List<Diff> newIntermediateDiffs = new ArrayList<>();
+
+			for (Diff diff : intermediateDiffs) {
+				newIntermediateDiffs.addAll(diff.transform(patch.diffs));
+			}
+
+			intermediateDiffs = newIntermediateDiffs;
+			maxVersionSeen = patch.baseVersion;
+		}
+
+		return new Patch(maxVersionSeen, intermediateDiffs);
+	}
 }

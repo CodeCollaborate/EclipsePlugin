@@ -15,6 +15,8 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.core.databinding.property;bundle-version="1.5.0",
  org.eclipse.core.resources;bundle-version="3.10.1",
  org.eclipse.jface.databinding;bundle-version="1.7.0",
- org.eclipse.ui.workbench.texteditor;bundle-version="3.9.100"
+ org.eclipse.ui.workbench.texteditor;bundle-version="3.9.100",
+ org.apache.commons.lang3;bundle-version="3.1.0",
+ org.junit
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy

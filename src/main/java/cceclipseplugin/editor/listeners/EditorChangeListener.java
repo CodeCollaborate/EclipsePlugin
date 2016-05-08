@@ -77,7 +77,6 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 			currListener = new DocumentChangeListener();
 			this.documentMgr.setCurrFile(filePath);
 			document.addDocumentListener(currListener);
-			documentMgr.currEditor = editor;
 		}
 	}
 
