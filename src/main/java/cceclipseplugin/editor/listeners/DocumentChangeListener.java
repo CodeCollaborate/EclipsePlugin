@@ -10,8 +10,11 @@ import org.eclipse.jface.text.IDocumentListener;
 
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.utils.Utils;
+import clientcore.models.FileChangeRequest;
+import clientcore.models.Request;
 import patcher.Diff;
 import patcher.Patch;
+import websocket.WSManager;
 
 public class DocumentChangeListener implements IDocumentListener {
 
@@ -51,6 +54,15 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		// Send to server
 		System.out.println(diffs);
+		String[] diffStrings = new String[diffs.size()];
+		for (String s : diffStrings) {
+			s = diffs.toString();
+		}
+		FileChangeRequest changeRequest = new FileChangeRequest(12345, diffStrings, 0);
+		
+		// TODO: move this functionality to the client core
+		Request req = changeRequest.getRequest();
+		
 
 		/*
 		 * Example application of a patch without triggering the listener. Must
