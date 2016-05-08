@@ -477,7 +477,7 @@ public class TestDiff {
 		Assert.assertEquals(4, result.get(0).getStartIndex());
 		Assert.assertEquals("l", result.get(0).getChanges());
 		Assert.assertEquals(false, result.get(1).isInsertion());
-		Assert.assertEquals(9, result.get(1).getStartIndex());
+		Assert.assertEquals(8, result.get(1).getStartIndex());
 		Assert.assertEquals("ongStr2", result.get(1).getChanges());
 		
 		// Test else case: no change

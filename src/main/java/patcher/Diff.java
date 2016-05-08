@@ -265,7 +265,7 @@ public class Diff {
 							String changes2 = intermediate.changes.substring(intermediate.getLength() - length2,
 									intermediate.getLength());
 							Diff diff1 = new Diff(intermediate.insertion, intermediate.startIndex, changes1);
-							Diff diff2 = new Diff(intermediate.insertion, other.startIndex + other.getLength(),
+							Diff diff2 = new Diff(intermediate.insertion, intermediate.startIndex + other.getLength(),
 									changes2);
 
 							newIntermediateDiffs.add(diff1);
