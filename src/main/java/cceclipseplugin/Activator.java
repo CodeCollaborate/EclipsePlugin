@@ -4,7 +4,10 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
+import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
+import websocket.WSManager;
+import websocket.models.ConnectionConfig;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -16,7 +19,7 @@ public class Activator extends AbstractUIPlugin {
 
 	// The shared instance
 	private static Activator plugin;
-	
+
 	/**
 	 * The constructor
 	 */
@@ -30,13 +33,8 @@ public class Activator extends AbstractUIPlugin {
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		plugin = this;
-		PlatformUI.getWorkbench().getDisplay().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				PlatformUI.getWorkbench().getActiveWorkbenchWindow().getPartService()
-						.addPartListener(EditorChangeListener.getInstance());
-			}
-		});
+		
+		PluginManager.getInstance();;		
 	}
 
 	/*

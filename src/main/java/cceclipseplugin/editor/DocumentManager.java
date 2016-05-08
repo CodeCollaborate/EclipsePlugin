@@ -1,21 +1,15 @@
 package cceclipseplugin.editor;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Queue;
 
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.texteditor.ITextEditor;
-import org.junit.Assert;
-import org.junit.Test;
 
 import patcher.Diff;
 import patcher.Patch;

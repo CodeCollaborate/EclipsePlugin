@@ -5,6 +5,7 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorReference;
 import org.eclipse.ui.IFileEditorInput;
+import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
@@ -29,15 +30,18 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	}
 
 	private EditorChangeListener() {
-		IEditorReference[] editorRefs = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage()
-				.getEditorReferences();
+		IWorkbenchPage activePage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+		IEditorReference[] editorRefs = activePage.getEditorReferences();
 		for (IEditorReference ref : editorRefs) {
 			IEditorPart editor = ref.getEditor(false);
 
 			if (editor instanceof ITextEditor) {
-				IDocument document = ((ITextEditor) editor).getDocumentProvider().getDocument(editor.getEditorInput());
 				String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getRawLocation().toString();
 				this.documentMgr.openedEditor(filePath, (ITextEditor) editor);
+				
+				if(editor == activePage.getActiveEditor()){
+					this.partActivated(activePage.getActivePartReference());
+				}
 			}
 		}
 	}

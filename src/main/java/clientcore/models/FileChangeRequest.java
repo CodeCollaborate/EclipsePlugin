@@ -1,5 +1,7 @@
 package clientcore.models;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,12 +17,12 @@ public class FileChangeRequest implements IRequestData {
 	protected long fileID;
 
 	@JsonProperty("Changes")
-	protected String[] changes;
+	protected List<String> changes;
 
 	@JsonProperty("FileVersion")
 	protected long fileVersion;
 
-	public FileChangeRequest(long fileID, String[] changes, long fileVersion) {
+	public FileChangeRequest(long fileID, List<String> changes, long fileVersion) {
 		this.fileID = fileID;
 		this.changes = changes;
 		this.fileVersion = fileVersion;

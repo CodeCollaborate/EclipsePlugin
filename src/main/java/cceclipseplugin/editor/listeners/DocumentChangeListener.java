@@ -4,17 +4,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocumentListener;
 
 import cceclipseplugin.editor.DocumentManager;
-import cceclipseplugin.utils.Utils;
 import clientcore.models.FileChangeRequest;
-import clientcore.models.Request;
 import patcher.Diff;
 import patcher.Patch;
-import websocket.WSManager;
 
 public class DocumentChangeListener implements IDocumentListener {
 
@@ -25,9 +21,9 @@ public class DocumentChangeListener implements IDocumentListener {
 		String currDocument = event.getDocument().get();
 
 		if (event.getLength() > 0) {
-			Diff patch = new Diff(false, event.getOffset(),
+			Diff diff = new Diff(false, event.getOffset(),
 					currDocument.substring(event.getOffset(), event.getOffset() + event.getLength()));
-			diffs.add(patch);
+			diffs.add(diff);
 		}
 		if (!event.getText().isEmpty()) {
 			Diff patch = new Diff(true, event.getOffset(), event.getText());
@@ -48,20 +44,26 @@ public class DocumentChangeListener implements IDocumentListener {
 			return;
 		}
 
-		for (Diff patch : diffs) {
-			patch.convertToLF(currDocument);
+		List<Diff> newDiffs = new ArrayList<>();
+		for (Diff diff : diffs) {
+			newDiffs.add(diff.convertToLF(currDocument));
 		}
+		
+		Patch patch = new Patch(0, newDiffs);
 
 		// Send to server
-		System.out.println(diffs);
-		String[] diffStrings = new String[diffs.size()];
-		for (String s : diffStrings) {
-			s = diffs.toString();
-		}
-		FileChangeRequest changeRequest = new FileChangeRequest(12345, diffStrings, 0);
+		FileChangeRequest changeRequest = new FileChangeRequest(12345, Arrays.asList(patch.toString()), 0);
+		
+		System.out.println(patch.toString());
 		
 		// TODO: move this functionality to the client core
-		Request req = changeRequest.getRequest();
+//		Request req = changeRequest.getRequest();
+//		try {
+//			Plugin.manager.sendRequest(req);
+//		} catch (ConnectException e) {
+//			System.out.println("Failed to send change request.");
+//			e.printStackTrace();
+//		}
 		
 
 		/*
