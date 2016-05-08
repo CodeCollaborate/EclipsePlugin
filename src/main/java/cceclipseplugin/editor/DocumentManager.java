@@ -82,72 +82,72 @@ public class DocumentManager {
 		editor.getSite().getSelectionProvider().setSelection(selection);
 	}
 
-	public void applyPatch(String fileName, List<Patch> patches){
+	public void applyPatch(String fileName, List<Patch> patches) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
-			public void run() {		
+			public void run() {
 				ITextEditor editor = getEditor(fileName);
-				AbstractDocument document = getDocumentForEditor(editor);
-				// ITextSelection currSelection = getSelectionForEditor(editor);
+				if (editor != null) {
 
-				String newDocument = document.get();
+					AbstractDocument document = getDocumentForEditor(editor);
+					// ITextSelection currSelection =
+					// getSelectionForEditor(editor);
 
-				// If more CRLFs are found, re-analyze, using the new start
-				// index
-				for (Patch patch : patches) {
-					patch.convertToCRLF(newDocument);
+					String newDocument = document.get();
 
-					// ListIterator<Diff> itr =
-					// patch.getDiffs().listIterator(patch.getDiffs().size());
-					// while (itr.hasPrevious()) {
-					// Apply patches starting at the end; that way, insertions
-					// or deletions do not affect
-					// indices of subsequent diffs.
+					// If more CRLFs are found, re-analyze, using the new start
+					// index
+					for (Patch patch : patches) {
+						patch.convertToCRLF(newDocument);
 
-					for (Diff diff : patch.getDiffs()) {
+						for (Diff diff : patch.getDiffs()) {
 
-						// Throw errors if we are trying to insert between \r
-						// and \n
-						if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
-								&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
-								&& document.get().charAt(diff.getStartIndex()) == '\n') {
-//							diff = diff.getOffsetDiff(-1);
-//							System.out.println("Inserted between \\r and \\n");
-							throw new IllegalArgumentException("Tried to insert between \\r and \\n");
-						}
-
-						if (currFile.equals(fileName)) {
-							appliedDiffs.add(diff);
-						}
-
-						try {
-							if (diff.isInsertion()) {
-								document.replace(diff.getStartIndex(), 0, diff.getChanges());
-								// if (currSelection.getOffset() >=
-								// patch.getStartIndex()) {
-								// editor.selectAndReveal(currSelection.getOffset()
-								// +
-								// patch.getInsertions().length(),
-								// currSelection.getLength());
-								// }
-							} else {
-								document.replace(diff.getStartIndex(), diff.getLength(), "");
-								// if (currSelection.getOffset() >=
-								// patch.getStartIndex() + patch.getRemovals())
-								// {
-								// editor.selectAndReveal(currSelection.getOffset()
-								// -
-								// patch.getRemovals(),
-								// currSelection.getLength());
-								// } else if (currSelection.getOffset() >=
-								// patch.getStartIndex()) {
-								// editor.selectAndReveal(patch.getStartIndex(),
-								// currSelection.getLength());
-								// }
+							// Throw errors if we are trying to insert between
+							// \r
+							// and \n
+							if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
+									&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
+									&& document.get().charAt(diff.getStartIndex()) == '\n') {
+								// diff = diff.getOffsetDiff(-1);
+								// System.out.println("Inserted between \\r and
+								// \\n");
+								throw new IllegalArgumentException("Tried to insert between \\r and \\n");
 							}
-						} catch (BadLocationException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+
+							if (currFile.equals(fileName)) {
+								appliedDiffs.add(diff);
+							}
+
+							try {
+								if (diff.isInsertion()) {
+									document.replace(diff.getStartIndex(), 0, diff.getChanges());
+									// if (currSelection.getOffset() >=
+									// patch.getStartIndex()) {
+									// editor.selectAndReveal(currSelection.getOffset()
+									// +
+									// patch.getInsertions().length(),
+									// currSelection.getLength());
+									// }
+								} else {
+									document.replace(diff.getStartIndex(), diff.getLength(), "");
+									// if (currSelection.getOffset() >=
+									// patch.getStartIndex() +
+									// patch.getRemovals())
+									// {
+									// editor.selectAndReveal(currSelection.getOffset()
+									// -
+									// patch.getRemovals(),
+									// currSelection.getLength());
+									// } else if (currSelection.getOffset() >=
+									// patch.getStartIndex()) {
+									// editor.selectAndReveal(patch.getStartIndex(),
+									// currSelection.getLength());
+									// }
+								}
+							} catch (BadLocationException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 						}
 					}
 				}

@@ -21,14 +21,4 @@ public class StartupHandler implements IStartup {
 
 	}
 
-	public void MakeChangeWithoutTriggeringListener(AbstractDocument document) {
-		try {
-			// ((IDocumentExtension2) document).stopListenerNotification();
-			document.replace(0, 1, "!!");
-		} catch (BadLocationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
 }
