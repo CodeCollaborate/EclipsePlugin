@@ -15,8 +15,5 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry exported="true" kind="lib" path="lib/ClientCore.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/jackson-annotations-2.7.4.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/jackson-core-2.7.4.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/jackson-databind-2.1.4.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
