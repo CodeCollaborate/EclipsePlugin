@@ -57,12 +57,12 @@ public class DocumentChangeListener implements IDocumentListener {
 		 * be run on separate thread, to make sure we don't block GUI thread.
 		 */
 
-		Diff testDiff1 = new Diff("39:-2:" + Utils.urlEncode(currDocument.substring(39, 41)));
-		Diff testDiff2 = new Diff("39:+1:a");
-		Patch testPatch = new Patch(0, Arrays.asList(testDiff1, testDiff2));
-		testPatch = testPatch.transform(new Patch(0, diffs));
-		DocumentManager.getInstance().applyPatch(
-				"D:/Workspaces/runtime-EclipseApplication/Test/src/test/TestClass3.java", Arrays.asList(testPatch));
+//		Diff testDiff1 = new Diff("39:-2:" + Utils.urlEncode(currDocument.substring(39, 41)));
+//		Diff testDiff2 = new Diff("39:+1:a");
+//		Patch testPatch = new Patch(0, Arrays.asList(testDiff1, testDiff2));
+//		testPatch = testPatch.transform(new Patch(0, diffs));
+//		DocumentManager.getInstance().applyPatch(
+//				"D:/Workspaces/runtime-EclipseApplication/Test/src/test/TestClass3.java", Arrays.asList(testPatch));
 	}
 
 	@Override

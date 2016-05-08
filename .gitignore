@@ -14,3 +14,4 @@ target/*
 
 # Config files
 /config*
+/target/
