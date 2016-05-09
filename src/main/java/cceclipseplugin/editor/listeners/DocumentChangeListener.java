@@ -1,5 +1,6 @@
 package cceclipseplugin.editor.listeners;
 
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -7,10 +8,12 @@ import java.util.List;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocumentListener;
 
+import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
 import clientcore.models.FileChangeRequest;
-import patcher.Diff;
-import patcher.Patch;
+import clientcore.models.NewRequest;
+import patching.Diff;
+import patching.Patch;
 
 public class DocumentChangeListener implements IDocumentListener {
 
@@ -48,35 +51,34 @@ public class DocumentChangeListener implements IDocumentListener {
 		for (Diff diff : diffs) {
 			newDiffs.add(diff.convertToLF(currDocument));
 		}
-		
+
 		Patch patch = new Patch(0, newDiffs);
 
 		// Send to server
 		FileChangeRequest changeRequest = new FileChangeRequest(12345, Arrays.asList(patch.toString()), 0);
-		
+
 		System.out.println(patch.toString());
-		
+
 		// TODO: move this functionality to the client core
-//		Request req = changeRequest.getRequest();
-//		try {
-//			Plugin.manager.sendRequest(req);
-//		} catch (ConnectException e) {
-//			System.out.println("Failed to send change request.");
-//			e.printStackTrace();
-//		}
-		
+		NewRequest req = changeRequest.getRequest();
+		try {
+			PluginManager.getInstance().getWSManager().sendRequest(req);
+		} catch (ConnectException e) {
+			System.out.println("Failed to send change request.");
+			e.printStackTrace();
+		}
 
 		/*
-		 * Example application of a patch without triggering the listener. Must
-		 * be run on separate thread, to make sure we don't block GUI thread.
+		 * Example application of a patch without triggering the listener.
 		 */
-
-//		Diff testDiff1 = new Diff("39:-2:" + Utils.urlEncode(currDocument.substring(39, 41)));
-//		Diff testDiff2 = new Diff("39:+1:a");
-//		Patch testPatch = new Patch(0, Arrays.asList(testDiff1, testDiff2));
-//		testPatch = testPatch.transform(new Patch(0, diffs));
-//		DocumentManager.getInstance().applyPatch(
-//				"D:/Workspaces/runtime-EclipseApplication/Test/src/test/TestClass3.java", Arrays.asList(testPatch));
+		// Diff testDiff1 = new Diff("39:-2:" +
+		// Utils.urlEncode(currDocument.substring(39, 41)));
+		// Diff testDiff2 = new Diff("39:+1:a");
+		// Patch testPatch = new Patch(0, Arrays.asList(testDiff1, testDiff2));
+		// testPatch = testPatch.transform(new Patch(0, diffs));
+		// DocumentManager.getInstance().applyPatch(
+		// "D:/Workspaces/runtime-EclipseApplication/Test/src/test/TestClass3.java",
+		// Arrays.asList(testPatch));
 	}
 
 	@Override

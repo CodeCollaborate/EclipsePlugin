@@ -28,10 +28,11 @@ public class FileChangeRequest implements IRequestData {
 		this.fileVersion = fileVersion;
 	}
 
-	public Request getRequest() {
-		return new Request("File", "Change", this, 
-		response -> {
-			System.out.println(response);
+	@JsonIgnore
+	public NewRequest getRequest() {
+		return new NewRequest("File", "Change", this, 
+		(response) -> {
+			System.out.println("Received file change response: " + response);
 		} , 
 		() -> {
 			System.out.println("Failed to send file change to the server.");

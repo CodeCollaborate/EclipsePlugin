@@ -1,5 +1,7 @@
 package cceclipseplugin.editor;
 
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,8 +13,18 @@ import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import patcher.Diff;
-import patcher.Patch;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import clientcore.models.FileChangeNotification;
+import dataMgmt.FileContentWriter;
+import dataMgmt.MetadataManager;
+import dataMgmt.models.FileMetadata;
+import dataMgmt.models.ProjectMetadata;
+import patching.Diff;
+import patching.Patch;
+import websocket.models.Notification;
 
 public class DocumentManager {
 
@@ -76,11 +88,30 @@ public class DocumentManager {
 		editor.getSite().getSelectionProvider().setSelection(selection);
 	}
 
-	public void applyPatch(String fileName, List<Patch> patches) {
+	public void handleNotification(Notification n) {
+		JsonNode notificationJSON = n.getData();
+
+		FileChangeNotification notification = new ObjectMapper().convertValue(notificationJSON,
+				FileChangeNotification.class);
+
+		List<Patch> patches = new ArrayList<>();
+		for (String patchStr : notification.getChanges()) {
+			patches.add(new Patch(patchStr));
+		}
+
+		// Get file path to write to.
+		FileMetadata fileMetaData = MetadataManager.getInstance().getFileMetadata(notification.getFileID());
+		String projectRootPath = MetadataManager.getInstance().getProjectPath(fileMetaData.getProjectId());
+		String filepath = Paths.get(projectRootPath, fileMetaData.getFilePath()).toString();
+
+		this.applyPatch(notification.getFileID(), filepath, patches);
+	}
+
+	public void applyPatch(long fileId, String filePath, List<Patch> patches) {
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				ITextEditor editor = getEditor(fileName);
+				ITextEditor editor = getEditor(filePath);
 				if (editor != null) {
 
 					AbstractDocument document = getDocumentForEditor(editor);
@@ -91,8 +122,13 @@ public class DocumentManager {
 
 					// If more CRLFs are found, re-analyze, using the new start
 					// index
+					boolean useCRLF = newDocument.contains("\r\n");
+
 					for (Patch patch : patches) {
-						patch.convertToCRLF(newDocument);
+
+						if (useCRLF) {
+							patch.convertToCRLF(newDocument);
+						}
 
 						for (Diff diff : patch.getDiffs()) {
 
@@ -102,41 +138,18 @@ public class DocumentManager {
 							if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
 									&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
 									&& document.get().charAt(diff.getStartIndex()) == '\n') {
-								// diff = diff.getOffsetDiff(-1);
-								// System.out.println("Inserted between \\r and
-								// \\n");
 								throw new IllegalArgumentException("Tried to insert between \\r and \\n");
 							}
 
-							if (currFile.equals(fileName)) {
+							if (currFile.equals(filePath)) {
 								appliedDiffs.add(diff);
 							}
 
 							try {
 								if (diff.isInsertion()) {
 									document.replace(diff.getStartIndex(), 0, diff.getChanges());
-									// if (currSelection.getOffset() >=
-									// patch.getStartIndex()) {
-									// editor.selectAndReveal(currSelection.getOffset()
-									// +
-									// patch.getInsertions().length(),
-									// currSelection.getLength());
-									// }
 								} else {
 									document.replace(diff.getStartIndex(), diff.getLength(), "");
-									// if (currSelection.getOffset() >=
-									// patch.getStartIndex() +
-									// patch.getRemovals())
-									// {
-									// editor.selectAndReveal(currSelection.getOffset()
-									// -
-									// patch.getRemovals(),
-									// currSelection.getLength());
-									// } else if (currSelection.getOffset() >=
-									// patch.getStartIndex()) {
-									// editor.selectAndReveal(patch.getStartIndex(),
-									// currSelection.getLength());
-									// }
 								}
 							} catch (BadLocationException e) {
 								// TODO Auto-generated catch block
@@ -144,6 +157,8 @@ public class DocumentManager {
 							}
 						}
 					}
+				} else {
+					FileContentWriter.getInstance().enqueuePatchesForWriting(fileId, filePath, patches);
 				}
 			}
 		});

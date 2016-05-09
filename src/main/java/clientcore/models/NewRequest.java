@@ -13,7 +13,7 @@ import websocket.models.IRequestData;
  * Created by fahslaj on 4/14/2016.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Request extends websocket.models.Request {
+public class NewRequest extends websocket.models.Request {
 	
 	private static AtomicLong tagGenerator = new AtomicLong(0);
 	
@@ -46,7 +46,7 @@ public class Request extends websocket.models.Request {
     
     
 
-    public Request(String resource, String method,
+    public NewRequest(String resource, String method,
 			IRequestData data, IResponseHandler responseHandler, IRequestSendErrorHandler errorHandler) {
 		super();
 		this.tag = tagGenerator.getAndIncrement();
