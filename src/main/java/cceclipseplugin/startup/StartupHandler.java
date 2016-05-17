@@ -8,6 +8,6 @@ public class StartupHandler implements IStartup {
 
 	@Override
 	public void earlyStartup() {
-		PluginManager p =  PluginManager.getInstance();
+		PluginManager.getInstance();
 	}
 }

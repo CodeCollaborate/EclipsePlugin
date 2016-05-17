@@ -10,6 +10,11 @@ import org.eclipse.ui.PlatformUI;
 
 import cceclipseplugin.editor.*;
 
+/**
+ * Manager for the entire plugin. Should only be instantiated once.
+ * @author Benedict
+ *
+ */
 public class PluginManager {
 
 	private static PluginManager instance;
@@ -24,6 +29,7 @@ public class PluginManager {
 	private DocumentManager documentManager;
 	private MetadataManager metadataManager;
 	private WSManager wsManager;
+
 	// TODO: Add GUI modules and setup listeners in init()
 
 	/**
@@ -65,9 +71,8 @@ public class PluginManager {
 	}
 
 	private void registerNotificationHooks() {
-		wsManager.registerNotificationHandler("File", "Change", (Notification n) -> {
-			DocumentManager.getInstance().handleNotification(n);
-		});
+		wsManager.registerNotificationHandler("File", "Change",
+				(Notification n) -> DocumentManager.getInstance().handleNotification(n));
 	}
 
 }

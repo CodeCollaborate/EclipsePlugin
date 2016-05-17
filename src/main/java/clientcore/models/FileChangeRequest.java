@@ -32,6 +32,7 @@ public class FileChangeRequest implements IRequestData {
 	public NewRequest getRequest() {
 		return new NewRequest("File", "Change", this, 
 		(response) -> {
+			//TODO: Handle this correctly
 			System.out.println("Received file change response: " + response);
 		} , 
 		() -> {

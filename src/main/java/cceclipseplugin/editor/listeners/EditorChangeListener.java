@@ -12,6 +12,10 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import cceclipseplugin.editor.DocumentManager;
 
+/**
+ * Listens to changes in eclipse parts, notifies DocumentManager when new documents/editors are opened or closed
+ * @author Benedict
+ */
 public class EditorChangeListener extends AbstractEditorChangeListener {
 
 	private static EditorChangeListener instance = null;
@@ -47,6 +51,9 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	}
 
 	@Override
+	/**
+	 * Called when a part is opened. Notifies documentManager of opened document
+	 */
 	public void partOpened(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
@@ -58,6 +65,9 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	}
 
 	@Override
+	/**
+	 * Called when a part is closed. Notifies documentManager of document closure.
+	 */
 	public void partClosed(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
@@ -71,6 +81,9 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	}
 
 	@Override
+	/**
+	 * Notify DocumentManager of active document, set new listener.
+	 */
 	public void partActivated(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
@@ -85,6 +98,9 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	}
 
 	@Override
+	/**
+	 * Notify DocumentManager of inactive document, removes listener
+	 */
 	public void partDeactivated(IWorkbenchPartReference ref) {
 		// TODO Auto-generated method stub
 		if (ref.getPart(false) instanceof ITextEditor) {
