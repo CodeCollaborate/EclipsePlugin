@@ -1,17 +1,20 @@
 package cceclipseplugin.core;
 
+import org.eclipse.ui.PlatformUI;
+
+import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
+import dataMgmt.DataManager;
+import dataMgmt.FileContentWriter;
 import dataMgmt.MetadataManager;
+import patching.PatchManager;
 import websocket.WSManager;
 import websocket.models.ConnectionConfig;
 import websocket.models.Notification;
 
-import org.eclipse.ui.PlatformUI;
-
-import cceclipseplugin.editor.*;
-
 /**
  * Manager for the entire plugin. Should only be instantiated once.
+ * 
  * @author Benedict
  *
  */
@@ -26,9 +29,10 @@ public class PluginManager {
 
 	// PLUGIN MODULES
 	private EditorChangeListener editorChangeListener;
-	private DocumentManager documentManager;
-	private MetadataManager metadataManager;
-	private WSManager wsManager;
+	private final DocumentManager documentManager;
+	private final MetadataManager metadataManager;
+	private final DataManager dataManager;
+	private final WSManager wsManager;
 
 	// TODO: Add GUI modules and setup listeners in init()
 
@@ -49,17 +53,18 @@ public class PluginManager {
 	}
 
 	private PluginManager() {
-		documentManager = DocumentManager.getInstance();
+		documentManager = new DocumentManager();
 		metadataManager = new MetadataManager();
+		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
 
 		registerNotificationHooks();
 
-		// Start listeners
+		// Start editor & document listeners
 		PlatformUI.getWorkbench().getDisplay().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				editorChangeListener = EditorChangeListener.getInstance();
+				editorChangeListener = new EditorChangeListener();
 				PlatformUI.getWorkbench().getActiveWorkbenchWindow().getPartService()
 						.addPartListener(editorChangeListener);
 			}
@@ -70,9 +75,21 @@ public class PluginManager {
 		return wsManager;
 	}
 
+	public DocumentManager getDocumentManager() {
+		return documentManager;
+	}
+
+	public MetadataManager getMetadataManager() {
+		return metadataManager;
+	}
+
+	public DataManager getDataManager() {
+		return dataManager;
+	}
+
 	private void registerNotificationHooks() {
 		wsManager.registerNotificationHandler("File", "Change",
-				(Notification n) -> DocumentManager.getInstance().handleNotification(n));
+				(Notification n) -> documentManager.handleNotification(n));
 	}
 
 }

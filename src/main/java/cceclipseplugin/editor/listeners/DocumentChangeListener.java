@@ -44,7 +44,7 @@ public class DocumentChangeListener implements IDocumentListener {
 		}
 
 		// If diffs were incoming, applied diffs, early-out
-		DocumentManager docMgr = DocumentManager.getInstance();
+		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
 		for (int i = 0; i < diffs.size(); i++) {
 			while (!docMgr.getAppliedDiffs().isEmpty()) {
 				if (diffs.get(i).equals(docMgr.getAppliedDiffs().poll())) {
@@ -79,18 +79,6 @@ public class DocumentChangeListener implements IDocumentListener {
 			System.out.println("Failed to send change request.");
 			e.printStackTrace();
 		}
-
-		/*
-		 * Example application of a patch without triggering the listener.
-		 */
-		// Diff testDiff1 = new Diff("39:-2:" +
-		// Utils.urlEncode(currDocument.substring(39, 41)));
-		// Diff testDiff2 = new Diff("39:+1:a");
-		// Patch testPatch = new Patch(0, Arrays.asList(testDiff1, testDiff2));
-		// testPatch = testPatch.transform(new Patch(0, diffs));
-		// DocumentManager.getInstance().applyPatch(
-		// "D:/Workspaces/runtime-EclipseApplication/Test/src/test/TestClass3.java",
-		// Arrays.asList(testPatch));
 	}
 
 	/**

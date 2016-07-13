@@ -10,30 +10,21 @@ import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
 
 /**
- * Listens to changes in eclipse parts, notifies DocumentManager when new documents/editors are opened or closed
+ * Listens to changes in eclipse parts, notifies DocumentManager when new
+ * documents/editors are opened or closed
+ * 
  * @author Benedict
  */
 public class EditorChangeListener extends AbstractEditorChangeListener {
 
-	private static EditorChangeListener instance = null;
 	private DocumentChangeListener currListener = null;
-	private DocumentManager documentMgr = DocumentManager.getInstance();
+	private final DocumentManager documentMgr = PluginManager.getInstance().getDocumentManager();
 
-	public static EditorChangeListener getInstance() {
-		if (instance == null) {
-			synchronized (EditorChangeListener.class) {
-				if (instance == null) {
-					instance = new EditorChangeListener();
-				}
-			}
-		}
-		return instance;
-	}
-
-	private EditorChangeListener() {
+	public EditorChangeListener() {
 		IWorkbenchPage activePage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
 		IEditorReference[] editorRefs = activePage.getEditorReferences();
 		for (IEditorReference ref : editorRefs) {
@@ -42,18 +33,18 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 			if (editor instanceof ITextEditor) {
 				String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getRawLocation().toString();
 				this.documentMgr.openedEditor(filePath, (ITextEditor) editor);
-				
-				if(editor == activePage.getActiveEditor()){
+
+				if (editor == activePage.getActiveEditor()) {
 					this.partActivated(activePage.getActivePartReference());
 				}
 			}
 		}
 	}
 
-	@Override
 	/**
 	 * Called when a part is opened. Notifies documentManager of opened document
 	 */
+	@Override
 	public void partOpened(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
@@ -64,10 +55,11 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 		}
 	}
 
-	@Override
 	/**
-	 * Called when a part is closed. Notifies documentManager of document closure.
+	 * Called when a part is closed. Notifies documentManager of document
+	 * closure.
 	 */
+	@Override
 	public void partClosed(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
@@ -80,10 +72,10 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 
 	}
 
-	@Override
 	/**
 	 * Notify DocumentManager of active document, set new listener.
 	 */
+	@Override
 	public void partActivated(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
@@ -97,10 +89,10 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 		}
 	}
 
-	@Override
 	/**
 	 * Notify DocumentManager of inactive document, removes listener
 	 */
+	@Override
 	public void partDeactivated(IWorkbenchPartReference ref) {
 		// TODO Auto-generated method stub
 		if (ref.getPart(false) instanceof ITextEditor) {
