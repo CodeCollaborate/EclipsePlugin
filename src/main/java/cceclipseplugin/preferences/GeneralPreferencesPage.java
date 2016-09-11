@@ -1,10 +1,14 @@
 package cceclipseplugin.preferences;
 
-import org.eclipse.jface.preference.*;
+import org.eclipse.jface.preference.FieldEditorPreferencePage;
+import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.IWorkbench;
+import org.eclipse.ui.IWorkbenchPreferencePage;
+
 import cceclipseplugin.Activator;
+import cceclipseplugin.constants.StringConstants;
 
 public class GeneralPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
@@ -21,12 +25,12 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 	 */
 	public void createFieldEditors() {
 
-		StringFieldEditor hostBox = new StringFieldEditor(constants.StringConstants.PREFERENCES_HOSTNAME,
-				constants.StringConstants.PREFERENCES_HOSTNAME, getFieldEditorParent());
-		StringFieldEditor userBox = new StringFieldEditor(constants.StringConstants.PREFERENCES_USERNAME,
-				constants.StringConstants.PREFERENCES_USERNAME, getFieldEditorParent());
-		StringFieldEditor pwBox = new StringFieldEditor(constants.StringConstants.PREFERENCES_PASSWORD,
-				constants.StringConstants.PREFERENCES_PASSWORD, getFieldEditorParent()) {
+		StringFieldEditor hostBox = new StringFieldEditor(StringConstants.PREFERENCES_HOSTNAME,
+				StringConstants.PREFERENCES_HOSTNAME, getFieldEditorParent());
+		StringFieldEditor userBox = new StringFieldEditor(StringConstants.PREFERENCES_USERNAME,
+				StringConstants.PREFERENCES_USERNAME, getFieldEditorParent());
+		StringFieldEditor pwBox = new StringFieldEditor(StringConstants.PREFERENCES_PASSWORD,
+				StringConstants.PREFERENCES_PASSWORD, getFieldEditorParent()) {
 			@Override
 			protected void doFillIntoGrid(Composite parent, int numColumns) {
 				super.doFillIntoGrid(parent, numColumns);

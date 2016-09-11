@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.ITextSelection;
@@ -16,11 +17,13 @@ import org.eclipse.ui.texteditor.ITextEditor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
-import clientcore.models.FileChangeNotification;
+import websocket.models.notifications.FileChangeNotification;
 import dataMgmt.FileContentWriter;
 import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
+import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
 import websocket.models.Notification;
@@ -124,24 +127,31 @@ public class DocumentManager {
 	 *            Notification of file changes.
 	 */
 	public void handleNotification(Notification n) {
-		JsonNode notificationJSON = n.getData();
-
 		// Convert to correct notification types
-		FileChangeNotification notification = new ObjectMapper().convertValue(notificationJSON,
-				FileChangeNotification.class);
+		FileChangeNotification changeNotif = (FileChangeNotification) n.getData();
 
 		// Parse list of patches.
 		List<Patch> patches = new ArrayList<>();
-		for (String patchStr : notification.getChanges()) {
+		for (String patchStr : changeNotif.changes) {
 			patches.add(new Patch(patchStr));
 		}
 
 		// Get file path to write to.
-		FileMetadata fileMetaData = PluginManager.getInstance().getMetadataManager().getFileMetadata(notification.getFileID());
-		String projectRootPath = PluginManager.getInstance().getMetadataManager().getProjectPath(fileMetaData.getProjectId());
+		FileMetadata fileMetaData = PluginManager.getInstance().getMetadataManager()
+				.getFileMetadata(n.getResourceID());
+		String projectRootPath = PluginManager.getInstance().getMetadataManager()
+				.getProjectPath(fileMetaData.getProjectId());
 		String filepath = Paths.get(projectRootPath, fileMetaData.getFilePath()).toString();
-
-		this.applyPatch(notification.getFileID(), filepath, patches);
+		
+		this.applyPatch(n.getResourceID(), filepath, patches);
+		
+		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
+				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(StringConstants.FILE_ID);
+		
+		fileMeta.setVersion(changeNotif.fileVersion);
+		PluginManager.getInstance().getMetadataManager().writeProjectMetadata(projMeta, ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
+		
 	}
 
 	/**
@@ -209,7 +219,8 @@ public class DocumentManager {
 				} else {
 					// If file is not open in an editor, enqueue the patch for
 					// writing.
-					PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId, filePath, patches);
+					PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
+							filePath, patches);
 				}
 			}
 		});

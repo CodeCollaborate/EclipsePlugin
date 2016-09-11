@@ -5,29 +5,37 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocumentListener;
 
+import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
-import clientcore.models.FileChangeRequest;
-import clientcore.models.NewRequest;
+import dataMgmt.models.FileMetadata;
+import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
+import websocket.models.Request;
+import websocket.models.requests.FileChangeRequest;
+import websocket.models.responses.FileChangeResponse;
 
 /**
- * Listens for document changes, and dispatches a new FileChangeRequest when changes occur.
+ * Listens for document changes, and dispatches a new FileChangeRequest when
+ * changes occur.
+ * 
  * @author Benedict
  */
 public class DocumentChangeListener implements IDocumentListener {
 
 	/**
 	 * Called when document is about to be changed.
-	 * @param event the DocumentEvent that triggered this listener.
+	 * 
+	 * @param event
+	 *            the DocumentEvent that triggered this listener.
 	 */
 	@Override
 	public void documentAboutToBeChanged(DocumentEvent event) {
-
 		List<Diff> diffs = new ArrayList<>();
 		String currDocument = event.getDocument().get();
 
@@ -53,7 +61,7 @@ public class DocumentChangeListener implements IDocumentListener {
 				}
 			}
 		}
-		
+
 		// If no diffs left; abort
 		if (diffs.isEmpty()) {
 			return;
@@ -69,10 +77,18 @@ public class DocumentChangeListener implements IDocumentListener {
 		Patch patch = new Patch(0, newDiffs);
 
 		// Send to server
-		FileChangeRequest changeRequest = new FileChangeRequest(12345, Arrays.asList(patch.toString()), 0);
+		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
+				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
+		
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(StringConstants.FILE_ID);
 
-		// TODO: move this functionality to the client core
-		NewRequest req = changeRequest.getRequest();
+		FileChangeRequest data = new FileChangeRequest(StringConstants.FILE_ID, new String[] { patch.toString() },
+				fileMeta.getVersion());
+		Request req = new Request("File", "Change", data, response -> {
+			fileMeta.setVersion(((FileChangeResponse)response.getData()).getFileVersion());
+			PluginManager.getInstance().getMetadataManager().writeProjectMetadata(projMeta, ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
+		}, null);
+
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
 		} catch (ConnectException e) {
@@ -83,7 +99,9 @@ public class DocumentChangeListener implements IDocumentListener {
 
 	/**
 	 * No nothing, simple stub.
-	 * @param event The DocumentEvent that triggered this listener.
+	 * 
+	 * @param event
+	 *            The DocumentEvent that triggered this listener.
 	 */
 	@Override
 	public void documentChanged(DocumentEvent event) {
