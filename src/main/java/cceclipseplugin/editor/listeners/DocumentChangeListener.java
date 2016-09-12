@@ -16,6 +16,8 @@ import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
+import websocket.IRequestSendErrorHandler;
+import websocket.IResponseHandler;
 import websocket.models.Request;
 import websocket.models.requests.FileChangeRequest;
 import websocket.models.responses.FileChangeResponse;
@@ -78,16 +80,16 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		// Send to server
 		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
-				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
-		
-		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(StringConstants.FILE_ID);
+				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/");
 
-		FileChangeRequest data = new FileChangeRequest(StringConstants.FILE_ID, new String[] { patch.toString() },
-				fileMeta.getVersion());
-		Request req = new Request("File", "Change", data, response -> {
-			fileMeta.setVersion(((FileChangeResponse)response.getData()).getFileVersion());
-			PluginManager.getInstance().getMetadataManager().writeProjectMetadata(projMeta, ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
-		}, null);
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager()
+				.getFileMetadata(StringConstants.FILE_ID);
+
+		Request req = getFileChangeRequest(StringConstants.FILE_ID, new String[] { patch.toString() }, response -> {
+					fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
+					PluginManager.getInstance().getMetadataManager().writeProjectMetadata(projMeta,
+							ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/");
+				}, null, 1);
 
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
@@ -95,6 +97,29 @@ public class DocumentChangeListener implements IDocumentListener {
 			System.out.println("Failed to send change request.");
 			e.printStackTrace();
 		}
+	}
+
+	private Request getFileChangeRequest(long fileID, String[] changes, IResponseHandler respHandler,
+			IRequestSendErrorHandler sendErrHandler, int retryCount) {
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager()
+				.getFileMetadata(StringConstants.FILE_ID);
+
+		return new FileChangeRequest(fileID, changes, fileMeta.getVersion()).getRequest(response -> {
+			
+			// If we failed the first time around, update the fileVersion and retry.
+			if(response.getStatus() == 409 && retryCount > 0){
+				Request req = getFileChangeRequest(fileID, changes, respHandler, sendErrHandler, retryCount - 1);
+				try {
+					PluginManager.getInstance().getWSManager().sendRequest(req);
+				} catch (ConnectException e) {
+					System.out.println("Failed to send change request.");
+					e.printStackTrace();
+				}
+				return;
+			}
+
+			respHandler.handleResponse(response);
+		}, sendErrHandler);
 	}
 
 	/**
