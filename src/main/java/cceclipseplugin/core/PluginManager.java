@@ -19,6 +19,7 @@ import websocket.models.IRequestData;
 import websocket.models.Notification;
 import websocket.models.Request;
 import websocket.models.requests.FileCreateRequest;
+import websocket.models.requests.ProjectSubscribeRequest;
 import websocket.models.requests.UserLoginRequest;
 import websocket.models.requests.UserRegisterRequest;
 import websocket.models.responses.UserLoginResponse;
@@ -152,6 +153,12 @@ public class PluginManager {
 				getWSManager().setAuthInfo(StringConstants.PREFERENCES_USERNAME,
 						((UserLoginResponse) response.getData()).getToken());
 
+				try {
+					wsManager.sendRequest(new ProjectSubscribeRequest(StringConstants.PROJ_ID).getRequest());
+				} catch (ConnectException e) {
+					e.printStackTrace();
+				}
+				
 				// For creating new file
 				// IRequestData data = new
 				// FileCreateRequest(StringConstants.FILE_NAME,

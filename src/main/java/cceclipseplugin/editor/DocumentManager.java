@@ -60,7 +60,7 @@ public class DocumentManager {
 	 *            File path of active file
 	 */
 	public void setCurrFile(String filePath) {
-		this.currFile = filePath;
+		this.currFile = Paths.get(filePath).toString();
 	}
 
 	/**
@@ -72,7 +72,7 @@ public class DocumentManager {
 	 *            Editor that is opened for the given file
 	 */
 	public void openedEditor(String filePath, ITextEditor editor) {
-		this.openEditors.put(filePath, editor);
+		this.openEditors.put(Paths.get(filePath).toString(), editor);
 	}
 
 	/**
@@ -141,7 +141,15 @@ public class DocumentManager {
 				.getFileMetadata(n.getResourceID());
 		String projectRootPath = PluginManager.getInstance().getMetadataManager()
 				.getProjectPath(fileMetaData.getProjectId());
-		String filepath = Paths.get(projectRootPath, fileMetaData.getFilePath()).toString();
+		String filepath = Paths.get(projectRootPath, StringConstants.PROJ_NAME, fileMetaData.getFilePath()).toString();
+
+		// TODO(wongb): FIND A WAY TO MAKE THIS MORE DETERMINISTIC
+		// Only apply patch if incoming fileVersion is greater than local fileVersion. 
+		// This is meant to ensure that the notification from our own fileChangeRequest doesn't get re-processed.
+		// **** This need to be changed, as a missing response means that local fileVersion is not updated.
+		if(changeNotif.fileVersion <= fileMetaData.getVersion()){
+			return;
+		}
 		
 		this.applyPatch(n.getResourceID(), filepath, patches);
 		
@@ -166,12 +174,13 @@ public class DocumentManager {
 	 *            the list of patches to apply, in order.
 	 */
 	public void applyPatch(long fileId, String filePath, List<Patch> patches) {
+		String currFile = this.currFile;
+		
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
 				ITextEditor editor = getEditor(filePath);
 				if (editor != null) {
-
 					// Get reference to open document
 					AbstractDocument document = getDocumentForEditor(editor);
 
