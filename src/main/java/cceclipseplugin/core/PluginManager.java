@@ -1,8 +1,5 @@
 package cceclipseplugin.core;
 
-import java.net.ConnectException;
-import java.util.concurrent.Semaphore;
-
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.ui.PlatformUI;
 
@@ -11,15 +8,12 @@ import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
-import dataMgmt.models.FileMetadata;
-import dataMgmt.models.ProjectMetadata;
+import websocket.ConnectException;
 import websocket.WSConnection;
 import websocket.WSManager;
 import websocket.models.ConnectionConfig;
-import websocket.models.IRequestData;
 import websocket.models.Notification;
 import websocket.models.Request;
-import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.ProjectSubscribeRequest;
 import websocket.models.requests.UserLoginRequest;
 import websocket.models.requests.UserRegisterRequest;
@@ -179,12 +173,12 @@ public class PluginManager {
 								// }
 							}, null);
 					try {
-						getWSManager().sendRequest(req2);
+						getWSManager().sendRequest(req2, -1);
 					} catch (ConnectException e) {
 						throw new IllegalStateException("Failed to connect while attempting to log in", e);
 					}
 				}, null);
-		getWSManager().sendRequest(req1);
+		getWSManager().sendRequest(req1, -1);
 
 	}
 }

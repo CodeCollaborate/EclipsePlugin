@@ -1,8 +1,6 @@
 package cceclipseplugin.editor.listeners;
 
-import java.net.ConnectException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -16,6 +14,7 @@ import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
+import websocket.ConnectException;
 import websocket.IRequestSendErrorHandler;
 import websocket.IResponseHandler;
 import websocket.models.Request;

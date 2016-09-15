@@ -10,23 +10,17 @@ import java.util.Queue;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
-import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
-import websocket.models.notifications.FileChangeNotification;
-import dataMgmt.FileContentWriter;
-import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
 import websocket.models.Notification;
+import websocket.models.notifications.FileChangeNotification;
 
 /**
  * Manages documents, finds editors as needed.
