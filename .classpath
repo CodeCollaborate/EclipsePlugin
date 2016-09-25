@@ -14,6 +14,6 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry exported="true" kind="lib" path="lib/ClientCore.jar"/>
+	<classpathentry kind="lib" path="lib/ClientCore.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

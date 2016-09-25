@@ -8,5 +8,25 @@
    <extension
          point="org.eclipse.ui.editors">
    </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="cceclipseplugin.preferences.GeneralPreferencesPage"
+            id="cceclipseplugin.preferences"
+            name="CodeCollaborate">
+      </page>
+      <!-- <page
+            category="cceclipseplugin.preferences"
+            class="cceclipseplugin.preferences.ConnectionPreferencesPage"
+            id="cceclipseplugin.preferences.connection"
+            name="Connection">
+      </page> -->
+   </extension>
+   <extension
+         point="org.eclipse.core.runtime.preferences">
+      <initializer
+            class="cceclipseplugin.preferences.PreferenceInitializer">
+      </initializer>
+   </extension>
 
 </plugin>

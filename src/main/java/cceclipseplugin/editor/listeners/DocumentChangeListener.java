@@ -1,33 +1,42 @@
 package cceclipseplugin.editor.listeners;
 
-import java.net.ConnectException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocumentListener;
 
+import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
-import clientcore.models.FileChangeRequest;
-import clientcore.models.NewRequest;
+import dataMgmt.models.FileMetadata;
+import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
+import websocket.ConnectException;
+import websocket.IRequestSendErrorHandler;
+import websocket.IResponseHandler;
+import websocket.models.Request;
+import websocket.models.requests.FileChangeRequest;
+import websocket.models.responses.FileChangeResponse;
 
 /**
- * Listens for document changes, and dispatches a new FileChangeRequest when changes occur.
+ * Listens for document changes, and dispatches a new FileChangeRequest when
+ * changes occur.
+ * 
  * @author Benedict
  */
 public class DocumentChangeListener implements IDocumentListener {
 
 	/**
 	 * Called when document is about to be changed.
-	 * @param event the DocumentEvent that triggered this listener.
+	 * 
+	 * @param event
+	 *            the DocumentEvent that triggered this listener.
 	 */
 	@Override
 	public void documentAboutToBeChanged(DocumentEvent event) {
-
 		List<Diff> diffs = new ArrayList<>();
 		String currDocument = event.getDocument().get();
 
@@ -44,7 +53,7 @@ public class DocumentChangeListener implements IDocumentListener {
 		}
 
 		// If diffs were incoming, applied diffs, early-out
-		DocumentManager docMgr = DocumentManager.getInstance();
+		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
 		for (int i = 0; i < diffs.size(); i++) {
 			while (!docMgr.getAppliedDiffs().isEmpty()) {
 				if (diffs.get(i).equals(docMgr.getAppliedDiffs().poll())) {
@@ -53,7 +62,7 @@ public class DocumentChangeListener implements IDocumentListener {
 				}
 			}
 		}
-		
+
 		// If no diffs left; abort
 		if (diffs.isEmpty()) {
 			return;
@@ -69,33 +78,54 @@ public class DocumentChangeListener implements IDocumentListener {
 		Patch patch = new Patch(0, newDiffs);
 
 		// Send to server
-		FileChangeRequest changeRequest = new FileChangeRequest(12345, Arrays.asList(patch.toString()), 0);
+		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
+				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/");
 
-		// TODO: move this functionality to the client core
-		NewRequest req = changeRequest.getRequest();
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager()
+				.getFileMetadata(StringConstants.FILE_ID);
+
+		Request req = getFileChangeRequest(StringConstants.FILE_ID, new String[] { patch.toString() }, response -> {
+					fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
+					PluginManager.getInstance().getMetadataManager().writeProjectMetadata(projMeta,
+							ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/");
+				}, null, 1);
+
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
 		} catch (ConnectException e) {
 			System.out.println("Failed to send change request.");
 			e.printStackTrace();
 		}
+	}
 
-		/*
-		 * Example application of a patch without triggering the listener.
-		 */
-		// Diff testDiff1 = new Diff("39:-2:" +
-		// Utils.urlEncode(currDocument.substring(39, 41)));
-		// Diff testDiff2 = new Diff("39:+1:a");
-		// Patch testPatch = new Patch(0, Arrays.asList(testDiff1, testDiff2));
-		// testPatch = testPatch.transform(new Patch(0, diffs));
-		// DocumentManager.getInstance().applyPatch(
-		// "D:/Workspaces/runtime-EclipseApplication/Test/src/test/TestClass3.java",
-		// Arrays.asList(testPatch));
+	private Request getFileChangeRequest(long fileID, String[] changes, IResponseHandler respHandler,
+			IRequestSendErrorHandler sendErrHandler, int retryCount) {
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager()
+				.getFileMetadata(StringConstants.FILE_ID);
+
+		return new FileChangeRequest(fileID, changes, fileMeta.getVersion()).getRequest(response -> {
+			
+			// If we failed the first time around, update the fileVersion and retry.
+			if(response.getStatus() == 409 && retryCount > 0){
+				Request req = getFileChangeRequest(fileID, changes, respHandler, sendErrHandler, retryCount - 1);
+				try {
+					PluginManager.getInstance().getWSManager().sendRequest(req);
+				} catch (ConnectException e) {
+					System.out.println("Failed to send change request.");
+					e.printStackTrace();
+				}
+				return;
+			}
+
+			respHandler.handleResponse(response);
+		}, sendErrHandler);
 	}
 
 	/**
 	 * No nothing, simple stub.
-	 * @param event The DocumentEvent that triggered this listener.
+	 * 
+	 * @param event
+	 *            The DocumentEvent that triggered this listener.
 	 */
 	@Override
 	public void documentChanged(DocumentEvent event) {

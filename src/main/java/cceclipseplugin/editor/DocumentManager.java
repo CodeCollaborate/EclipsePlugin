@@ -7,57 +7,40 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
-import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import clientcore.models.FileChangeNotification;
-import dataMgmt.FileContentWriter;
-import dataMgmt.MetadataManager;
+import cceclipseplugin.constants.StringConstants;
+import cceclipseplugin.core.PluginManager;
 import dataMgmt.models.FileMetadata;
+import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
 import websocket.models.Notification;
+import websocket.models.notifications.FileChangeNotification;
 
 /**
  * Manages documents, finds editors as needed.
+ * 
  * @author Benedict
  *
  */
 public class DocumentManager {
 
-	private static DocumentManager instance = null;
-
 	private String currFile = null;
 	private HashMap<String, ITextEditor> openEditors = new HashMap<>();
 	private Queue<Diff> appliedDiffs = new LinkedList<>();
 
-	/**
-	 * Gets the singleton instance of the DocumentManager
-	 * @return
-	 */
-	public static DocumentManager getInstance() {
-		if (instance == null) {
-			synchronized (DocumentManager.class) {
-				if (instance == null) {
-					instance = new DocumentManager();
-				}
-			}
-		}
-		return instance;
-	}
-
-	private DocumentManager() {
+	public DocumentManager() {
 
 	}
 
 	/**
 	 * Gets file path of current file
+	 * 
 	 * @return current file's path
 	 */
 	public String getCurrFile() {
@@ -66,24 +49,31 @@ public class DocumentManager {
 
 	/**
 	 * Path of file that is currently active/open
-	 * @param filePath File path of active file
+	 * 
+	 * @param filePath
+	 *            File path of active file
 	 */
 	public void setCurrFile(String filePath) {
-		this.currFile = filePath;
+		this.currFile = Paths.get(filePath).toString();
 	}
 
 	/**
 	 * FilePath of editor that was just opened
-	 * @param filePath File path of opened editor
-	 * @param editor Editor that is opened for the given file
+	 * 
+	 * @param filePath
+	 *            File path of opened editor
+	 * @param editor
+	 *            Editor that is opened for the given file
 	 */
 	public void openedEditor(String filePath, ITextEditor editor) {
-		this.openEditors.put(filePath, editor);
+		this.openEditors.put(Paths.get(filePath).toString(), editor);
 	}
 
 	/**
 	 * Call when a document is closed.
-	 * @param filePath filePath of file that was closed.
+	 * 
+	 * @param filePath
+	 *            filePath of file that was closed.
 	 */
 	public void closedDocument(String filePath) {
 		if (this.currFile.equals(filePath)) {
@@ -94,7 +84,9 @@ public class DocumentManager {
 
 	/**
 	 * Gets the editor for the given file
-	 * @param filePath path of file that is open
+	 * 
+	 * @param filePath
+	 *            path of file that is open
 	 * @return ITextEditor instance for given filePath
 	 */
 	public ITextEditor getEditor(String filePath) {
@@ -102,7 +94,8 @@ public class DocumentManager {
 	}
 
 	/**
-	 * Get the queue of diffs that were just applied. 
+	 * Get the queue of diffs that were just applied.
+	 * 
 	 * @return The queue of diffs that was applied.
 	 */
 	public Queue<Diff> getAppliedDiffs() {
@@ -111,7 +104,9 @@ public class DocumentManager {
 
 	/**
 	 * Gets the active document for a given editor
-	 * @param editor the editor to retrieve the document from
+	 * 
+	 * @param editor
+	 *            the editor to retrieve the document from
 	 * @return the document which was retrieved.
 	 */
 	private AbstractDocument getDocumentForEditor(ITextEditor editor) {
@@ -119,63 +114,70 @@ public class DocumentManager {
 	}
 
 	/**
-	 * Gets the current selection for the selected editor
-	 * @param editor the editor to get the selection from
-	 */
-	private ITextSelection getSelectionForEditor(ITextEditor editor) {
-		return (ITextSelection) editor.getSite().getSelectionProvider().getSelection();
-	}
-
-	/**
-	 * Sets the current selection for the selected editor
-	 * @param editor the editor to set the selection on
-	 * @param selection the selection to set
-	 */
-	private void setSelectionForEditor(ITextEditor editor, ITextSelection selection) {
-		editor.getSite().getSelectionProvider().setSelection(selection);
-	}
-
-	/**
-	 * Notification handler for document manager. Parses generic notification to FileChangeNotification.
-	 * @param n Notification of file changes.
+	 * Notification handler for document manager. Parses generic notification to
+	 * FileChangeNotification.
+	 * 
+	 * @param n
+	 *            Notification of file changes.
 	 */
 	public void handleNotification(Notification n) {
-		JsonNode notificationJSON = n.getData();
-
 		// Convert to correct notification types
-		FileChangeNotification notification = new ObjectMapper().convertValue(notificationJSON,
-				FileChangeNotification.class);
+		FileChangeNotification changeNotif = (FileChangeNotification) n.getData();
 
 		// Parse list of patches.
 		List<Patch> patches = new ArrayList<>();
-		for (String patchStr : notification.getChanges()) {
+		for (String patchStr : changeNotif.changes) {
 			patches.add(new Patch(patchStr));
 		}
 
 		// Get file path to write to.
-		FileMetadata fileMetaData = MetadataManager.getInstance().getFileMetadata(notification.getFileID());
-		String projectRootPath = MetadataManager.getInstance().getProjectPath(fileMetaData.getProjectId());
-		String filepath = Paths.get(projectRootPath, fileMetaData.getFilePath()).toString();
+		FileMetadata fileMetaData = PluginManager.getInstance().getMetadataManager()
+				.getFileMetadata(n.getResourceID());
+		String projectRootPath = PluginManager.getInstance().getMetadataManager()
+				.getProjectPath(fileMetaData.getProjectId());
+		String filepath = Paths.get(projectRootPath, StringConstants.PROJ_NAME, fileMetaData.getFilePath()).toString();
 
-		this.applyPatch(notification.getFileID(), filepath, patches);
+		// TODO(wongb): FIND A WAY TO MAKE THIS MORE DETERMINISTIC
+		// Only apply patch if incoming fileVersion is greater than local fileVersion. 
+		// This is meant to ensure that the notification from our own fileChangeRequest doesn't get re-processed.
+		// **** This need to be changed, as a missing response means that local fileVersion is not updated.
+		if(changeNotif.fileVersion <= fileMetaData.getVersion()){
+			return;
+		}
+		
+		this.applyPatch(n.getResourceID(), filepath, patches);
+		
+		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
+				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(StringConstants.FILE_ID);
+		
+		fileMeta.setVersion(changeNotif.fileVersion);
+		PluginManager.getInstance().getMetadataManager().writeProjectMetadata(projMeta, ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
+		
 	}
 
 	/**
-	 * If the document is open, patch it in memory. Otherwise, send it back to client core for file patching. 
-	 * @param fileId fileId to patch; this is mainly used for passing to clientCore
-	 * @param filePath absolute file path; used as key in editorMap, and patches.
-	 * @param patches the list of patches to apply, in order. 
+	 * If the document is open, patch it in memory. Otherwise, send it back to
+	 * client core for file patching.
+	 * 
+	 * @param fileId
+	 *            fileId to patch; this is mainly used for passing to clientCore
+	 * @param filePath
+	 *            absolute file path; used as key in editorMap, and patches.
+	 * @param patches
+	 *            the list of patches to apply, in order.
 	 */
 	public void applyPatch(long fileId, String filePath, List<Patch> patches) {
+		String currFile = this.currFile;
+		
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
 				ITextEditor editor = getEditor(filePath);
 				if (editor != null) {
-
 					// Get reference to open document
 					AbstractDocument document = getDocumentForEditor(editor);
-					
+
 					// Get text in document.
 					String newDocument = document.get();
 
@@ -190,14 +192,16 @@ public class DocumentManager {
 
 						for (Diff diff : patch.getDiffs()) {
 
-							// Throw errors if we are trying to insert between \r and \n
+							// Throw errors if we are trying to insert between
+							// \r and \n
 							if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
 									&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
 									&& document.get().charAt(diff.getStartIndex()) == '\n') {
 								throw new IllegalArgumentException("Tried to insert between \\r and \\n");
 							}
 
-							// If patching an active file, add it to the patch list to ignore.
+							// If patching an active file, add it to the patch
+							// list to ignore.
 							if (currFile.equals(filePath)) {
 								appliedDiffs.add(diff);
 							}
@@ -216,8 +220,10 @@ public class DocumentManager {
 						}
 					}
 				} else {
-					// If file is not open in an editor, enqueue the patch for writing.
-					FileContentWriter.getInstance().enqueuePatchesForWriting(fileId, filePath, patches);
+					// If file is not open in an editor, enqueue the patch for
+					// writing.
+					PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
+							filePath, patches);
 				}
 			}
 		});
