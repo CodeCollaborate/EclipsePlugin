@@ -1,13 +1,9 @@
 package cceclipseplugin;
 
-import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.editor.listeners.EditorChangeListener;
-import websocket.WSManager;
-import websocket.models.ConnectionConfig;
 
 /**
  * The activator class controls the plug-in life cycle

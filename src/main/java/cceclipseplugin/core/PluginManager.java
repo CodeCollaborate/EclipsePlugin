@@ -6,6 +6,7 @@ import org.eclipse.ui.PlatformUI;
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
+import cceclipseplugin.ui.UIManager;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import websocket.ConnectException;
@@ -42,6 +43,7 @@ public class PluginManager {
 	private final MetadataManager metadataManager;
 	private final DataManager dataManager;
 	private final WSManager wsManager;
+	private final UIManager uiManager;
 
 	// TODO: Add GUI modules and setup listeners in init()
 
@@ -66,6 +68,7 @@ public class PluginManager {
 		metadataManager = new MetadataManager();
 		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
+		uiManager = new UIManager();
 
 		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
 			try {
@@ -117,6 +120,10 @@ public class PluginManager {
 
 	public WSManager getWSManager() {
 		return wsManager;
+	}
+	
+	public UIManager getUIManager() {
+		return uiManager;
 	}
 
 	public DocumentManager getDocumentManager() {

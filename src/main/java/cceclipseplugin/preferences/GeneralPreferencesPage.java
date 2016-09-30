@@ -1,8 +1,11 @@
 package cceclipseplugin.preferences;
 
+import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.StringFieldEditor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
@@ -37,10 +40,21 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 				getTextControl().setEchoChar('*');
 			}
 		};
+		BooleanFieldEditor autoConnect = new BooleanFieldEditor("autoConnect", "Auto-connect on startup",
+				getFieldEditorParent()); // perhaps make new constants in client
+											// core for this preference
+
+		Button login = new Button(getFieldEditorParent(), SWT.PUSH);
+		login.setText("Login");
+		Button forgotPassword = new Button(getFieldEditorParent(), SWT.PUSH);
+		forgotPassword.setText("Forgot Password");
+		Button changePassword = new Button(getFieldEditorParent(), SWT.PUSH);
+		changePassword.setText("Change Password");
 
 		addField(hostBox);
 		addField(userBox);
 		addField(pwBox);
+		addField(autoConnect);
 	}
 
 	@Override
