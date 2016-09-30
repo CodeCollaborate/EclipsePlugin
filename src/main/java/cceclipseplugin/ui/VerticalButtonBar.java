@@ -40,11 +40,11 @@ public class VerticalButtonBar extends Composite {
 		minusButton.setText("-");
 	}
 	
-	public void addPlusListener(Listener listener) {
-		this.plusButton.addListener(SWT.Selection, listener);
+	public Button getPlusButton() {
+		return plusButton;
 	}
 	
-	public void addMinusListener(Listener listener) {
-		this.minusButton.addListener(SWT.Selection, listener);
+	public Button getMinusButton() {
+		return minusButton;
 	}
 }

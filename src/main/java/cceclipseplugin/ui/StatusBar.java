@@ -9,6 +9,8 @@ import org.eclipse.swt.widgets.Label;
 
 public class StatusBar extends Composite {
 	
+	private Label label;
+	
 	public StatusBar(Composite parent, int style) {
 		super(parent, style);
 		this.initialize();
@@ -22,7 +24,11 @@ public class StatusBar extends Composite {
 		layout.marginLeft = 0;
 		layout.marginRight = 0;
 		this.setLayout(layout);
-		Label label = new Label(this, SWT.NONE);
+		label = new Label(this, SWT.NONE);
 		label.setText("Status: "+"Disconnected");
+	}
+	
+	public void setStatus(String status) {
+		label.setText("Status: "+status);
 	}
 }

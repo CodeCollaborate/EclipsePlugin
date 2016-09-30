@@ -3,6 +3,7 @@ package cceclipseplugin.ui;
 import java.util.HashMap;
 
 import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.List;
@@ -33,7 +34,7 @@ public class UsersListView extends ListView {
 			}
 		});
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
-		bar.addPlusListener(new Listener() {
+		bar.getPlusButton().addListener(SWT.Selection, new Listener() {
 
 			@Override
 			public void handleEvent(Event arg0) {
@@ -41,7 +42,7 @@ public class UsersListView extends ListView {
 				addUserDialog.open();
 			}
 		});
-		bar.addMinusListener(new Listener() {
+		bar.getMinusButton().addListener(SWT.Selection, new Listener() {
 
 			@Override
 			public void handleEvent(Event arg0) {

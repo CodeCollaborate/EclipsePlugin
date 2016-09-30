@@ -27,14 +27,21 @@ public class ProjectsListView extends ListView {
 	}
 	
 	private void initializeData() {		
-		Timer timer = new Timer();
-		// TODO: register notification listener instead of querying every minute
-		timer.schedule(new TimerTask() {
+//		Timer timer = new Timer();
+//		// TODO: register notification listener instead of querying every minute
+//		timer.schedule(new TimerTask() {
+//			@Override
+//			public void run() {
+//				queryForProjects();
+//			}
+//		}, 60*1000, 60*1000);
+		new Runnable() {
+
 			@Override
 			public void run() {
 				queryForProjects();
 			}
-		}, 60*1000, 60*1000);
+		}.run();
 	}
 	
 	private void queryForProjects() {
