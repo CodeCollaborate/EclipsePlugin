@@ -2,6 +2,7 @@ package cceclipseplugin.ui;
 
 import org.eclipse.swt.widgets.Shell;
 
+import cceclipseplugin.ui.dialogs.MessageDialog;
 import websocket.IRequestSendErrorHandler;
 
 public class UIRequestErrorHandler implements IRequestSendErrorHandler {

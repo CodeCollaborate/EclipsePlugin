@@ -1,4 +1,4 @@
-package cceclipseplugin.ui;
+package cceclipseplugin.ui.dialogs;
 
 import java.net.ConnectException;
 import java.util.concurrent.Semaphore;
@@ -18,6 +18,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserLoginRequest;
 import websocket.models.requests.UserRegisterRequest;

@@ -1,4 +1,4 @@
-package cceclipseplugin.ui;
+package cceclipseplugin.ui.dialogs;
 
 import java.net.ConnectException;
 import java.util.Map;
@@ -21,6 +21,8 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.PermissionMap;
+import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserLookupRequest;
 import websocket.models.responses.UserLookupResponse;

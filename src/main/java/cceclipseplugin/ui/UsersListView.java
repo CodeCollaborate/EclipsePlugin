@@ -9,6 +9,8 @@ import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 
+import cceclipseplugin.ui.dialogs.AddNewUserDialog;
+import cceclipseplugin.ui.dialogs.RemoveUserDialog;
 import websocket.models.Permission;
 import websocket.models.Project;
 

@@ -11,6 +11,7 @@ import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.dialogs.MessageDialog;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.UserProjectsRequest;
@@ -27,6 +28,7 @@ public class ProjectsListView extends ListView {
 	
 	private void initializeData() {		
 		Timer timer = new Timer();
+		// TODO: register notification listener instead of querying every minute
 		timer.schedule(new TimerTask() {
 			@Override
 			public void run() {

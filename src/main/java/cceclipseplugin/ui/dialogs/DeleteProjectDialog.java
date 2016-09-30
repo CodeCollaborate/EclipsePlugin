@@ -1,4 +1,4 @@
-package cceclipseplugin.ui;
+package cceclipseplugin.ui.dialogs;
 
 import java.net.ConnectException;
 import java.util.concurrent.Semaphore;
@@ -17,6 +17,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.ProjectDeleteRequest;

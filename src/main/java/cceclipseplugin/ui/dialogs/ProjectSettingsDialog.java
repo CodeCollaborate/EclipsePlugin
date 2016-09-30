@@ -1,4 +1,4 @@
-package cceclipseplugin.ui;
+package cceclipseplugin.ui.dialogs;
 
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
@@ -34,6 +34,9 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.StringConstants;
+import cceclipseplugin.ui.UIRequestErrorHandler;
+import cceclipseplugin.ui.UIResponseHandler;
 
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.events.SelectionAdapter;

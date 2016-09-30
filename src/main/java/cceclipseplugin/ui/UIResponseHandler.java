@@ -4,6 +4,7 @@ import java.util.concurrent.Semaphore;
 
 import org.eclipse.swt.widgets.Shell;
 
+import cceclipseplugin.ui.dialogs.MessageDialog;
 import websocket.IResponseHandler;
 import websocket.models.Response;
 

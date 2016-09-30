@@ -5,6 +5,9 @@ import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.part.ViewPart;
 
+import cceclipseplugin.ui.dialogs.RegisterDialog;
+import cceclipseplugin.ui.dialogs.WelcomeDialog;
+
 public class UIManager {
 	private Shell uiShell = new Shell();
 	
