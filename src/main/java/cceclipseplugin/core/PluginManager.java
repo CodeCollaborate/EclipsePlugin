@@ -31,7 +31,8 @@ public class PluginManager {
 
 	// PLUGIN SETTINGS (will be moved to preferences later)
 	// final private String WS_ADDRESS = "ws://echo.websocket.org";
-	final private String WS_ADDRESS = "ws://localhost:8000/ws/";
+	// final private String WS_ADDRESS = "ws://localhost:8000/ws/";
+	final private String WS_ADDRESS = "ws://cody.csse.rose-hulman.edu:8000/ws/";
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
 
