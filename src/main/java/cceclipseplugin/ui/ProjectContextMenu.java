@@ -16,6 +16,7 @@ import org.osgi.service.prefs.Preferences;
 import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.preferences.PreferenceConstants;
+import cceclipseplugin.ui.dialogs.MessageDialog;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.ProjectSubscribeRequest;
@@ -57,7 +58,12 @@ public class ProjectContextMenu extends Menu {
 							Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 							Preferences thisProjectPrefs = projectPrefs.node(projectID + "");
 							thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
-							
+							try {
+								pluginPrefs.flush();
+							} catch (Exception e) {
+								MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
+								errDialog.open();
+							}
 						},
 						new UIRequestErrorHandler(new Shell(), "Failed to send project subscribe request."));
 				
@@ -94,6 +100,12 @@ public class ProjectContextMenu extends Menu {
 							Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 							Preferences thisProjectPrefs = projectPrefs.node(projectID + "");
 							thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
+							try {
+								pluginPrefs.flush();
+							} catch (Exception e) {
+								MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
+								errDialog.open();
+							}
 						},
 						new UIRequestErrorHandler(new Shell(), "Failed to send project unsubscribe request."));
 				

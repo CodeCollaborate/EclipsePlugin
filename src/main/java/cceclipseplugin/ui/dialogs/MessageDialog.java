@@ -11,12 +11,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.wb.swt.SWTResourceManager;
 
-import cceclipseplugin.ui.StringConstants;
-
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-
 /**
  * A dialog that displays a custom message. Mainly used for notifying the user
  * that a request was a success or failure.

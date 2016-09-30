@@ -1,6 +1,5 @@
 package cceclipseplugin.ui.dialogs;
 
-import java.net.ConnectException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -20,8 +19,6 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserLoginRequest;
-import websocket.models.requests.UserRegisterRequest;
-
 import org.eclipse.swt.widgets.Button;
 
 public class WelcomeDialog extends Dialog {
@@ -35,7 +32,6 @@ public class WelcomeDialog extends Dialog {
 	 */
 	public WelcomeDialog(Shell parentShell) {
 		super(parentShell);
-		parentShell.setText("Welcome to CodeCollaborate!");
 	}
 
 	/**
@@ -129,6 +125,12 @@ public class WelcomeDialog extends Dialog {
 		}
 
 		super.okPressed();
+	}
+	
+	@Override
+	protected void configureShell(Shell shell) {
+		super.configureShell(shell);
+		shell.setText("CodeCollaborate - Welcome");
 	}
 
 }

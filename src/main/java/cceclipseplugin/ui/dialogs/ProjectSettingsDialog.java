@@ -34,7 +34,6 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.StringConstants;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.UIResponseHandler;
 
