@@ -40,7 +40,7 @@ public class TransferOwnershipDialog extends Dialog {
 		Composite container = (Composite) super.createDialogArea(parent);
 		Label lblNewLabel = new Label(container, SWT.NONE);
 		lblNewLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		lblNewLabel.setText("Please select the user to transfer ownership to.");
+		lblNewLabel.setText(DialogStrings.TransferOwnershipDialog_InstructionsLabel);
 		
 		combo = new Combo(container, SWT.NONE);
 		GridData gd_combo = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
@@ -62,7 +62,7 @@ public class TransferOwnershipDialog extends Dialog {
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		button.setText("Transfer");
+		button.setText(DialogStrings.TransferOwnershipDialog_TransferButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -81,7 +81,7 @@ public class TransferOwnershipDialog extends Dialog {
 	@Override
 	protected void configureShell(Shell shell) {
 	      super.configureShell(shell);
-	      shell.setText("CodeCollaborate - Transfer Ownership");
+	      shell.setText(DialogStrings.TransferOwnershipDialog_Title);
 	}
 
 }

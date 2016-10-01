@@ -36,7 +36,6 @@ public class AddNewUserDialog extends Dialog {
 	 */
 	public AddNewUserDialog(Shell parentShell) {
 		super(parentShell);
-		parentShell.setText("Add New User");
 	}
 
 	/**
@@ -49,7 +48,7 @@ public class AddNewUserDialog extends Dialog {
 		Composite container = (Composite) super.createDialogArea(parent);
 		Label lblAddANew = new Label(container, SWT.NONE);
 		lblAddANew.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		lblAddANew.setText("Add a new user to this project by Username or Email:");
+		lblAddANew.setText(DialogStrings.AddNewUserDialog_AddByUsername);
 
 		text = new Text(container, SWT.BORDER);
 		GridData gd_text = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1);
@@ -58,13 +57,13 @@ public class AddNewUserDialog extends Dialog {
 
 		combo = new CCombo(container, SWT.BORDER);
 		combo.setEditable(false);
-		combo.setText("Choose a permission level");
+		combo.setText(DialogStrings.AddNewUserDialog_ChoosePermission);
 		GridData gd_combo = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
 		gd_combo.widthHint = 300;
 		combo.setLayoutData(gd_combo);
 		// TODO: Make Combo populate with server permission levels once implemented
 		for (Map.Entry<Integer, String> e : PermissionMap.permissions.entrySet()) {
-			combo.add(e.getKey() + " : " + e.getValue());
+			combo.add(e.getKey() + " : " + e.getValue()); //$NON-NLS-1$
 		}
 		//
 		// Request permLevelReq = new Request("Project",
@@ -79,7 +78,7 @@ public class AddNewUserDialog extends Dialog {
 
 		errorLabel = new Label(container, SWT.NONE);
 		errorLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		errorLabel.setText("<error label>");
+		errorLabel.setText(DialogStrings.AddNewUserDialog_ErrLabelPlaceholder);
 		errorLabel.setVisible(false);
 
 		return container;
@@ -93,7 +92,7 @@ public class AddNewUserDialog extends Dialog {
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		button.setText("Add");
+		button.setText(DialogStrings.AddNewUserDialog_AddButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -114,7 +113,7 @@ public class AddNewUserDialog extends Dialog {
 
 					int status = response.getStatus();
 					if (status != 200) {
-						errorLabel.setText("Failed with status code " + status + ".");
+						errorLabel.setText(DialogStrings.AddNewUserDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
 						errorLabel.setVisible(true);
 					} else {
 						username = ((UserLookupResponse) response.getData()).getUsers()[0].getUsername();
@@ -122,12 +121,12 @@ public class AddNewUserDialog extends Dialog {
 					}
 					waiter.release();
 				},
-				new UIRequestErrorHandler(getShell(), "Could not send user lookup request."));
+				new UIRequestErrorHandler(getShell(), DialogStrings.AddNewUserDialog_UserLookupErr));
 		
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(userLookupReq);
 			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(getShell(), "Request timed out.");
+	            MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.AddNewUserDialog_TimeoutErr);
 	            errDialog.open();
 			}
 		} catch (InterruptedException ex) {
@@ -151,6 +150,6 @@ public class AddNewUserDialog extends Dialog {
 	@Override
 	protected void configureShell(Shell shell) {
 	      super.configureShell(shell);
-	      shell.setText("CodeCollaborate - Add New User");
+	      shell.setText(DialogStrings.AddNewUserDialog_Title);
 	}
 }

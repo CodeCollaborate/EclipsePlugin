@@ -54,7 +54,7 @@ public class RegisterDialog extends Dialog {
 
 		Label lblNewLabel = new Label(container, SWT.NONE);
 		lblNewLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
-		lblNewLabel.setText("Please fill in the details below:");
+		lblNewLabel.setText(DialogStrings.RegisterDialog_InstructionsLabel);
 
 		Composite composite = new Composite(container, SWT.NONE);
 		GridData gd_composite = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
@@ -64,42 +64,42 @@ public class RegisterDialog extends Dialog {
 
 		Label lblUsername = new Label(composite, SWT.NONE);
 		lblUsername.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblUsername.setText("Username");
+		lblUsername.setText(DialogStrings.RegisterDialog_UsernameLabel);
 
 		usernameBox = new Text(composite, SWT.BORDER);
 		usernameBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		Label lblFirstName = new Label(composite, SWT.NONE);
 		lblFirstName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblFirstName.setText("First Name");
+		lblFirstName.setText(DialogStrings.RegisterDialog_FirstNameLabel);
 
 		firstNameBox = new Text(composite, SWT.BORDER);
 		firstNameBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		Label lblLastName = new Label(composite, SWT.NONE);
 		lblLastName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblLastName.setText("Last Name");
+		lblLastName.setText(DialogStrings.RegisterDialog_LastNameLabel);
 
 		lastNameBox = new Text(composite, SWT.BORDER);
 		lastNameBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		Label lblEmail = new Label(composite, SWT.NONE);
 		lblEmail.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblEmail.setText("E-Mail");
+		lblEmail.setText(DialogStrings.RegisterDialog_EmailLabel);
 
 		emailBox = new Text(composite, SWT.BORDER);
 		emailBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		Label lblPassword = new Label(composite, SWT.NONE);
 		lblPassword.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblPassword.setText("Password");
+		lblPassword.setText(DialogStrings.RegisterDialog_PasswordLabel);
 
 		passwordBox = new Text(composite, SWT.BORDER | SWT.PASSWORD);
 		passwordBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		Label lblConfirmPassword = new Label(composite, SWT.NONE);
 		lblConfirmPassword.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblConfirmPassword.setText("Confirm Password");
+		lblConfirmPassword.setText(DialogStrings.RegisterDialog_ConfirmPasswordLabel);
 
 		confirmPasswordBox = new Text(composite, SWT.BORDER | SWT.PASSWORD);
 		confirmPasswordBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
@@ -120,7 +120,7 @@ public class RegisterDialog extends Dialog {
 			public void widgetSelected(SelectionEvent e) {
 			}
 		});
-		btnCreateAccountAnd.setText("Register");
+		btnCreateAccountAnd.setText(DialogStrings.RegisterDialog_RegisterButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -142,31 +142,31 @@ public class RegisterDialog extends Dialog {
 				lastNameBox.getText(), emailBox.getText(), passwordBox.getText())).getRequest(response -> {
 					if (response.getStatus() != 200) {
 						MessageDialog err = new MessageDialog(getShell(),
-								"User registration failed with status code " + response.getStatus() + ".");
+								DialogStrings.RegisterDialog_UserRegistrationErr + response.getStatus() + "."); //$NON-NLS-2$
 						err.open();
 						return;
 					} else {
-						MessageDialog msg = new MessageDialog(getShell(), "Registration successful!");
+						MessageDialog msg = new MessageDialog(getShell(), DialogStrings.RegisterDialog_RegistrationSuccessMsg);
 						msg.open();
 
 						// Send login request
 						Request loginReq = (new UserLoginRequest(usernameBox.getText(), passwordBox.getText()))
 								.getRequest(loginResponse -> {
 							if (loginResponse.getStatus() != 200) {
-								MessageDialog err = new MessageDialog(getShell(), "Login failed with status code "
-										+ loginResponse.getStatus() + ". Please try again later.");
+								MessageDialog err = new MessageDialog(getShell(), DialogStrings.RegisterDialog_LoginFailedWithStatus
+										+ loginResponse.getStatus() + DialogStrings.RegisterDialog_TryAgainMsg);
 								err.open();
 							} else {
-								MessageDialog err = new MessageDialog(getShell(), "Login successful!");
+								MessageDialog err = new MessageDialog(getShell(), DialogStrings.RegisterDialog_LoginSuccessMsg);
 								err.open();
 							}
 
 							waiter.release();
-						} , new UIRequestErrorHandler(getShell(), "Failed to send user login request."));
+						} , new UIRequestErrorHandler(getShell(), DialogStrings.RegisterDialog_UserLoginErr));
 						try {
 							PluginManager.getInstance().getWSManager().sendRequest(loginReq);
 							if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-								MessageDialog errDialog = new MessageDialog(getShell(), "Request timed out.");
+								MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.RegisterDialog_TimeoutErr);
 								errDialog.open();
 							}
 						} catch (InterruptedException e) {
@@ -178,12 +178,12 @@ public class RegisterDialog extends Dialog {
 					}
 
 					waiter.release();
-				} , new UIRequestErrorHandler(getShell(), "Failed to send user register request."));
+				} , new UIRequestErrorHandler(getShell(), DialogStrings.RegisterDialog_UserRegisterErr));
 
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(registerReq);
 			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-				MessageDialog errDialog = new MessageDialog(getShell(), "Request timed out.");
+				MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.RegisterDialog_TimeoutErr);
 				errDialog.open();
 			}
 		} catch (InterruptedException e) {
@@ -198,6 +198,6 @@ public class RegisterDialog extends Dialog {
 	@Override
 	protected void configureShell(Shell shell) {
 		super.configureShell(shell);
-		shell.setText("CodeCollaborate - Register");
+		shell.setText(DialogStrings.RegisterDialog_Title);
 	}
 }

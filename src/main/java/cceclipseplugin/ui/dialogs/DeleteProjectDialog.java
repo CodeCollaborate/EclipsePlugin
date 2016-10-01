@@ -54,7 +54,7 @@ public class DeleteProjectDialog extends Dialog {
 		GridData gd_lblAreYouSure = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
 		gd_lblAreYouSure.widthHint = 304;
 		lblAreYouSure.setLayoutData(gd_lblAreYouSure);
-		lblAreYouSure.setText("Are you sure you want to delete " + project.getName() + "?");
+		lblAreYouSure.setText(DialogStrings.DeleteProjectDialog_AreYouSure + project.getName() + "?"); //$NON-NLS-2$
 		
 		Label lblWarningThisAction = new Label(container, SWT.WRAP | SWT.CENTER);
 		lblWarningThisAction.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
@@ -62,7 +62,7 @@ public class DeleteProjectDialog extends Dialog {
 		gd_lblWarningThisAction.widthHint = 360;
 		gd_lblWarningThisAction.heightHint = 36;
 		lblWarningThisAction.setLayoutData(gd_lblWarningThisAction);
-		lblWarningThisAction.setText("WARNING: This action is irreversible, and will result in the deletion of the project on all contributors' computers.");
+		lblWarningThisAction.setText(DialogStrings.DeleteProjectDialog_DeleteWarning);
 
 		return container;
 	}
@@ -83,19 +83,19 @@ public class DeleteProjectDialog extends Dialog {
 										MessageDialog errDialog;
 										int status = response.getStatus();
 										if (status == 200)
-											errDialog = new MessageDialog(getShell(), "Project successfully deleted.");
+											errDialog = new MessageDialog(getShell(), DialogStrings.DeleteProjectDialog_SuccessMsg);
 										else
-											errDialog = new MessageDialog(getShell(), "Failed with status code " + status + ".");
+											errDialog = new MessageDialog(getShell(), DialogStrings.DeleteProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
 										
 										waiter.release();
 										
 										errDialog.open();
 						},
-						new UIRequestErrorHandler(getShell(), "Failed to send project delete request."));
+						new UIRequestErrorHandler(getShell(), DialogStrings.DeleteProjectDialog_ProjDeleteErr));
 				try {
 					PluginManager.getInstance().getWSManager().sendRequest(req);
 					if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-			            MessageDialog errDialog = new MessageDialog(getShell(), "Request timed out.");
+			            MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.DeleteProjectDialog_TimeoutErr);
 			            errDialog.open();
 					}
 				} catch (InterruptedException e1) {
@@ -106,7 +106,7 @@ public class DeleteProjectDialog extends Dialog {
 				
 			}
 		});
-		button.setText("Confirm");
+		button.setText(DialogStrings.DeleteProjectDialog_ConfirmButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -121,7 +121,7 @@ public class DeleteProjectDialog extends Dialog {
 	@Override
 	protected void configureShell(Shell shell) {
 	      super.configureShell(shell);
-	      shell.setText("CodeCollaborate - Delete Project");
+	      shell.setText(DialogStrings.DeleteProjectDialog_Title);
 	}
 
 }

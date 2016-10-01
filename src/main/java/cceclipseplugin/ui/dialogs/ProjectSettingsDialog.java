@@ -64,17 +64,17 @@ public class ProjectSettingsDialog extends Dialog {
 	 */
 	public ProjectSettingsDialog(Shell parent, int style) {
 		super(parent, style);
-		setText("Project Settings");
+		setText(DialogStrings.ProjectSettingsDialog_Title);
 		projectName = StringConstants.NOT_INITIALIZED;
 		creationDate = StringConstants.NOT_INITIALIZED;
 		users = new HashMap<>();
-		users.put(StringConstants.NOT_INITIALIZED, new Permission("", -1, "", ""));
+		users.put(StringConstants.NOT_INITIALIZED, new Permission("", -1, "", "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 	}
 	
 	public ProjectSettingsDialog(Shell parent, int style, Project p) {
 		super(parent, style);
 		projectName = p.getName();
-		creationDate = "TODO: add creation date to Project class";
+		creationDate = "TODO: add creation date to Project class"; //$NON-NLS-1$
 		users = p.getPermissions();
 		project = p;
 	}
@@ -111,7 +111,7 @@ public class ProjectSettingsDialog extends Dialog {
 	private void createContents() {
 		shlCodecollbaorateProject = new Shell(getParent(), getStyle());
 		shlCodecollbaorateProject.setSize(521, 365);
-		shlCodecollbaorateProject.setText("CodeCollbaorate - Project Settings");
+		shlCodecollbaorateProject.setText(DialogStrings.ProjectSettingsDialog_Title);
 		shlCodecollbaorateProject.setLayout(new GridLayout(2, false));
 		new Label(shlCodecollbaorateProject, SWT.NONE);
 		new Label(shlCodecollbaorateProject, SWT.NONE);
@@ -124,7 +124,7 @@ public class ProjectSettingsDialog extends Dialog {
 		
 		Label lblProjectName = new Label(composite, SWT.NONE);
 		lblProjectName.setBounds(0, 3, 76, 15);
-		lblProjectName.setText("Project Name:");
+		lblProjectName.setText(DialogStrings.ProjectSettingsDialog_ProjectNameLabel);
 		
 		projectNameText = new Text(composite, SWT.BORDER);
 		projectNameText.setBounds(82, 0, 352, 21);
@@ -135,7 +135,7 @@ public class ProjectSettingsDialog extends Dialog {
 		
 		Label lblCreationDate = new Label(composite_1, SWT.NONE);
 		lblCreationDate.setBounds(0, 0, 459, 15);
-		lblCreationDate.setText("Creation Date: " + creationDate);
+		lblCreationDate.setText(DialogStrings.ProjectSettingsDialog_CreationDateLabel + creationDate);
 		new Label(shlCodecollbaorateProject, SWT.NONE);
 		new Label(shlCodecollbaorateProject, SWT.NONE);
 		new Label(shlCodecollbaorateProject, SWT.NONE);
@@ -177,8 +177,8 @@ public class ProjectSettingsDialog extends Dialog {
 				}
 			}
 		});
-		button.setText("+");
-		button.setFont(SWTResourceManager.getFont("Segoe UI", 9, SWT.BOLD));
+		button.setText("+"); //$NON-NLS-1$
+		button.setFont(SWTResourceManager.getFont("Segoe UI", 9, SWT.BOLD)); //$NON-NLS-1$
 		button.setBounds(0, 0, 30, 30);
 		
 		Button button_1 = new Button(composite_3, SWT.NONE);
@@ -195,14 +195,14 @@ public class ProjectSettingsDialog extends Dialog {
 					} else if (usersToAdd.containsKey(username)) {
 						usersToAdd.containsKey(username);
 					} else {
-						MessageDialog err = new MessageDialog(shlCodecollbaorateProject, "An internal error occurred.");
+						MessageDialog err = new MessageDialog(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_InternalError);
 						err.open();
 					}
 				}
 			}
 		});
 		button_1.setBounds(0, 36, 30, 30);
-		button_1.setText("-");
+		button_1.setText("-"); //$NON-NLS-1$
 		
 		table = new Table(composite_2, SWT.BORDER | SWT.FULL_SELECTION);
 		table.setLocation(0, 0);
@@ -212,11 +212,11 @@ public class ProjectSettingsDialog extends Dialog {
 		
 		TableColumn tblclmnNewColumn = new TableColumn(table, SWT.NONE);
 		tblclmnNewColumn.setWidth(124);
-		tblclmnNewColumn.setText("User");
+		tblclmnNewColumn.setText(DialogStrings.ProjectSettingsDialog_UserTableColumn);
 		
 		TableColumn tblclmnNewColumn_1 = new TableColumn(table, SWT.NONE);
 		tblclmnNewColumn_1.setWidth(287);
-		tblclmnNewColumn_1.setText("Permission Level");
+		tblclmnNewColumn_1.setText(DialogStrings.ProjectSettingsDialog_PermissionTableColumn);
 		
 		
 		for (Map.Entry entry : users.entrySet()) {
@@ -227,7 +227,7 @@ public class ProjectSettingsDialog extends Dialog {
 			// Permission level name from permission map
 			TableEditor editor = new TableEditor(table);
 			Combo c = createNewPermissionCombo((String) entry.getKey(), table);
-			c.select(c.indexOf(permLevel + ""));
+			c.select(c.indexOf(permLevel + "")); //$NON-NLS-1$
 			editor.setEditor(c, item, 1);
 		}
 		
@@ -239,7 +239,7 @@ public class ProjectSettingsDialog extends Dialog {
 		gd_grpAdvancedOptions.heightHint = 37;
 		gd_grpAdvancedOptions.widthHint = 456;
 		grpAdvancedOptions.setLayoutData(gd_grpAdvancedOptions);
-		grpAdvancedOptions.setText("Advanced Options");
+		grpAdvancedOptions.setText(DialogStrings.ProjectSettingsDialog_AdvancedOptionsLabel);
 		
 		Button btnDeleteProject = new Button(grpAdvancedOptions, SWT.NONE);
 		btnDeleteProject.addSelectionListener(new SelectionAdapter() {
@@ -251,7 +251,7 @@ public class ProjectSettingsDialog extends Dialog {
 			}
 		});
 		btnDeleteProject.setForeground(SWTResourceManager.getColor(SWT.COLOR_WIDGET_FOREGROUND));
-		btnDeleteProject.setText("Delete Project");
+		btnDeleteProject.setText(DialogStrings.ProjectSettingsDialog_DeleteProjectButton);
 		
 		Button btnTransferOwnership = new Button(grpAdvancedOptions, SWT.NONE);
 		btnTransferOwnership.addSelectionListener(new SelectionAdapter() {
@@ -263,7 +263,7 @@ public class ProjectSettingsDialog extends Dialog {
 				}
 			}
 		});
-		btnTransferOwnership.setText("Transfer Ownership");
+		btnTransferOwnership.setText(DialogStrings.ProjectSettingsDialog_TransferOwnershipButton);
 		new Label(shlCodecollbaorateProject, SWT.NONE);
 		
 		Composite composite_4 = new Composite(shlCodecollbaorateProject, SWT.NONE);
@@ -280,7 +280,7 @@ public class ProjectSettingsDialog extends Dialog {
 			}
 		});
 		btnCancel.setBounds(402, 5, 48, 25);
-		btnCancel.setText("Cancel");
+		btnCancel.setText(DialogStrings.ProjectSettingsDialog_CancelButton);
 		
 		Button btnApplyChanges = new Button(composite_4, SWT.NONE);
 		btnApplyChanges.addSelectionListener(new SelectionAdapter() {
@@ -300,13 +300,13 @@ public class ProjectSettingsDialog extends Dialog {
 				for (String user : users.keySet()) {
 					Combo permissionCombo = permissionCombos.get(user);
 					String comboPermissionLevel = permissionCombo.getItem(permissionCombo.getSelectionIndex());
-					if (!(users.get(user).getPermissionLevel() + "").equals(comboPermissionLevel))
+					if (!(users.get(user).getPermissionLevel() + "").equals(comboPermissionLevel)) //$NON-NLS-1$
 						sendGrantPermissionRequest(user, comboPermissionLevel);
 				}
 			}
 		});
 		btnApplyChanges.setBounds(304, 5, 92, 25);
-		btnApplyChanges.setText("Apply Changes");
+		btnApplyChanges.setText(DialogStrings.ProjectSettingsDialog_ApplyChangesButton);
 
 	}
 	
@@ -314,12 +314,12 @@ public class ProjectSettingsDialog extends Dialog {
 		Semaphore waiter = new Semaphore(0);
 		
 		Request req = (new ProjectRenameRequest(project.getProjectID(), newName)).getRequest(
-				new UIResponseHandler(shlCodecollbaorateProject, waiter, "Project rename request"),
-				new UIRequestErrorHandler(shlCodecollbaorateProject, "Could not send project rename request."));
+				new UIResponseHandler(shlCodecollbaorateProject, waiter, DialogStrings.ProjectSettingsDialog_ProjRenameRespHandlerMsg),
+				new UIRequestErrorHandler(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_ProjRenameErr));
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
 			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, "Request timed out.");
+	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_TimeoutErr);
 	            errDialog.open();
 			}
 			
@@ -334,12 +334,12 @@ public class ProjectSettingsDialog extends Dialog {
 		Semaphore waiter = new Semaphore(0);
 		
 		Request req = (new ProjectGrantPermissionsRequest(project.getProjectID(), user, Integer.parseInt(permission))).getRequest(
-				new UIResponseHandler(shlCodecollbaorateProject, waiter, "Permission grant request"),
-				new UIRequestErrorHandler(shlCodecollbaorateProject, "Could not send grant permission request."));
+				new UIResponseHandler(shlCodecollbaorateProject, waiter, DialogStrings.ProjectSettingsDialog_ProjPermissionRespHandlerMsg),
+				new UIRequestErrorHandler(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_GrantPermissionErr));
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
 			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, "Request timed out.");
+	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_TimeoutErr);
 	            errDialog.open();
 			}
 			
@@ -354,12 +354,12 @@ public class ProjectSettingsDialog extends Dialog {
 		Semaphore waiter = new Semaphore(0);
 		
 		Request req = (new ProjectRevokePermissionsRequest(project.getProjectID(), 0)).getRequest( // TODO: CHANGE THIS after request model is fixed
-				new UIResponseHandler(shlCodecollbaorateProject, waiter, "Permission revoke request"),
-				new UIRequestErrorHandler(shlCodecollbaorateProject, "Could not send revoke permission request."));
+				new UIResponseHandler(shlCodecollbaorateProject, waiter, DialogStrings.ProjectSettingsDialog_PermissionRevokeRespHandlerMsg),
+				new UIRequestErrorHandler(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_RevokePermissionErr));
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
 			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, "Request timed out.");
+	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_TimeoutErr);
 	            errDialog.open();
 			}
 			
@@ -374,7 +374,7 @@ public class ProjectSettingsDialog extends Dialog {
 		Combo combo = new Combo(parent, SWT.NONE);
 		
 		for(int i : permissionConstants.keySet()) {
-			combo.add(i + "");
+			combo.add(i + ""); //$NON-NLS-1$
 		}
 		permissionCombos.put(user, combo);
 		

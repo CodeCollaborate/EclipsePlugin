@@ -26,7 +26,6 @@ public class RemoveUserDialog extends Dialog {
 	 */
 	public RemoveUserDialog(Shell parentShell) {
 		super(parentShell);
-		parentShell.setText("Remove User");
 	}
 
 	public RemoveUserDialog(Shell parentShell, String username, String projectName) {
@@ -49,7 +48,7 @@ public class RemoveUserDialog extends Dialog {
 		gd_lblAreYouSure.widthHint = 334;
 		gd_lblAreYouSure.heightHint = 33;
 		lblAreYouSure.setLayoutData(gd_lblAreYouSure);
-		lblAreYouSure.setText("Are you sure you want to remove " + username + " from the " + projectName + " project?");
+		lblAreYouSure.setText(DialogStrings.RemoveUserDialog_AreYouSure1 + username + DialogStrings.RemoveUserDialog_AreYouSure2 + projectName + DialogStrings.RemoveUserDialog_AreYouSure3);
 
 		return container;
 	}
@@ -67,7 +66,7 @@ public class RemoveUserDialog extends Dialog {
 			public void widgetSelected(SelectionEvent e) {
 			}
 		});
-		button.setText("Remove");
+		button.setText(DialogStrings.RemoveUserDialog_RemoveButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -82,7 +81,7 @@ public class RemoveUserDialog extends Dialog {
 	@Override
 	protected void configureShell(Shell shell) {
 	      super.configureShell(shell);
-	      shell.setText("CodeCollaborate - Remove User");
+	      shell.setText(DialogStrings.RemoveUserDialog_Title);
 	}
 
 }

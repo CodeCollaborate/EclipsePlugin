@@ -63,7 +63,7 @@ public class AddProjectDialog extends Dialog {
 		gd_lblProjectsArePulled.heightHint = 33;
 		gd_lblProjectsArePulled.widthHint = 380;
 		lblProjectsArePulled.setLayoutData(gd_lblProjectsArePulled);
-		lblProjectsArePulled.setText("Projects are pulled from your local workspace. Please choose a project to add from the menu below.");
+		lblProjectsArePulled.setText(DialogStrings.AddProjectDialog_Label1);
 		
 		combo = new Combo(container, SWT.NONE);
 		GridData gd_combo = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
@@ -82,7 +82,7 @@ public class AddProjectDialog extends Dialog {
 	@Override 
 	protected void okPressed() {
 		if (combo.getItemCount() == 0) {
-			MessageDialog err = new MessageDialog(new Shell(), "No projects are in the workspace to add.");
+			MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_NoProjectsErr);
 			err.open();
 			return;
 		}
@@ -96,7 +96,7 @@ public class AddProjectDialog extends Dialog {
 					
 					int status = response.getStatus();
 					if (status != 200) {
-						MessageDialog err = new MessageDialog(new Shell(), "Failed with status code " + status + ".");
+						MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
 						err.open();
 						waiter.release();
 						return;
@@ -109,20 +109,20 @@ public class AddProjectDialog extends Dialog {
 					try {
 						sendCreateFileRequests(id, recursivelyGetFiles(baseFolder));
 					} catch (Exception e) {
-						MessageDialog err = new MessageDialog(new Shell(), "Could not read one or more files.");
+						MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_ReadFileErr);
 						err.open();
 						e.printStackTrace();
 					}
 					
 					waiter.release();
 				}, 
-				new UIRequestErrorHandler(new Shell(), "Could not send project create request."));
+				new UIRequestErrorHandler(new Shell(), DialogStrings.AddProjectDialog_ProjCreateErr));
 		
 		PluginManager.getInstance().getWSManager().sendRequest(req);
 		
 		try {
 			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(new Shell(), "Request timed out.");
+	            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_TimeoutErr);
 	            errDialog.open();
 	            return;
 			}
@@ -150,18 +150,18 @@ public class AddProjectDialog extends Dialog {
 								fileCreateStatusCode = response.getStatus();
 								
 								if (fileCreateStatusCode != 200) {
-									MessageDialog err = new MessageDialog(new Shell(), "Failed with status code " + fileCreateStatusCode + ".");
+									MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + "."); //$NON-NLS-2$
 									err.open();
 									waiter.release();
 									return;
 								}
-							}, new UIRequestErrorHandler(new Shell(), "Could not send file create request."));
+							}, new UIRequestErrorHandler(new Shell(), DialogStrings.AddProjectDialog_FileCreateErr));
 			
 			PluginManager.getInstance().getWSManager().sendRequest(req);
 			
 			try {
 				if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-		            MessageDialog errDialog = new MessageDialog(new Shell(), "Request timed out.");
+		            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_TimeoutErr);
 		            errDialog.open();
 		            return;
 				}
@@ -219,7 +219,7 @@ public class AddProjectDialog extends Dialog {
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		button.setText("Add");
+		button.setText(DialogStrings.AddProjectDialog_AddButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -234,7 +234,7 @@ public class AddProjectDialog extends Dialog {
 	@Override
 	protected void configureShell(Shell shell) {
 	      super.configureShell(shell);
-	      shell.setText("CodeCollaborate - Add Project");
+	      shell.setText(DialogStrings.AddProjectDialog_WindowTitle);
 	}
 
 }
