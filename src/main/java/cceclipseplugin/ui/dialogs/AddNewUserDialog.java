@@ -1,8 +1,6 @@
 package cceclipseplugin.ui.dialogs;
 
-import java.net.ConnectException;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -12,7 +10,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -32,8 +29,6 @@ public class AddNewUserDialog extends Dialog {
 	private CCombo combo;
 	private Label errorLabel;
 	private String username;
-	private String permission;
-
 	/**
 	 * Create the dialog.
 	 * 
@@ -52,8 +47,6 @@ public class AddNewUserDialog extends Dialog {
 	@Override
 	protected Control createDialogArea(Composite parent) {
 		Composite container = (Composite) super.createDialogArea(parent);
-		GridLayout gridLayout = (GridLayout) container.getLayout();
-
 		Label lblAddANew = new Label(container, SWT.NONE);
 		lblAddANew.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
 		lblAddANew.setText("Add a new user to this project by Username or Email:");

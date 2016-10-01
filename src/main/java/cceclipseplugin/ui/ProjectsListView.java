@@ -3,12 +3,17 @@ package cceclipseplugin.ui;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.dialogs.AddProjectDialog;
+import cceclipseplugin.ui.dialogs.DeleteProjectDialog;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import websocket.models.Project;
 import websocket.models.Request;
@@ -59,7 +64,7 @@ public class ProjectsListView extends ListView {
 							public void run() {
 								for (Project p : projects) {
 									list.add(p.getName());
-									// TODO: store projects somewhere
+									// TODO: store projects somewhere else (probably client core)
 								}
 							}
 						});
@@ -83,6 +88,33 @@ public class ProjectsListView extends ListView {
 	public void initSelectionListener(Listener listener) {
 		List list = this.getListWithButtons().getList();
 		list.addListener(SWT.Selection, listener);
+		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
+		bar.getPlusButton().addListener(SWT.Selection, new Listener() {
+
+			@Override
+			public void handleEvent(Event arg0) {
+				AddProjectDialog dialog = new AddProjectDialog(new Shell());
+				if (Window.OK == dialog.open()) {
+					// TODO: Refresh project list
+				}
+			}
+		});
+		bar.getMinusButton().addListener(SWT.Selection, new Listener() {
+
+			@Override
+			public void handleEvent(Event arg0) {
+				if (list.getSelectionIndex() == -1) {
+					MessageDialog err = new MessageDialog(new Shell(), "No project is selected.");
+					err.open();
+					return;
+				}
+				
+				Project selectedProject = projects[list.getSelectionIndex()];
+				DeleteProjectDialog delete = new DeleteProjectDialog(new Shell(), selectedProject);
+				delete.open();
+			}
+			
+		});
 	}
 	
 	public Project getProjectAt(int index) {

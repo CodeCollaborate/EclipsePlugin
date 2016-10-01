@@ -8,7 +8,6 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
@@ -25,12 +24,10 @@ public class TransferOwnershipDialog extends Dialog {
 	 */
 	public TransferOwnershipDialog(Shell parentShell) {
 		super(parentShell);
-		getShell().setText("Transfer Ownership");
 	}
 	
 	public TransferOwnershipDialog(Shell parentShell, String[] users) {
 		super(parentShell);
-		getShell().setText("Transfer Ownership");
 		this.users = users;
 	}
 
@@ -41,8 +38,6 @@ public class TransferOwnershipDialog extends Dialog {
 	@Override
 	protected Control createDialogArea(Composite parent) {
 		Composite container = (Composite) super.createDialogArea(parent);
-		GridLayout gridLayout = (GridLayout) container.getLayout();
-		
 		Label lblNewLabel = new Label(container, SWT.NONE);
 		lblNewLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
 		lblNewLabel.setText("Please select the user to transfer ownership to.");
@@ -51,6 +46,11 @@ public class TransferOwnershipDialog extends Dialog {
 		GridData gd_combo = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
 		gd_combo.widthHint = 394;
 		combo.setLayoutData(gd_combo);
+		
+		// fill combo
+		for (String user : users) {
+			combo.add(user);
+		}
 
 		return container;
 	}

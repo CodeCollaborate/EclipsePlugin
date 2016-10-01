@@ -6,7 +6,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Label;
 
-import java.net.ConnectException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +54,6 @@ public class ProjectSettingsDialog extends Dialog {
 	private HashMap<String, Permission> users = new HashMap<>();
 	private HashMap<String, String> usersToAdd = new HashMap<>();
 	private List<String> usersToRemove;
-	private String newOwner;
 	private HashMap<Integer, String> permissionConstants = new HashMap<>();
 	private HashMap<String, Combo> permissionCombos = new HashMap<>();
 	
@@ -109,6 +107,7 @@ public class ProjectSettingsDialog extends Dialog {
 	/**
 	 * Create contents of the dialog.
 	 */
+	@SuppressWarnings("rawtypes")
 	private void createContents() {
 		shlCodecollbaorateProject = new Shell(getParent(), getStyle());
 		shlCodecollbaorateProject.setSize(521, 365);
@@ -260,7 +259,7 @@ public class ProjectSettingsDialog extends Dialog {
 			public void widgetSelected(SelectionEvent e) {
 				TransferOwnershipDialog dialog = new TransferOwnershipDialog(shlCodecollbaorateProject, (String[]) users.keySet().toArray());
 				if (Window.OK == dialog.open()) {
-					newOwner = dialog.getNewOwner();
+					dialog.getNewOwner();
 				}
 			}
 		});
