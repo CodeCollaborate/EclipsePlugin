@@ -155,10 +155,10 @@ public class RegisterDialog extends Dialog {
 							if (loginResponse.getStatus() != 200) {
 								MessageDialog err = new MessageDialog(getShell(), DialogStrings.RegisterDialog_LoginFailedWithStatus
 										+ loginResponse.getStatus() + DialogStrings.RegisterDialog_TryAgainMsg);
-								err.open();
+								getShell().getDisplay().asyncExec(() -> err.open());
 							} else {
 								MessageDialog err = new MessageDialog(getShell(), DialogStrings.RegisterDialog_LoginSuccessMsg);
-								err.open();
+								getShell().getDisplay().asyncExec(() -> err.open());
 							}
 
 							waiter.release();
@@ -167,13 +167,12 @@ public class RegisterDialog extends Dialog {
 							PluginManager.getInstance().getWSManager().sendRequest(loginReq);
 							if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
 								MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.RegisterDialog_TimeoutErr);
-								errDialog.open();
+								getShell().getDisplay().asyncExec(() -> errDialog.open());
 							}
 						} catch (InterruptedException e) {
 							String message = e.getMessage();
 							MessageDialog errDialog = new MessageDialog(getShell(), message);
-							errDialog.open();
-						}
+							getShell().getDisplay().asyncExec(() -> errDialog.open());						}
 
 					}
 

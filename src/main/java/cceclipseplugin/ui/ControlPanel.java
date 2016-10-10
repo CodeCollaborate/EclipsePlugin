@@ -7,8 +7,10 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 
+import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
 import websocket.WSConnection;
+import websocket.WSConnection.State;
 
 public class ControlPanel extends ViewPart {
 
@@ -45,19 +47,29 @@ public class ControlPanel extends ViewPart {
 	
 	private void initializeStatusBarListeners() {
 		PluginManager.getInstance().getWSManager().registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
-			System.out.println("CONNECT");
-			statusBar.setStatus("Connected to CodeCollaborate server.");
+			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus("Connected to CodeCollaborate server."));
 		});
-		
 		PluginManager.getInstance().getWSManager().registerEventHandler(WSConnection.EventType.ON_CLOSE, () -> {
-			System.out.println("CLOSE");
-			statusBar.setStatus("Disconnected from CodeCollaborate server.");
+			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus("Disconnected from CodeCollaborate server."));
 		});
-		
 		PluginManager.getInstance().getWSManager().registerEventHandler(WSConnection.EventType.ON_ERROR, () -> {
-			System.out.println("ERROR");
-			statusBar.setStatus("Error on CodeCollaborate server.");
+			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus("Error on CodeCollaborate server."));
 		});
+		State s = PluginManager.getInstance().getWSManager().getConnectionState();
+		switch (s) {
+		case CLOSE:
+			statusBar.setStatus(StringConstants.CLOSE_MESSAGE);
+			break;
+		case CONNECT:
+			statusBar.setStatus(StringConstants.CONNECT_MESSAGE);
+			break;
+		case ERROR:
+			statusBar.setStatus(StringConstants.ERROR_MESSAGE);
+			break;
+		default:
+			System.out.println(s);
+			break;
+		}
 	}
 
 	@Override

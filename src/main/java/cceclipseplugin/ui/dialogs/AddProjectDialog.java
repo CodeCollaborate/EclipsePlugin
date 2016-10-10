@@ -90,27 +90,26 @@ public class AddProjectDialog extends Dialog {
 		IProject selectedProject = localProjects[combo.getSelectionIndex()];
 		
 		Semaphore waiter = new Semaphore(0);
-		
+		Shell shell = new Shell();
 		Request req = (new ProjectCreateRequest(selectedProject.getName())).getRequest(
 				response -> {
 					
 					int status = response.getStatus();
 					if (status != 200) {
-						MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
-						err.open();
+						MessageDialog err = new MessageDialog(shell, DialogStrings.AddProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
+						getShell().getDisplay().asyncExec(() -> err.open());
 						waiter.release();
 						return;
 					}
 					
-					IProject p = localProjects[combo.getSelectionIndex()];
-					IFolder baseFolder = p.getFolder(p.getProjectRelativePath());
+					IFolder baseFolder = selectedProject.getFolder(selectedProject.getProjectRelativePath());
 					
 					long id = ((ProjectCreateResponse) response.getData()).getProjectID();
 					try {
 						sendCreateFileRequests(id, recursivelyGetFiles(baseFolder));
 					} catch (Exception e) {
 						MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_ReadFileErr);
-						err.open();
+						getShell().getDisplay().asyncExec(() -> err.open());
 						e.printStackTrace();
 					}
 					
@@ -123,13 +122,13 @@ public class AddProjectDialog extends Dialog {
 		try {
 			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
 	            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_TimeoutErr);
-	            errDialog.open();
-	            return;
+				getShell().getDisplay().asyncExec(() -> errDialog.open());
+				return;
 			}
 		} catch (InterruptedException e1) {
 			String message = e1.getMessage();
 			MessageDialog errDialog = new MessageDialog(new Shell(), message);
-			errDialog.open();
+			getShell().getDisplay().asyncExec(() -> errDialog.open());
 			return;
 		}
 		
@@ -151,7 +150,7 @@ public class AddProjectDialog extends Dialog {
 								
 								if (fileCreateStatusCode != 200) {
 									MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + "."); //$NON-NLS-2$
-									err.open();
+									getShell().getDisplay().asyncExec(() -> err.open());
 									waiter.release();
 									return;
 								}
@@ -162,13 +161,13 @@ public class AddProjectDialog extends Dialog {
 			try {
 				if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
 		            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_TimeoutErr);
-		            errDialog.open();
+					getShell().getDisplay().asyncExec(() -> errDialog.open());
 		            return;
 				}
 			} catch (InterruptedException e1) {
 				String message = e1.getMessage();
 				MessageDialog errDialog = new MessageDialog(new Shell(), message);
-				errDialog.open();
+				getShell().getDisplay().asyncExec(() -> errDialog.open());
 				return;
 			}
 		}

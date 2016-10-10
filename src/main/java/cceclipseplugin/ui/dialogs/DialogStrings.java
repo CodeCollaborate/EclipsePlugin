@@ -76,6 +76,7 @@ public class DialogStrings extends NLS {
 	public static String TransferOwnershipDialog_Title;
 	public static String TransferOwnershipDialog_TransferButton;
 
+	public static String WelcomeDialog_CouldNotAuthenticate;
 	public static String WelcomeDialog_DontHaveAccount;
 	public static String WelcomeDialog_InstructionsLabel;
 	public static String WelcomeDialog_LoginFailedWithStatus;

@@ -19,6 +19,8 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserLoginRequest;
+import websocket.models.responses.UserLoginResponse;
+
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -126,16 +128,25 @@ public class WelcomeDialog extends Dialog {
 	@Override
 	protected void okPressed() {
 		Semaphore waiter = new Semaphore(0);
-
-		Request loginReq = (new UserLoginRequest(usernameBox.getText(), passwordBox.getText())).getRequest(response -> {
+		String username = usernameBox.getText();
+		Request loginReq = (new UserLoginRequest(username, passwordBox.getText())).getRequest(response -> {
+			if (response.getStatus() == 401) {
+				MessageDialog err = new MessageDialog(getShell(),
+						DialogStrings.WelcomeDialog_LoginFailedWithStatus + response.getStatus() + DialogStrings.WelcomeDialog_CouldNotAuthenticate);
+				getShell().getDisplay().asyncExec(() -> err.open());
+				return;
+			}
 			if (response.getStatus() != 200) {
 				MessageDialog err = new MessageDialog(getShell(),
 						DialogStrings.WelcomeDialog_LoginFailedWithStatus + response.getStatus() + DialogStrings.WelcomeDialog_TryAgainMsg);
-				err.open();
+				getShell().getDisplay().asyncExec(() -> err.open());
 				return;
 			} else {
+				PluginManager.getInstance().getDataManager().getSessionStorage().setUsername(username);
+				String token = ((UserLoginResponse) response.getData()).getToken();
+				PluginManager.getInstance().getWSManager().setAuthInfo(username, token);
 				MessageDialog err = new MessageDialog(getShell(), DialogStrings.WelcomeDialog_LoginSuccessMsg);
-				err.open();
+				getShell().getDisplay().asyncExec(() -> err.open());
 			}
 
 			waiter.release();
@@ -145,12 +156,12 @@ public class WelcomeDialog extends Dialog {
 			PluginManager.getInstance().getWSManager().sendRequest(loginReq);
 			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
 				MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.WelcomeDialog_TimeoutErr);
-				errDialog.open();
+				getShell().getDisplay().asyncExec(() -> errDialog.open());
 			}
 		} catch (InterruptedException e) {
 			String message = e.getMessage();
 			MessageDialog errDialog = new MessageDialog(getShell(), message);
-			errDialog.open();
+			getShell().getDisplay().asyncExec(() -> errDialog.open());
 		}
 
 		super.okPressed();

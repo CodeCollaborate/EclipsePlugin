@@ -8,6 +8,7 @@ import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;
@@ -74,6 +75,8 @@ public class DeleteProjectDialog extends Dialog {
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
+		Shell shell = getShell();
+		Display display = shell.getDisplay();
 		button.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -83,25 +86,25 @@ public class DeleteProjectDialog extends Dialog {
 										MessageDialog errDialog;
 										int status = response.getStatus();
 										if (status == 200)
-											errDialog = new MessageDialog(getShell(), DialogStrings.DeleteProjectDialog_SuccessMsg);
+											errDialog = new MessageDialog(shell, DialogStrings.DeleteProjectDialog_SuccessMsg);
 										else
-											errDialog = new MessageDialog(getShell(), DialogStrings.DeleteProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
+											errDialog = new MessageDialog(shell, DialogStrings.DeleteProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
 										
 										waiter.release();
 										
-										errDialog.open();
+										display.asyncExec(() -> errDialog.open());
 						},
-						new UIRequestErrorHandler(getShell(), DialogStrings.DeleteProjectDialog_ProjDeleteErr));
+						new UIRequestErrorHandler(shell, DialogStrings.DeleteProjectDialog_ProjDeleteErr));
 				try {
 					PluginManager.getInstance().getWSManager().sendRequest(req);
 					if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
 			            MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.DeleteProjectDialog_TimeoutErr);
-			            errDialog.open();
+						display.asyncExec(() -> errDialog.open());
 					}
 				} catch (InterruptedException e1) {
 					String message = e1.getMessage();
 					MessageDialog errDialog = new MessageDialog(getShell(), message);
-					errDialog.open();
+					display.asyncExec(() -> errDialog.open());
 				}
 				
 			}

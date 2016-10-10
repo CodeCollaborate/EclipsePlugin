@@ -70,13 +70,13 @@ public class PluginManager {
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
 		uiManager = new UIManager();
 
-		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
-			try {
-				websocketLogin();
-			} catch (ConnectException | InterruptedException e) {
-				throw new IllegalStateException("Failed to run login", e);
-			}
-		});
+//		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
+//			try {
+//				websocketLogin();
+//			} catch (ConnectException | InterruptedException e) {
+//				throw new IllegalStateException("Failed to run login", e);
+//			}
+//		});
 
 		new Thread(() -> {
 			try {
@@ -143,50 +143,50 @@ public class PluginManager {
 				(Notification n) -> documentManager.handleNotification(n));
 	}
 
-	private void websocketLogin() throws ConnectException, InterruptedException {
-		Request req1 = new UserRegisterRequest(StringConstants.PREFERENCES_USERNAME,
-				StringConstants.PREFERENCES_FIRSTNAME, StringConstants.PREFERENCES_LASTNAME,
-				StringConstants.PREFERENCES_EMAIL, StringConstants.PREFERENCES_PASSWORD).getRequest(resp -> {
-
-					Request req2 = new UserLoginRequest(StringConstants.PREFERENCES_USERNAME,
-							StringConstants.PREFERENCES_PASSWORD).getRequest(response -> {
-								// TODO(wongb) Add login logic for server
-								if (response.getStatus() != 200) {
-									throw new IllegalStateException("Failed to log in");
-								}
-
-								getWSManager().setAuthInfo(StringConstants.PREFERENCES_USERNAME,
-										((UserLoginResponse) response.getData()).getToken());
-
-								try {
-									wsManager.sendRequest(new ProjectSubscribeRequest(StringConstants.PROJ_ID)
-											.getRequest(null, null));
-								} catch (ConnectException e) {
-									e.printStackTrace();
-								}
-
-								// For creating new file
-								// IRequestData data = new
-								// FileCreateRequest(StringConstants.FILE_NAME,
-								// StringConstants.FILE_PATH,
-								// StringConstants.PROJ_ID,
-								// ("package testPkg1;\n" + "\n" + "public class
-								// TestClass1 {\n"
-								// + "\n" + "}").getBytes());
-								// try {
-								// getWSManager().sendRequest(data.getRequest());
-								// } catch (ConnectException e) {
-								// // TODO Auto-generated catch block
-								// e.printStackTrace();
-								// }
-							}, null);
-					try {
-						getWSManager().sendRequest(req2, -1);
-					} catch (ConnectException e) {
-						throw new IllegalStateException("Failed to connect while attempting to log in", e);
-					}
-				}, null);
-		getWSManager().sendRequest(req1, -1);
-
-	}
+//	private void websocketLogin() throws ConnectException, InterruptedException {
+//		Request req1 = new UserRegisterRequest(StringConstants.PREFERENCES_USERNAME,
+//				StringConstants.PREFERENCES_FIRSTNAME, StringConstants.PREFERENCES_LASTNAME,
+//				StringConstants.PREFERENCES_EMAIL, StringConstants.PREFERENCES_PASSWORD).getRequest(resp -> {
+//
+//					Request req2 = new UserLoginRequest(StringConstants.PREFERENCES_USERNAME,
+//							StringConstants.PREFERENCES_PASSWORD).getRequest(response -> {
+//								// TODO(wongb) Add login logic for server
+//								if (response.getStatus() != 200) {
+//									throw new IllegalStateException("Failed to log in");
+//								}
+//
+//								getWSManager().setAuthInfo(StringConstants.PREFERENCES_USERNAME,
+//										((UserLoginResponse) response.getData()).getToken());
+//
+//								try {
+//									wsManager.sendRequest(new ProjectSubscribeRequest(StringConstants.PROJ_ID)
+//											.getRequest(null, null));
+//								} catch (ConnectException e) {
+//									e.printStackTrace();
+//								}
+//
+//								// For creating new file
+//								// IRequestData data = new
+//								// FileCreateRequest(StringConstants.FILE_NAME,
+//								// StringConstants.FILE_PATH,
+//								// StringConstants.PROJ_ID,
+//								// ("package testPkg1;\n" + "\n" + "public class
+//								// TestClass1 {\n"
+//								// + "\n" + "}").getBytes());
+//								// try {
+//								// getWSManager().sendRequest(data.getRequest());
+//								// } catch (ConnectException e) {
+//								// // TODO Auto-generated catch block
+//								// e.printStackTrace();
+//								// }
+//							}, null);
+//					try {
+//						getWSManager().sendRequest(req2, -1);
+//					} catch (ConnectException e) {
+//						throw new IllegalStateException("Failed to connect while attempting to log in", e);
+//					}
+//				}, null);
+//		getWSManager().sendRequest(req1, -1);
+//
+//	}
 }

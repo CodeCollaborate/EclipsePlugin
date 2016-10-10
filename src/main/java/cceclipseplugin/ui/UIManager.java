@@ -9,8 +9,6 @@ import cceclipseplugin.ui.dialogs.RegisterDialog;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
 
 public class UIManager {
-	private Shell uiShell = new Shell();
-	
 	private ViewPart controlView;
 	private Dialog welcomePrompt;
 	private Dialog registerPrompt;
@@ -20,12 +18,12 @@ public class UIManager {
 	}
 	
 	public void popupWelcomePrompt() {
-		welcomePrompt = new WelcomeDialog(uiShell);
+		welcomePrompt = new WelcomeDialog(new Shell());
 		welcomePrompt.open();
 	}
 	
 	public void popupRegisterPrompt() {
-		registerPrompt = new RegisterDialog(uiShell);
+		registerPrompt = new RegisterDialog(new Shell());
 		registerPrompt.open();
 	}
 }

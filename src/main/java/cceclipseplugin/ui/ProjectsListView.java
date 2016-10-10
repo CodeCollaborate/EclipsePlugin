@@ -49,7 +49,7 @@ public class ProjectsListView extends ListView {
 	
 	private void queryForProjects() {
 		// query for projects
-		Semaphore waiter = new Semaphore(0);
+//		Semaphore waiter = new Semaphore(0);
 		List list = this.getListWithButtons().getList();
 		Request getProjectsRequest = new UserProjectsRequest()
 				.getRequest(response -> {
@@ -58,31 +58,30 @@ public class ProjectsListView extends ListView {
 						list.add("Error fetching projects");
 					} else {
 						projects = ((UserProjectsResponse) response.getData()).getProjects();
-						list.removeAll(); // TODO: don't change duplicate items
-						ProjectsListView.this.getDisplay().asyncExec(new Runnable() {
-							@Override
-							public void run() {
-								for (Project p : projects) {
-									list.add(p.getName());
-									// TODO: store projects somewhere else (probably client core)
-								}
+						list.getDisplay().asyncExec(() -> {
+							list.removeAll(); // TODO: don't change duplicate items
+							for (Project p : projects) {
+								list.add(p.getName());
+								// TODO: store projects somewhere else (probably client core)
 							}
 						});
 					}
-					waiter.release();
+//					waiter.release();
 					// TODO: notify userslistview of possible changes
 				}, new UIRequestErrorHandler(getShell(), 
 						"Could not send user projects request"));
-		try {
-			PluginManager.getInstance().getWSManager().sendRequest(getProjectsRequest);
-			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(getShell(), "Request timed out.");
-	            errDialog.open();
-			}
-		} catch (InterruptedException ex) {
-			MessageDialog err = new MessageDialog(getShell(), ex.getMessage());
-			err.open();
-		}
+		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(getProjectsRequest);
+
+//		try {
+//			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(getProjectsRequest);
+//			if (!waiter.tryAcquire(1, 5, TimeUnit.SECONDS)) {
+//	            MessageDialog errDialog = new MessageDialog(getShell(), "Request timed out.");
+//	            errDialog.open();
+//			}
+//		} catch (InterruptedException ex) {
+//			MessageDialog err = new MessageDialog(getShell(), ex.getMessage());
+//			err.open();
+//		}
 	}
 	
 	public void initSelectionListener(Listener listener) {

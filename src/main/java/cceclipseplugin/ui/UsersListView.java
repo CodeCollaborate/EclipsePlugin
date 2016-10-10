@@ -30,6 +30,7 @@ public class UsersListView extends ListView {
 
 			@Override
 			public void handleEvent(Event event) {
+				System.out.println("Handling click: "+event.index+" "+listView.getProjectAt(event.index));
 				setProject(listView.getProjectAt(event.index));
 			}
 		});
@@ -61,8 +62,10 @@ public class UsersListView extends ListView {
 		List list = this.getListWithButtons().getList();
 		list.removeAll();
 		HashMap<String, Permission> permissions = project.getPermissions();
-		for (String key : permissions.keySet()) {
-			list.add(key + " " + permissions.get(key));
+		if (permissions != null) {
+			for (String key : permissions.keySet()) {
+				list.add(key + " " + permissions.get(key));
+			}
 		}
 	}
 }
