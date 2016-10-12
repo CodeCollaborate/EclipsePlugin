@@ -33,6 +33,7 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.UIResponseHandler;
 
@@ -318,7 +319,7 @@ public class ProjectSettingsDialog extends Dialog {
 				new UIRequestErrorHandler(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_ProjRenameErr));
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
-			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_TimeoutErr);
 	            errDialog.open();
 			}
@@ -338,7 +339,7 @@ public class ProjectSettingsDialog extends Dialog {
 				new UIRequestErrorHandler(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_GrantPermissionErr));
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
-			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_TimeoutErr);
 	            errDialog.open();
 			}
@@ -358,7 +359,7 @@ public class ProjectSettingsDialog extends Dialog {
 				new UIRequestErrorHandler(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_RevokePermissionErr));
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
-			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 	            MessageDialog errDialog = new MessageDialog(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_TimeoutErr);
 	            errDialog.open();
 			}

@@ -1,5 +1,6 @@
 package cceclipseplugin.ui;
 
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.ui.dialogs.MessageDialog;
@@ -18,8 +19,7 @@ public class UIRequestErrorHandler implements IRequestSendErrorHandler {
 	@Override
 	public void handleRequestSendError() {
 		MessageDialog err = new MessageDialog(shell, errorMsg);
-        err.create();
-        err.open();
+		Display.getDefault().asyncExec(() -> err.open());
 	}
 
 }

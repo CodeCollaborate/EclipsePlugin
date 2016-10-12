@@ -2,6 +2,7 @@ package cceclipseplugin.ui;
 
 import java.util.concurrent.Semaphore;
 
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.ui.dialogs.MessageDialog;
@@ -24,7 +25,7 @@ public class UIResponseHandler implements IResponseHandler {
 	public void handleResponse(Response response) {
 		if (response.getStatus() != 200) {
 			MessageDialog err = new MessageDialog(shell, requestName + " failed with status code " + response.getStatus() + ".");
-			err.open();
+			Display.getDefault().asyncExec(() -> err.open());
 		}
 		
 		waiter.release();

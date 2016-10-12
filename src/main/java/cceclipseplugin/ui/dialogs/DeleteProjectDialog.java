@@ -17,6 +17,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Project;
 import websocket.models.Request;
@@ -97,7 +98,7 @@ public class DeleteProjectDialog extends Dialog {
 						new UIRequestErrorHandler(shell, DialogStrings.DeleteProjectDialog_ProjDeleteErr));
 				try {
 					PluginManager.getInstance().getWSManager().sendRequest(req);
-					if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+					if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 			            MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.DeleteProjectDialog_TimeoutErr);
 						display.asyncExec(() -> errDialog.open());
 					}
