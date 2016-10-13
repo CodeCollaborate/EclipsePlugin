@@ -1,6 +1,6 @@
 package cceclipseplugin.ui;
 
-import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MenuAdapter;
@@ -164,7 +164,7 @@ public class ProjectsListView extends ListView {
 	
 	// TODO: Move this method to a class that allows you to access project-level prefs
 	private boolean getSubscribedVarFromPrefs(Project p) {
-		Preferences pluginPrefs = DefaultScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 		Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
 		return thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);

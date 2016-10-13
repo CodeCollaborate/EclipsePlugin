@@ -29,11 +29,11 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 	public void createFieldEditors() {
 
 		StringFieldEditor hostBox = new StringFieldEditor(StringConstants.PREFERENCES_HOSTNAME,
-				StringConstants.PREFERENCES_HOSTNAME, getFieldEditorParent());
+				"Host name:", getFieldEditorParent());
 		StringFieldEditor userBox = new StringFieldEditor(StringConstants.PREFERENCES_USERNAME,
-				StringConstants.PREFERENCES_USERNAME, getFieldEditorParent());
+				"Username:", getFieldEditorParent());
 		StringFieldEditor pwBox = new StringFieldEditor(StringConstants.PREFERENCES_PASSWORD,
-				StringConstants.PREFERENCES_PASSWORD, getFieldEditorParent()) {
+				"Password:", getFieldEditorParent()) {
 			@Override
 			protected void doFillIntoGrid(Composite parent, int numColumns) {
 				super.doFillIntoGrid(parent, numColumns);
@@ -44,8 +44,6 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 				getFieldEditorParent()); // perhaps make new constants in client
 											// core for this preference
 
-		Button login = new Button(getFieldEditorParent(), SWT.PUSH);
-		login.setText("Login");
 		Button forgotPassword = new Button(getFieldEditorParent(), SWT.PUSH);
 		forgotPassword.setText("Forgot Password");
 		Button changePassword = new Button(getFieldEditorParent(), SWT.PUSH);

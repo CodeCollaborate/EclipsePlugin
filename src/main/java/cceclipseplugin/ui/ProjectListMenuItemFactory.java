@@ -1,6 +1,6 @@
 package cceclipseplugin.ui;
 
-import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -38,7 +38,7 @@ public class ProjectListMenuItemFactory {
 							}
 							
 //							Display.getDefault().asyncExec(() -> parentMenu.getParent().setEnabled(true));
-							Preferences pluginPrefs = DefaultScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+							Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 							Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 							Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
 							thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
@@ -74,7 +74,7 @@ public class ProjectListMenuItemFactory {
 							}
 							
 //							Display.getDefault().asyncExec(() ->parentMenu.getParent().setEnabled(false));
-							Preferences pluginPrefs = DefaultScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+							Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 							Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 							Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
 							thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
