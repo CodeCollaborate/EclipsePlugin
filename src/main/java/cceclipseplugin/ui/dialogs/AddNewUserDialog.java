@@ -140,7 +140,7 @@ public class AddNewUserDialog extends Dialog {
 						Display.getDefault().asyncExec(() -> errorLabel.setVisible(true));
 					} else {
 						username = ((UserLookupResponse) response.getData()).getUsers()[0].getUsername();
-						permission = Integer.parseInt(combo.getItem(combo.getSelectionIndex()).split(" . ")[0]);
+						Display.getDefault().asyncExec(() -> permission = Integer.parseInt(combo.getItem(combo.getSelectionIndex()).split(" . ")[0]));
 					}
 					waiter.release();
 				},
