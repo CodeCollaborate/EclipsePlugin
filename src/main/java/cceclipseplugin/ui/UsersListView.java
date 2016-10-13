@@ -3,6 +3,7 @@ package cceclipseplugin.ui;
 import java.util.HashMap;
 
 import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
@@ -10,14 +11,16 @@ import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 
+import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.dialogs.AddNewUserDialog;
 import cceclipseplugin.ui.dialogs.RemoveUserDialog;
 import websocket.models.Permission;
 import websocket.models.Project;
+import websocket.models.Request;
+import websocket.models.requests.ProjectGrantPermissionsRequest;
 
 public class UsersListView extends ListView {
 	
-	private Shell dialogShell = new Shell();
 	private Project currentProject = null;
 	
 	public UsersListView(Composite parent, int style, ProjectsListView listView) {
@@ -39,19 +42,32 @@ public class UsersListView extends ListView {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				Dialog addUserDialog = new AddNewUserDialog(dialogShell);
-				addUserDialog.open();
+				AddNewUserDialog addUserDialog = new AddNewUserDialog(new Shell());
+				String username = null;
+				int permission = -1;
+				if (Window.OK == addUserDialog.open()) {
+					username = addUserDialog.getNewUserName();
+					permission = Integer.parseInt(addUserDialog.getNewUserPermission().split(" : ")[0]);
+				}
+				List projectList = listView.getListWithButtons().getList();
+				Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects().get(projectList.getSelectionIndex());
+				
+				Request req = new ProjectGrantPermissionsRequest(p.getProjectID(), username, permission).getRequest(
+						new UIResponseHandler(new Shell(), "Project grant permissions request"), 
+						new UIRequestErrorHandler(new Shell(), "Could not send request."));
+				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+				
 			}
 		});
 		bar.getMinusButton().addListener(SWT.Selection, new Listener() {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				// TODO: remove 'username' and replace with actual username query
 				if (currentProject == null) {
 					return;
 				}
-				Dialog removeUserDialog = new RemoveUserDialog(dialogShell, "username", currentProject.getName());
+				List list = getListWithButtons().getList();
+				Dialog removeUserDialog = new RemoveUserDialog(new Shell(), list.getItem(list.getSelectionIndex()), currentProject.getName());
 				removeUserDialog.open();
 			}
 		});
