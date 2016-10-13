@@ -1,6 +1,8 @@
 package cceclipseplugin.ui;
 
 import java.util.HashMap;
+import java.util.Observable;
+import java.util.Observer;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.window.Window;
@@ -14,6 +16,7 @@ import org.eclipse.swt.widgets.Shell;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.dialogs.AddNewUserDialog;
 import cceclipseplugin.ui.dialogs.RemoveUserDialog;
+import dataMgmt.SessionStorage;
 import websocket.models.Permission;
 import websocket.models.Project;
 import websocket.models.Request;
@@ -22,6 +25,7 @@ import websocket.models.requests.ProjectGrantPermissionsRequest;
 public class UsersListView extends ListView {
 	
 	private Project currentProject = null;
+	private int selectedListIndex = -1;
 	
 	public UsersListView(Composite parent, int style, ProjectsListView listView) {
 		super(parent, style, "Users");
@@ -33,8 +37,20 @@ public class UsersListView extends ListView {
 
 			@Override
 			public void handleEvent(Event event) {
-				System.out.println("Handling click: "+event.index+" "+listView.getProjectAt(event.index));
+				selectedListIndex = event.index;
 				setProject(listView.getProjectAt(event.index));
+			}
+		});
+		PluginManager.getInstance().getDataManager().getSessionStorage().addObserver(new Observer() {
+
+			@Override
+			public void update(Observable arg0, Object arg1) {
+				SessionStorage storage = (SessionStorage) arg0;
+				java.util.List<Project> projects = storage.getProjects();
+				Project project = projects.get(selectedListIndex);
+				if (selectedListIndex != -1) {
+					setProject(project);
+				}
 			}
 		});
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
@@ -77,6 +93,9 @@ public class UsersListView extends ListView {
 		this.currentProject = project;
 		List list = this.getListWithButtons().getList();
 		list.removeAll();
+		if (project == null) {
+			return;
+		}
 		HashMap<String, Permission> permissions = project.getPermissions();
 		if (permissions != null) {
 			for (String key : permissions.keySet()) {
