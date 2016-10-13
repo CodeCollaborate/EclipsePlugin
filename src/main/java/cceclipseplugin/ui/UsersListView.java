@@ -47,7 +47,7 @@ public class UsersListView extends ListView {
 				int permission = -1;
 				if (Window.OK == addUserDialog.open()) {
 					username = addUserDialog.getNewUserName();
-					permission = Integer.parseInt(addUserDialog.getNewUserPermission().split(" : ")[0]);
+					permission = addUserDialog.getNewUserPermission();
 				}
 				List projectList = listView.getListWithButtons().getList();
 				Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects().get(projectList.getSelectionIndex());

@@ -27,12 +27,14 @@ import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserLookupRequest;
 import websocket.models.responses.UserLookupResponse;
+import org.eclipse.wb.swt.SWTResourceManager;
 
 public class AddNewUserDialog extends Dialog {
 	private Text text;
 	private CCombo combo;
 	private Label errorLabel;
 	private String username;
+	private int permission;
 	private Button okButton;
 	/**
 	 * Create the dialog.
@@ -93,7 +95,11 @@ public class AddNewUserDialog extends Dialog {
 		// }
 
 		errorLabel = new Label(container, SWT.NONE);
-		errorLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
+		errorLabel.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
+		GridData gd_errorLabel = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
+		gd_errorLabel.widthHint = 355;
+		gd_errorLabel.heightHint = 21;
+		errorLabel.setLayoutData(gd_errorLabel);
 		errorLabel.setText(DialogStrings.AddNewUserDialog_ErrLabelPlaceholder);
 		errorLabel.setVisible(false);
 
@@ -134,6 +140,7 @@ public class AddNewUserDialog extends Dialog {
 						Display.getDefault().asyncExec(() -> errorLabel.setVisible(true));
 					} else {
 						username = ((UserLookupResponse) response.getData()).getUsers()[0].getUsername();
+						permission = Integer.parseInt(combo.getItem(combo.getSelectionIndex()).split(" . ")[0]);
 					}
 					waiter.release();
 				},
@@ -159,8 +166,8 @@ public class AddNewUserDialog extends Dialog {
 		return username;
 	}
 	
-	public String getNewUserPermission() {
-		return combo.getItem(combo.getSelectionIndex());
+	public int getNewUserPermission() {
+		return permission;
 	}
 
 	@Override
