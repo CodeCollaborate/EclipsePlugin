@@ -116,7 +116,7 @@ public class ProjectsListView extends ListView {
 						PluginManager.getInstance().getDataManager().getSessionStorage().setProjects(projects);
 						listToUpdate.getDisplay().asyncExec(() -> {
 							listToUpdate.removeAll();
-							for (Project p : projects) {
+							for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
 								listToUpdate.add(p.getName());
 							}
 						});
