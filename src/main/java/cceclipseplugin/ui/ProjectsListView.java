@@ -30,7 +30,6 @@ import websocket.models.responses.UserProjectsResponse;
 
 public class ProjectsListView extends ListView {
 	
-	private Project[] projects;
 	private Shell shell;
 	
 	public ProjectsListView(Composite parent, int style) {
@@ -50,17 +49,10 @@ public class ProjectsListView extends ListView {
 				
 				if (selected < 0 || selected > list.getItemCount())
 					return;
-				
-				String selectedName = list.getItem(selected);
-				
+								
 				Project selectedProj = null;
-				for (Project p : projects) {
-					if (p.getName().equals(selectedName)) {
-						selectedProj = p;
-						break;
-					}
-				}
-				
+				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
+				selectedProj = projects.get(selected);
 				
 				for (MenuItem item : menu.getItems())
 					item.dispose();
@@ -120,8 +112,8 @@ public class ProjectsListView extends ListView {
 						MessageDialog errDialog = new MessageDialog(shell, "Unable to fetch projects.");
 						shell.getDisplay().asyncExec(() -> errDialog.open());
 					} else {
-						projects = ((UserProjectsResponse) response.getData()).getProjects();
-						PluginManager.getInstance().getDataManager().getSessionStorage().setProjects(Arrays.asList(projects));
+						java.util.List<Project> projects = Arrays.asList(((UserProjectsResponse) response.getData()).getProjects());
+						PluginManager.getInstance().getDataManager().getSessionStorage().setProjects(projects);
 						listToUpdate.getDisplay().asyncExec(() -> {
 							listToUpdate.removeAll();
 							for (Project p : projects) {
@@ -157,7 +149,8 @@ public class ProjectsListView extends ListView {
 					return;
 				}
 				
-				Project selectedProject = projects[list.getSelectionIndex()];
+				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
+				Project selectedProject = projects.get(list.getSelectionIndex());
 				DeleteProjectDialog delete = new DeleteProjectDialog(new Shell(), selectedProject);
 				delete.open();
 			}
@@ -166,9 +159,10 @@ public class ProjectsListView extends ListView {
 	}
 	
 	public Project getProjectAt(int index) {
-		if (index < 0 || index >= projects.length)
+		java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
+		if (index < 0 || index >= projects.size())
 			return null;
-		return projects[index];
+		return projects.get(index);
 	}
 	
 	// TODO: Move this method to a class that allows you to access project-level prefs
