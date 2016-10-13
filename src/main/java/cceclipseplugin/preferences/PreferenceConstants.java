@@ -17,6 +17,14 @@ public class PreferenceConstants {
 
 	public static final String P_STRING = "stringPreference";
 	
+	public static final String HOST_NAME = "hostName";
+	
+	public static final String USERNAME = "username";
+	
+	public static final String PASSWORD = "password";
+	
+	public static final String AUTO_CONNECT = "autoConnect";
+	
 	// ===================
 	// Nodes and Variables
 	// ===================

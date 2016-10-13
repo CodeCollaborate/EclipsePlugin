@@ -11,7 +11,6 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import cceclipseplugin.Activator;
-import cceclipseplugin.constants.StringConstants;
 
 public class GeneralPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
@@ -28,11 +27,11 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 	 */
 	public void createFieldEditors() {
 
-		StringFieldEditor hostBox = new StringFieldEditor(StringConstants.PREFERENCES_HOSTNAME,
+		StringFieldEditor hostBox = new StringFieldEditor(PreferenceConstants.HOST_NAME,
 				"Host name:", getFieldEditorParent());
-		StringFieldEditor userBox = new StringFieldEditor(StringConstants.PREFERENCES_USERNAME,
+		StringFieldEditor userBox = new StringFieldEditor(PreferenceConstants.USERNAME,
 				"Username:", getFieldEditorParent());
-		StringFieldEditor pwBox = new StringFieldEditor(StringConstants.PREFERENCES_PASSWORD,
+		StringFieldEditor pwBox = new StringFieldEditor(PreferenceConstants.PASSWORD,
 				"Password:", getFieldEditorParent()) {
 			@Override
 			protected void doFillIntoGrid(Composite parent, int numColumns) {
@@ -40,9 +39,8 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 				getTextControl().setEchoChar('*');
 			}
 		};
-		BooleanFieldEditor autoConnect = new BooleanFieldEditor("autoConnect", "Auto-connect on startup",
-				getFieldEditorParent()); // perhaps make new constants in client
-											// core for this preference
+		BooleanFieldEditor autoConnect = new BooleanFieldEditor(PreferenceConstants.AUTO_CONNECT, "Auto-connect on startup",
+				getFieldEditorParent());
 
 		Button forgotPassword = new Button(getFieldEditorParent(), SWT.PUSH);
 		forgotPassword.setText("Forgot Password");
