@@ -2,7 +2,6 @@ package cceclipseplugin.ui;
 
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import java.util.Arrays;
-import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MenuAdapter;
 import org.eclipse.swt.events.MenuEvent;
