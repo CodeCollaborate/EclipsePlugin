@@ -13,6 +13,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
@@ -114,11 +115,11 @@ public class AddNewUserDialog extends Dialog {
 
 					int status = response.getStatus();
 					if (status != 200) {
-						errorLabel.setText(DialogStrings.AddNewUserDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
-						errorLabel.setVisible(true);
+						Display.getDefault().asyncExec(() -> errorLabel.setText(DialogStrings.AddNewUserDialog_FailedWithStatus + status + ".")); //$NON-NLS-2$
+						Display.getDefault().asyncExec(() ->errorLabel.setVisible(true));
 					} else {
 						username = ((UserLookupResponse) response.getData()).getUsers()[0].getUsername();
-						errorLabel.setVisible(false);
+						Display.getDefault().asyncExec(() ->errorLabel.setVisible(false));
 					}
 					waiter.release();
 				},
@@ -128,12 +129,12 @@ public class AddNewUserDialog extends Dialog {
 			PluginManager.getInstance().getWSManager().sendRequest(userLookupReq);
 			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 	            MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.AddNewUserDialog_TimeoutErr);
-	            errDialog.open();
+	            Display.getDefault().asyncExec(() -> errDialog.open());
 			}
 		} catch (InterruptedException ex) {
 			// ErrorDialog err = new ErrorDialog(getShell(), ex.getMessage());
 			MessageDialog err = new MessageDialog(getShell(), ex.getMessage());
-			err.open();
+			Display.getDefault().asyncExec(() -> err.open());
 		}
 		
 		if (username != null)
