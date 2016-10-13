@@ -135,12 +135,14 @@ public class WelcomeDialog extends Dialog {
 				MessageDialog err = new MessageDialog(getShell(),
 						DialogStrings.WelcomeDialog_LoginFailedWithStatus + response.getStatus() + DialogStrings.WelcomeDialog_CouldNotAuthenticate);
 				getShell().getDisplay().asyncExec(() -> err.open());
+				waiter.release();
 				return;
 			}
 			if (response.getStatus() != 200) {
 				MessageDialog err = new MessageDialog(getShell(),
 						DialogStrings.WelcomeDialog_LoginFailedWithStatus + response.getStatus() + DialogStrings.WelcomeDialog_TryAgainMsg);
 				getShell().getDisplay().asyncExec(() -> err.open());
+				waiter.release();
 				return;
 			} else {
 				PluginManager.getInstance().getDataManager().getSessionStorage().setUsername(username);

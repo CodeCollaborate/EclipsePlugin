@@ -119,21 +119,20 @@ public class AddNewUserDialog extends Dialog {
 						Display.getDefault().asyncExec(() ->errorLabel.setVisible(true));
 					} else {
 						username = ((UserLookupResponse) response.getData()).getUsers()[0].getUsername();
-						Display.getDefault().asyncExec(() ->errorLabel.setVisible(false));
 					}
 					waiter.release();
 				},
-				new UIRequestErrorHandler(getShell(), DialogStrings.AddNewUserDialog_UserLookupErr));
+				new UIRequestErrorHandler(new Shell(), DialogStrings.AddNewUserDialog_UserLookupErr));
 		
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(userLookupReq);
 			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.AddNewUserDialog_TimeoutErr);
+	            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddNewUserDialog_TimeoutErr);
 	            Display.getDefault().asyncExec(() -> errDialog.open());
 			}
 		} catch (InterruptedException ex) {
 			// ErrorDialog err = new ErrorDialog(getShell(), ex.getMessage());
-			MessageDialog err = new MessageDialog(getShell(), ex.getMessage());
+			MessageDialog err = new MessageDialog(new Shell(), ex.getMessage());
 			Display.getDefault().asyncExec(() -> err.open());
 		}
 		
