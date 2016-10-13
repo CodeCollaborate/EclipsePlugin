@@ -16,6 +16,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserLoginRequest;
@@ -154,7 +155,7 @@ public class WelcomeDialog extends Dialog {
 
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(loginReq);
-			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 				MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.WelcomeDialog_TimeoutErr);
 				getShell().getDisplay().asyncExec(() -> errDialog.open());
 			}

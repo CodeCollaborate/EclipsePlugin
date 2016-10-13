@@ -23,6 +23,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.FileCreateRequest;
@@ -120,7 +121,7 @@ public class AddProjectDialog extends Dialog {
 		PluginManager.getInstance().getWSManager().sendRequest(req);
 		
 		try {
-			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 	            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_TimeoutErr);
 				getShell().getDisplay().asyncExec(() -> errDialog.open());
 				return;
@@ -159,7 +160,7 @@ public class AddProjectDialog extends Dialog {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
 			
 			try {
-				if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+				if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 		            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_TimeoutErr);
 					getShell().getDisplay().asyncExec(() -> errDialog.open());
 		            return;

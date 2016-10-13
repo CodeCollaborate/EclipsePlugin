@@ -1,11 +1,8 @@
 package cceclipseplugin.ui;
 
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
 import org.eclipse.core.runtime.preferences.DefaultScope;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
@@ -22,108 +19,78 @@ import websocket.models.Request;
 import websocket.models.requests.ProjectSubscribeRequest;
 import websocket.models.requests.ProjectUnsubscribeRequest;
 
-public class ProjectContextMenu extends Menu {
+public class ProjectListMenuItemFactory {
 	
-	private Control parent;
-	private long projectID;
-	
-	public ProjectContextMenu(Control parent, Project p) {
-		super(parent);
-		
-		projectID = p.getProjectID();
-		
-		Preferences pluginPrefs = DefaultScope.INSTANCE.getNode(Activator.PLUGIN_ID);
-		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-		Preferences thisProjectPrefs = projectPrefs.node(projectID + "");
-		boolean subscribed = thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
-		if (subscribed)
-			makeUnsubscribeItem();
-		else
-			makeSubscribeItem();
-	}
-	
-	private MenuItem makeSubscribeItem() {
-		MenuItem sub = new MenuItem(this, SWT.NONE);
+	public static void makeSubscribeItem(Menu parentMenu, Project p) {
+		MenuItem sub = new MenuItem(parentMenu, SWT.NONE);
 		sub.setText("Subscribe");
 		sub.addListener(SWT.Selection, new Listener() {
 
 			@Override
 			public void handleEvent(Event arg0) {
 				// send request
-				Semaphore waiter = new Semaphore(0);
-				Request req = (new ProjectSubscribeRequest(projectID)).getRequest(
+				Request req = (new ProjectSubscribeRequest(p.getProjectID())).getRequest(
 						response -> {
-							parent.setEnabled(true);
+							if (response.getStatus() != 200) {
+								MessageDialog err = new MessageDialog(new Shell(), "Project subscribe request failed with status code " + response.getStatus());
+								Display.getDefault().asyncExec(() ->err.open());
+								return;
+							}
+							
+//							Display.getDefault().asyncExec(() -> parentMenu.getParent().setEnabled(true));
 							Preferences pluginPrefs = DefaultScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 							Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-							Preferences thisProjectPrefs = projectPrefs.node(projectID + "");
+							Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
 							thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
 							try {
 								pluginPrefs.flush();
 							} catch (Exception e) {
 								MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
-								errDialog.open();
+								Display.getDefault().asyncExec(() ->errDialog.open());
 							}
 						},
 						new UIRequestErrorHandler(new Shell(), "Failed to send project subscribe request."));
 				
 				PluginManager.getInstance().getWSManager().sendRequest(req);
-				
-				try {
-					if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-						MessageDialog errDialog = new MessageDialog(new Shell(), "Request timed out.");
-						errDialog.open();
-					}
-				} catch (InterruptedException e) {
-					MessageDialog errDialog = new MessageDialog(new Shell(), e.getMessage());
-					errDialog.open();
-				}
 			}
 			
 		});
-		return sub;
 	}
 	
-	private MenuItem makeUnsubscribeItem() {
-		MenuItem unsub = new MenuItem(this, SWT.NONE);
+	public static void makeUnsubscribeItem(Menu parentMenu, Project p) {
+		MenuItem unsub = new MenuItem(parentMenu, SWT.NONE);
 		unsub.setText("Unsubscribe");
 		unsub.addListener(SWT.Selection, new Listener() {
 
 			@Override
 			public void handleEvent(Event arg0) {
 				
-				Semaphore waiter = new Semaphore(0);
-				Request req = (new ProjectUnsubscribeRequest(projectID)).getRequest(
+				Request req = (new ProjectUnsubscribeRequest(p.getProjectID())).getRequest(
 						response -> {
-							parent.setEnabled(false);
+							if (response.getStatus() != 200) {
+								MessageDialog err = new MessageDialog(new Shell(), "Project unsubscribe request failed with status code " + response.getStatus());
+								Display.getDefault().asyncExec(() ->err.open());
+								return;
+							}
+							
+//							Display.getDefault().asyncExec(() ->parentMenu.getParent().setEnabled(false));
 							Preferences pluginPrefs = DefaultScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 							Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-							Preferences thisProjectPrefs = projectPrefs.node(projectID + "");
+							Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
 							thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
 							try {
 								pluginPrefs.flush();
 							} catch (Exception e) {
 								MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
-								errDialog.open();
+								Display.getDefault().asyncExec(() ->errDialog.open());
 							}
 						},
 						new UIRequestErrorHandler(new Shell(), "Failed to send project unsubscribe request."));
 				
 				PluginManager.getInstance().getWSManager().sendRequest(req);
-				
-				try {
-					if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
-						MessageDialog errDialog = new MessageDialog(new Shell(), "Request timed out.");
-						errDialog.open();
-					}
-				} catch (InterruptedException e) {
-					MessageDialog errDialog = new MessageDialog(new Shell(), e.getMessage());
-					errDialog.open();
-				}
 			}
 			
 		});
-		return unsub;
 	}
 	
 }

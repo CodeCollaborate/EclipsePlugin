@@ -17,6 +17,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserLoginRequest;
@@ -165,7 +166,7 @@ public class RegisterDialog extends Dialog {
 						} , new UIRequestErrorHandler(getShell(), DialogStrings.RegisterDialog_UserLoginErr));
 						try {
 							PluginManager.getInstance().getWSManager().sendRequest(loginReq);
-							if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+							if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 								MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.RegisterDialog_TimeoutErr);
 								getShell().getDisplay().asyncExec(() -> errDialog.open());
 							}
@@ -181,7 +182,7 @@ public class RegisterDialog extends Dialog {
 
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(registerReq);
-			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 				MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.RegisterDialog_TimeoutErr);
 				errDialog.open();
 			}

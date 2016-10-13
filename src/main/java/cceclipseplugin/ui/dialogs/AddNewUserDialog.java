@@ -19,6 +19,7 @@ import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.PermissionMap;
+import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserLookupRequest;
@@ -125,7 +126,7 @@ public class AddNewUserDialog extends Dialog {
 		
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(userLookupReq);
-			if (!waiter.tryAcquire(2, 5, TimeUnit.SECONDS)) {
+			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
 	            MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.AddNewUserDialog_TimeoutErr);
 	            errDialog.open();
 			}

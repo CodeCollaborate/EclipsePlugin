@@ -1,14 +1,23 @@
 package cceclipseplugin.ui;
 
 import java.util.Arrays;
+import org.eclipse.core.runtime.preferences.DefaultScope;
+import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.MenuAdapter;
+import org.eclipse.swt.events.MenuEvent;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
+import org.osgi.service.prefs.Preferences;
 
+import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.AddProjectDialog;
 import cceclipseplugin.ui.dialogs.DeleteProjectDialog;
 import cceclipseplugin.ui.dialogs.MessageDialog;
@@ -29,6 +38,41 @@ public class ProjectsListView extends ListView {
 		super(parent, style, "Projects");
 		shell = getShell();
 		this.initializeData();
+		this.initContextMenu();
+	}
+	
+	private void initContextMenu() {
+		List list = this.getListWithButtons().getList();
+		Menu menu = new Menu(list);
+		list.setMenu(menu);
+		menu.addMenuListener(new MenuAdapter() {
+			public void menuShown(MenuEvent e) {
+				int selected = list.getSelectionIndex();
+				
+				if (selected < 0 || selected > list.getItemCount())
+					return;
+				
+				String selectedName = list.getItem(selected);
+				
+				Project selectedProj = null;
+				for (Project p : projects) {
+					if (p.getName().equals(selectedName)) {
+						selectedProj = p;
+						break;
+					}
+				}
+				
+				
+				for (MenuItem item : menu.getItems())
+					item.dispose();
+				
+				boolean subscribed = getSubscribedVarFromPrefs(selectedProj);
+				if (subscribed)
+					ProjectListMenuItemFactory.makeUnsubscribeItem(menu, selectedProj);
+				else
+					ProjectListMenuItemFactory.makeSubscribeItem(menu, selectedProj);
+			}
+		});
 	}
 	
 	private void initializeData() {	
@@ -126,5 +170,13 @@ public class ProjectsListView extends ListView {
 		if (index < 0 || index >= projects.length)
 			return null;
 		return projects[index];
+	}
+	
+	// TODO: Move this method to a class that allows you to access project-level prefs
+	private boolean getSubscribedVarFromPrefs(Project p) {
+		Preferences pluginPrefs = DefaultScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
+		Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
+		return thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
 	}
 }
