@@ -14,7 +14,9 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
@@ -31,6 +33,7 @@ public class AddNewUserDialog extends Dialog {
 	private CCombo combo;
 	private Label errorLabel;
 	private String username;
+	private Button okButton;
 	/**
 	 * Create the dialog.
 	 * 
@@ -67,9 +70,20 @@ public class AddNewUserDialog extends Dialog {
 		for (Map.Entry<Integer, String> e : PermissionMap.permissions.entrySet()) {
 			combo.add(e.getKey() + " : " + e.getValue()); //$NON-NLS-1$
 		}
-		//
-		// Request permLevelReq = new Request("Project",
-		// "GetPermissionConstants", );
+		combo.addListener(SWT.Selection, new Listener() {
+
+			@Override
+			public void handleEvent(Event arg0) {
+				okButton.setEnabled(true);
+			}
+			
+		});		
+		
+//		Semaphore waiter = new Semaphore(0);
+//		Request permLevelReq = new ProjectGetPermissionConstantsRequest().getRequest(response -> {
+//			ProjectGetPermissionConstantsResponse res = ()
+//			waiter.release();
+//		}, new UIRequestErrorHandler(new Shell(), ""));
 		// try {
 		// PluginManager.getInstance().getWSManager().sendRequest(permLevelReq);
 		// } catch (ConnectException e) {
@@ -93,8 +107,9 @@ public class AddNewUserDialog extends Dialog {
 	 */
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
-		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		button.setText(DialogStrings.AddNewUserDialog_AddButton);
+		okButton = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
+		okButton.setText(DialogStrings.AddNewUserDialog_AddButton);
+		okButton.setEnabled(false);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
@@ -115,8 +130,8 @@ public class AddNewUserDialog extends Dialog {
 
 					int status = response.getStatus();
 					if (status != 200) {
-						Display.getDefault().asyncExec(() -> errorLabel.setText(DialogStrings.AddNewUserDialog_FailedWithStatus + status + ".")); //$NON-NLS-2$
-						Display.getDefault().asyncExec(() ->errorLabel.setVisible(true));
+						Display.getDefault().asyncExec(() -> errorLabel.setText("User does not exist."));
+						Display.getDefault().asyncExec(() -> errorLabel.setVisible(true));
 					} else {
 						username = ((UserLookupResponse) response.getData()).getUsers()[0].getUsername();
 					}

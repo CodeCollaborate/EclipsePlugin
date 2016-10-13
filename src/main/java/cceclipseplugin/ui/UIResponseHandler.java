@@ -21,6 +21,11 @@ public class UIResponseHandler implements IResponseHandler {
 		this.requestName = requestName;
 	}
 	
+	public UIResponseHandler(Shell shell, String requestName) {
+		this.shell = shell;
+		this.requestName = requestName;
+	}
+	
 	@Override
 	public void handleResponse(Response response) {
 		if (response.getStatus() != 200) {
@@ -28,7 +33,8 @@ public class UIResponseHandler implements IResponseHandler {
 			Display.getDefault().asyncExec(() -> err.open());
 		}
 		
-		waiter.release();
+		if (waiter != null)
+			waiter.release();
 		
 	}
 	
