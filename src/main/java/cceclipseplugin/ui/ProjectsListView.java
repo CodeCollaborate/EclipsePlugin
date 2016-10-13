@@ -76,7 +76,7 @@ public class ProjectsListView extends ListView {
 				sendRequestForProjects(list);
 				
 				// register a notification handler for new projects
-				PluginManager.getInstance().getWSManager().registerNotificationHandler("Projects", "GrantPermissions", notification -> {
+				PluginManager.getInstance().getWSManager().registerNotificationHandler("Project", "GrantPermissions", notification -> {
 					ProjectGrantPermissionsNotification pgpnotif = ((ProjectGrantPermissionsNotification) notification.getData());
 					if (pgpnotif.grantUsername.equals(PluginManager.getInstance().getDataManager().getSessionStorage().getUsername())) {
 						sendRequestForProjects(list);
