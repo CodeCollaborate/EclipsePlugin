@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -15,7 +16,9 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Text;
 
+import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
@@ -130,7 +133,8 @@ public class WelcomeDialog extends Dialog {
 	protected void okPressed() {
 		Semaphore waiter = new Semaphore(0);
 		String username = usernameBox.getText();
-		Request loginReq = (new UserLoginRequest(username, passwordBox.getText())).getRequest(response -> {
+		String password = passwordBox.getText();
+		Request loginReq = (new UserLoginRequest(username, password)).getRequest(response -> {
 			if (response.getStatus() == 401) {
 				MessageDialog err = new MessageDialog(getShell(),
 						DialogStrings.WelcomeDialog_LoginFailedWithStatus + response.getStatus() + DialogStrings.WelcomeDialog_CouldNotAuthenticate);
@@ -155,6 +159,10 @@ public class WelcomeDialog extends Dialog {
 			waiter.release();
 		} , new UIRequestErrorHandler(getShell(), DialogStrings.WelcomeDialog_UserLoginErr));
 
+		IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
+		prefStore.setValue(PreferenceConstants.USERNAME, username);
+		prefStore.setValue(PreferenceConstants.PASSWORD, password);
+		
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(loginReq);
 			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
