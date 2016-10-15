@@ -131,6 +131,8 @@ public class AddNewUserDialog extends Dialog {
 	protected void okPressed() {
 		Semaphore waiter = new Semaphore(0);
 
+		permission = Integer.parseInt(combo.getItem(combo.getSelectionIndex()).split(" . ")[0]);
+		
 		Request userLookupReq = (new UserLookupRequest(new String[] { text.getText() })).getRequest(
 				response -> {
 
@@ -140,7 +142,6 @@ public class AddNewUserDialog extends Dialog {
 						Display.getDefault().asyncExec(() -> errorLabel.setVisible(true));
 					} else {
 						username = ((UserLookupResponse) response.getData()).getUsers()[0].getUsername();
-						Display.getDefault().asyncExec(() -> permission = Integer.parseInt(combo.getItem(combo.getSelectionIndex()).split(" . ")[0]));
 					}
 					waiter.release();
 				},
