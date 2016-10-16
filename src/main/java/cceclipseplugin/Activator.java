@@ -36,14 +36,14 @@ public class Activator extends AbstractUIPlugin {
 		
 		PluginManager.getInstance();
 		
-		boolean welcomeDialogShown = getPreferenceStore().getBoolean("welcomeDialogShown");
-		if (!welcomeDialogShown) {
-			WelcomeDialog dialog = new WelcomeDialog(new Shell());
-			dialog.open();
-		}
+//		boolean welcomeDialogShown = getPreferenceStore().getBoolean("welcomeDialogShown");
+//		if (!welcomeDialogShown) {
+//			WelcomeDialog dialog = new WelcomeDialog(new Shell());
+//			dialog.open();
+//		}
 		
-		ControlPanel cp = (ControlPanel) PluginManager.getInstance().getUIManager().getControlView();
-		cp.setEnabled(false);
+//		ControlPanel cp = (ControlPanel) PluginManager.getInstance().getUIManager().getControlView();
+//		cp.setEnabled(false);
 	}
 
 	/*

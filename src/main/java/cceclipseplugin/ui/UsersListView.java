@@ -45,10 +45,10 @@ public class UsersListView extends ListView {
 			if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
 				return;
 			}
-			SessionStorage storage = (SessionStorage) event.getSource();
-			java.util.List<Project> projects = storage.getProjects();
-			Project project = projects.get(selectedListIndex);
 			if (selectedListIndex != -1) {
+				SessionStorage storage = (SessionStorage) event.getSource();
+				java.util.List<Project> projects = storage.getProjects();
+				Project project = projects.get(selectedListIndex);
 				setProject(project);
 			}
 		});
