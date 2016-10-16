@@ -29,6 +29,7 @@ public class VerticalButtonBar extends Composite {
 		data.widthHint = 25;
 		plusButton.setLayoutData(data);
 		plusButton.setText("+");
+		plusButton.setEnabled(false);
 		
 		minusButton = new Button(this, SWT.NONE);
 		GridData data2 = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
@@ -36,6 +37,7 @@ public class VerticalButtonBar extends Composite {
 		data2.widthHint = 25;
 		minusButton.setLayoutData(data2);
 		minusButton.setText("-");
+		minusButton.setEnabled(false);
 	}
 	
 	public Button getPlusButton() {

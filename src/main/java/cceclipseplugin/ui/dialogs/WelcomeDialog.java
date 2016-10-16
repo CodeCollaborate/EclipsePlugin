@@ -133,54 +133,14 @@ public class WelcomeDialog extends Dialog {
 
 	@Override
 	protected void okPressed() {
-		Semaphore waiter = new Semaphore(0);
 		String username = usernameBox.getText();
 		String password = passwordBox.getText();
-		Request loginReq = (new UserLoginRequest(username, password)).getRequest(response -> {
-			if (response.getStatus() == 401) {
-				MessageDialog err = new MessageDialog(getShell(),
-						DialogStrings.WelcomeDialog_LoginFailedWithStatus + response.getStatus() + DialogStrings.WelcomeDialog_CouldNotAuthenticate);
-				getShell().getDisplay().asyncExec(() -> err.open());
-				waiter.release();
-				return;
-			}
-			if (response.getStatus() != 200) {
-				MessageDialog err = new MessageDialog(getShell(),
-						DialogStrings.WelcomeDialog_LoginFailedWithStatus + response.getStatus() + DialogStrings.WelcomeDialog_TryAgainMsg);
-				getShell().getDisplay().asyncExec(() -> err.open());
-				waiter.release();
-				return;
-			} else {
-				PluginManager.getInstance().getDataManager().getSessionStorage().setUsername(username);
-				String token = ((UserLoginResponse) response.getData()).getToken();
-				PluginManager.getInstance().getWSManager().setAuthInfo(username, token);
-				MessageDialog err = new MessageDialog(getShell(), DialogStrings.WelcomeDialog_LoginSuccessMsg);
-				getShell().getDisplay().asyncExec(() -> err.open());
-			}
-
-			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-			prefStore.setValue(PreferenceConstants.USERNAME, username);
-			prefStore.setValue(PreferenceConstants.PASSWORD, password);
-			
-			ControlPanel cp = (ControlPanel) PluginManager.getInstance().getUIManager().getControlView();
-			Display.getDefault().asyncExec(() -> cp.setEnabled(true));
-			
-			waiter.release();
-		} , new UIRequestErrorHandler(getShell(), DialogStrings.WelcomeDialog_UserLoginErr));
 		
+		IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
+		prefStore.setValue(PreferenceConstants.USERNAME, username);
+		prefStore.setValue(PreferenceConstants.PASSWORD, password);
 		
-		
-		try {
-			PluginManager.getInstance().getWSManager().sendRequest(loginReq);
-			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-				MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.WelcomeDialog_TimeoutErr);
-				getShell().getDisplay().asyncExec(() -> errDialog.open());
-			}
-		} catch (InterruptedException e) {
-			String message = e.getMessage();
-			MessageDialog errDialog = new MessageDialog(getShell(), message);
-			getShell().getDisplay().asyncExec(() -> errDialog.open());
-		}
+		PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
 
 		super.okPressed();
 	}

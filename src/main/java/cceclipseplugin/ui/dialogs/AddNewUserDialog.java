@@ -29,6 +29,8 @@ import websocket.models.requests.UserLookupRequest;
 import websocket.models.responses.UserLookupResponse;
 import org.eclipse.wb.swt.SWTResourceManager;
 
+import com.google.common.collect.BiMap;
+
 public class AddNewUserDialog extends Dialog {
 	private Text text;
 	private CCombo combo;
@@ -36,6 +38,7 @@ public class AddNewUserDialog extends Dialog {
 	private String username;
 	private int permission;
 	private Button okButton;
+	private BiMap<String, Byte> permissionMap;
 	/**
 	 * Create the dialog.
 	 * 
@@ -68,9 +71,11 @@ public class AddNewUserDialog extends Dialog {
 		GridData gd_combo = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
 		gd_combo.widthHint = 300;
 		combo.setLayoutData(gd_combo);
-		// TODO: Make Combo populate with server permission levels once implemented
-		for (Map.Entry<Integer, String> e : PermissionMap.permissions.entrySet()) {
-			combo.add(e.getKey() + " : " + e.getValue()); //$NON-NLS-1$
+		
+		permissionMap = PluginManager.getInstance().getDataManager().getSessionStorage().getPermissionConstants();
+		
+		for (Map.Entry<String, Byte> e : permissionMap.entrySet()) {
+			combo.add(e.getValue() + " : " + e.getKey()); //$NON-NLS-1$
 		}
 		combo.addListener(SWT.Selection, new Listener() {
 
@@ -81,19 +86,6 @@ public class AddNewUserDialog extends Dialog {
 			
 		});		
 		
-//		Semaphore waiter = new Semaphore(0);
-//		Request permLevelReq = new ProjectGetPermissionConstantsRequest().getRequest(response -> {
-//			ProjectGetPermissionConstantsResponse res = ()
-//			waiter.release();
-//		}, new UIRequestErrorHandler(new Shell(), ""));
-		// try {
-		// PluginManager.getInstance().getWSManager().sendRequest(permLevelReq);
-		// } catch (ConnectException e) {
-		// ErrorDialog err = new ErrorDialog(getShell(), e.getMessage());
-		// err.open();
-		// close();
-		// }
-
 		errorLabel = new Label(container, SWT.NONE);
 		errorLabel.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
 		GridData gd_errorLabel = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
@@ -154,7 +146,6 @@ public class AddNewUserDialog extends Dialog {
 	            Display.getDefault().asyncExec(() -> errDialog.open());
 			}
 		} catch (InterruptedException ex) {
-			// ErrorDialog err = new ErrorDialog(getShell(), ex.getMessage());
 			MessageDialog err = new MessageDialog(new Shell(), ex.getMessage());
 			Display.getDefault().asyncExec(() -> err.open());
 		}
