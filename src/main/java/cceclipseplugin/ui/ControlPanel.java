@@ -1,6 +1,5 @@
 package cceclipseplugin.ui;
 
-import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.viewers.ListViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -10,10 +9,8 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.part.ViewPart;
 
-import cceclipseplugin.Activator;
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import dataMgmt.SessionStorage;
 import websocket.WSConnection;

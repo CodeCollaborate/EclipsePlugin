@@ -3,13 +3,11 @@ package cceclipseplugin;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.preferences.PreferenceConstants;
-import cceclipseplugin.ui.ControlPanel;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
 
 /**
