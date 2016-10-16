@@ -37,8 +37,8 @@ public class UsersListView extends ListView {
 
 			@Override
 			public void handleEvent(Event event) {
-				selectedListIndex = event.index;
-				setProject(listView.getProjectAt(event.index));
+				selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
+				setProject(listView.getProjectAt(selectedListIndex));
 				listView.getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
 			}
 		});
