@@ -188,7 +188,7 @@ public class ProjectSettingsDialog extends Dialog {
 			public void widgetSelected(SelectionEvent e) {
 				TableItem item = table.getItem(table.getSelectionIndex());
 				String username = item.getText(0);
-				RemoveUserDialog dialog = new RemoveUserDialog(shlCodecollbaorateProject, item.getText(0), project.getName());
+				RemoveUserDialog dialog = new RemoveUserDialog(shlCodecollbaorateProject, item.getText(0), project.getName(), project.getProjectID());
 				if (Window.OK == dialog.open()) {
 					if (users.containsKey(username)) {
 						users.remove(username);

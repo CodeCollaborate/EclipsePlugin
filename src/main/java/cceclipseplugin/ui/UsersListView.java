@@ -13,6 +13,8 @@ import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.dialogs.AddNewUserDialog;
+import cceclipseplugin.ui.dialogs.DialogStrings;
+import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.RemoveUserDialog;
 import dataMgmt.SessionStorage;
 import websocket.models.Permission;
@@ -74,8 +76,14 @@ public class UsersListView extends ListView {
 								.get(projectList.getSelectionIndex());
 
 						Request req = new ProjectGrantPermissionsRequest(p.getProjectID(), username, permission)
-								.getRequest(new UIResponseHandler(shell, "Project grant permissions request"),
-										new UIRequestErrorHandler(shell, "Could not send request."));
+								.getRequest((response) -> {
+									if (response.getStatus() == 200) {
+										PluginManager.getInstance().getRequestManager().fetchProjects();
+									} else {
+										MessageDialog err = new MessageDialog(shell, "Error granting permissions: "+response.getStatus());
+										getShell().getDisplay().asyncExec(() -> err.open());
+									}
+								}, new UIRequestErrorHandler(shell, "Could not send request."));
 						PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 					}
 				});
@@ -90,7 +98,7 @@ public class UsersListView extends ListView {
 				}
 				List list = getListWithButtons().getList();
 				Dialog removeUserDialog = new RemoveUserDialog(new Shell(), list.getItem(list.getSelectionIndex()),
-						currentProject.getName());
+						currentProject.getName(), currentProject.getProjectID());
 				removeUserDialog.open();
 			}
 		});

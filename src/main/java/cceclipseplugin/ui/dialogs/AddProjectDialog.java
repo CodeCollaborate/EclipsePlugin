@@ -118,7 +118,7 @@ public class AddProjectDialog extends Dialog {
 				}, 
 				new UIRequestErrorHandler(new Shell(), DialogStrings.AddProjectDialog_ProjCreateErr));
 		
-		PluginManager.getInstance().getWSManager().sendRequest(req);
+		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 		
 		try {
 			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
