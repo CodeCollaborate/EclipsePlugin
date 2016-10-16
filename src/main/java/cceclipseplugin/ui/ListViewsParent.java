@@ -51,4 +51,12 @@ public class ListViewsParent extends Composite {
 		listView.setLayoutData(data);
 		return listView;
 	}
+	
+	public ProjectsListView getProjectListView() {
+		return projectListView;
+	}
+	
+	public UsersListView getUserListView() {
+		return userListView;
+	}
 }

@@ -17,6 +17,7 @@ public class ControlPanel extends ViewPart {
 	protected ListViewer projectsListViewer;
 	protected ListViewer usersListViewer;
 	private StatusBar statusBar;
+	private ListViewsParent views;
 	
 	@Override
 	public void createPartControl(Composite parent) {
@@ -27,7 +28,7 @@ public class ControlPanel extends ViewPart {
 		layout.verticalSpacing = 0;
 		parent.setLayout(layout);
 		
-		ListViewsParent views = new ListViewsParent(parent, SWT.NONE);
+		views = new ListViewsParent(parent, SWT.NONE);
 		GridData viewsData = new GridData();
 		viewsData.grabExcessHorizontalSpace = true;
 		viewsData.horizontalAlignment = GridData.FILL;
@@ -41,8 +42,6 @@ public class ControlPanel extends ViewPart {
 		statusData.horizontalAlignment = GridData.FILL;
 		statusBar.setLayoutData(statusData);
 		initializeStatusBarListeners();
-		
-		PluginManager.getInstance().getUIManager().popupWelcomePrompt();
 	}
 	
 	private void initializeStatusBarListeners() {
@@ -76,5 +75,10 @@ public class ControlPanel extends ViewPart {
 	public void setFocus() {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	public void setEnabled(boolean b) {
+		views.getProjectListView().getListWithButtons().setEnabled(b);
+		views.getUserListView().getListWithButtons().setEnabled(b);
 	}
 }

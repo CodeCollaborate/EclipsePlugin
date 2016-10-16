@@ -9,6 +9,7 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Label;
@@ -20,6 +21,7 @@ import org.eclipse.swt.widgets.Text;
 import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.preferences.PreferenceConstants;
+import cceclipseplugin.ui.ControlPanel;
 import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
@@ -189,6 +191,9 @@ public class RegisterDialog extends Dialog {
 						IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
 						prefStore.setValue(PreferenceConstants.USERNAME, username);
 						prefStore.setValue(PreferenceConstants.PASSWORD, password);
+						
+						ControlPanel cp = (ControlPanel) PluginManager.getInstance().getUIManager().getControlView();
+						Display.getDefault().asyncExec(() -> cp.setEnabled(true));
 					}
 
 					waiter.release();

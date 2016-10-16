@@ -58,7 +58,7 @@ public class ListView extends Composite {
 		return header;
 	}
 
-	protected HListWithVButtons getListWithButtons() {
+	public HListWithVButtons getListWithButtons() {
 		return listWithButtons;
 	}
 }

@@ -1,9 +1,13 @@
 package cceclipseplugin;
 
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.ControlPanel;
+import cceclipseplugin.ui.dialogs.WelcomeDialog;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -30,7 +34,16 @@ public class Activator extends AbstractUIPlugin {
 		super.start(context);
 		plugin = this;
 		
-		PluginManager.getInstance();;		
+		PluginManager.getInstance();
+		
+		boolean welcomeDialogShown = getPreferenceStore().getBoolean("welcomeDialogShown");
+		if (!welcomeDialogShown) {
+			WelcomeDialog dialog = new WelcomeDialog(new Shell());
+			dialog.open();
+		}
+		
+		ControlPanel cp = (ControlPanel) PluginManager.getInstance().getUIManager().getControlView();
+		cp.setEnabled(false);
 	}
 
 	/*

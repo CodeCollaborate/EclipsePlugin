@@ -26,4 +26,8 @@ public class UIManager {
 		registerPrompt = new RegisterDialog(new Shell());
 		registerPrompt.open();
 	}
+	
+	public ViewPart getControlView() {
+		return controlView;
+	}
 }

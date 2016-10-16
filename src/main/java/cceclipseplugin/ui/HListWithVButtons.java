@@ -49,4 +49,19 @@ public class HListWithVButtons extends Composite {
 	VerticalButtonBar getButtonBar() {
 		return buttonBar;
 	}
+	
+	@Override
+	public void setEnabled(boolean b) {
+		if (b) {
+			if (list.getItemCount() <= 0)
+				buttonBar.getMinusButton().setEnabled(!b);
+			else
+				buttonBar.getMinusButton().setEnabled(b);
+			buttonBar.getPlusButton().setEnabled(b);;
+		} else {
+			buttonBar.getPlusButton().setEnabled(b);
+			buttonBar.getMinusButton().setEnabled(b);
+		}
+		super.setEnabled(b);	
+	}
 }
