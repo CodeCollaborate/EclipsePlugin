@@ -6,6 +6,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.part.ViewPart;
 
@@ -65,16 +66,13 @@ public class ControlPanel extends ViewPart {
 			if (!event.getPropertyName().equals(SessionStorage.USERNAME))
 				return;
 			
-			this.setEnabled(true);
+			Display.getDefault().asyncExec(() -> this.setEnabled(true));
 		});
 	}
 	
 	private void initializeNotificationHandlers() {
 		WSManager wsManager = PluginManager.getInstance().getWSManager();
 		Shell shell = new Shell();
-		
-		// login property listener
-		
 		
 		// project handlers
 		
