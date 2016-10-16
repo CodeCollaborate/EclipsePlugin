@@ -8,6 +8,7 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
@@ -58,21 +59,23 @@ public class UsersListView extends ListView {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				AddNewUserDialog addUserDialog = new AddNewUserDialog(new Shell());
-				String username = null;
-				int permission = -1;
-				if (Window.OK == addUserDialog.open()) {
-					username = addUserDialog.getNewUserName();
-					permission = addUserDialog.getNewUserPermission();
-				}
-				List projectList = listView.getListWithButtons().getList();
-				Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects().get(projectList.getSelectionIndex());
-				
-				Request req = new ProjectGrantPermissionsRequest(p.getProjectID(), username, permission).getRequest(
-						new UIResponseHandler(new Shell(), "Project grant permissions request"), 
-						new UIRequestErrorHandler(new Shell(), "Could not send request."));
-				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-				
+				Display.getDefault().asyncExec(() -> {
+					Shell shell = Display.getDefault().getActiveShell();
+					AddNewUserDialog addUserDialog = new AddNewUserDialog(shell);
+					String username = null;
+					int permission = -1;
+					if (Window.OK == addUserDialog.open()) {
+						username = addUserDialog.getNewUserName();
+						permission = addUserDialog.getNewUserPermission();
+					}
+					List projectList = listView.getListWithButtons().getList();
+					Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects().get(projectList.getSelectionIndex());
+					
+					Request req = new ProjectGrantPermissionsRequest(p.getProjectID(), username, permission).getRequest(
+							new UIResponseHandler(shell, "Project grant permissions request"), 
+							new UIRequestErrorHandler(shell, "Could not send request."));
+					PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+				});
 			}
 		});
 		bar.getMinusButton().addListener(SWT.Selection, new Listener() {
