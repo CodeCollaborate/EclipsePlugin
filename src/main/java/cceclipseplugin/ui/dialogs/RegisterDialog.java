@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
@@ -16,7 +17,9 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Text;
 
+import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
@@ -138,9 +141,15 @@ public class RegisterDialog extends Dialog {
 		if (!passwordBox.getText().equals(confirmPasswordBox.getText()))
 			return;
 		Semaphore waiter = new Semaphore(0);
+		
+		String username = usernameBox.getText();
+		String password = passwordBox.getText();
+		String email = emailBox.getText();
+		String firstName = firstNameBox.getText();
+		String lastName = lastNameBox.getText();
 
-		Request registerReq = (new UserRegisterRequest(usernameBox.getText(), firstNameBox.getText(),
-				lastNameBox.getText(), emailBox.getText(), passwordBox.getText())).getRequest(response -> {
+		Request registerReq = (new UserRegisterRequest(username, firstName,
+				lastName, email, password)).getRequest(response -> {
 					if (response.getStatus() != 200) {
 						MessageDialog err = new MessageDialog(getShell(),
 								DialogStrings.RegisterDialog_UserRegistrationErr + response.getStatus() + "."); //$NON-NLS-2$
@@ -151,7 +160,7 @@ public class RegisterDialog extends Dialog {
 						msg.open();
 
 						// Send login request
-						Request loginReq = (new UserLoginRequest(usernameBox.getText(), passwordBox.getText()))
+						Request loginReq = (new UserLoginRequest(username, password))
 								.getRequest(loginResponse -> {
 							if (loginResponse.getStatus() != 200) {
 								MessageDialog err = new MessageDialog(getShell(), DialogStrings.RegisterDialog_LoginFailedWithStatus
@@ -173,8 +182,13 @@ public class RegisterDialog extends Dialog {
 						} catch (InterruptedException e) {
 							String message = e.getMessage();
 							MessageDialog errDialog = new MessageDialog(getShell(), message);
-							getShell().getDisplay().asyncExec(() -> errDialog.open());						}
-
+							getShell().getDisplay().asyncExec(() -> errDialog.open());
+							return;
+						}
+						
+						IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
+						prefStore.setValue(PreferenceConstants.USERNAME, username);
+						prefStore.setValue(PreferenceConstants.PASSWORD, password);
 					}
 
 					waiter.release();
