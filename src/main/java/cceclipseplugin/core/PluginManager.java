@@ -5,6 +5,8 @@ import org.eclipse.ui.PlatformUI;
 
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
+import cceclipseplugin.ui.DialogInvalidResponseHandler;
+import cceclipseplugin.ui.DialogRequestSendErrorHandler;
 import cceclipseplugin.ui.UIManager;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
@@ -64,7 +66,7 @@ public class PluginManager {
 		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
 		uiManager = new UIManager();
-		requestManager = new RequestManager(dataManager, wsManager);
+		requestManager = new RequestManager(dataManager, wsManager, new DialogRequestSendErrorHandler(), new DialogInvalidResponseHandler());
 		
 //		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
 //			try {

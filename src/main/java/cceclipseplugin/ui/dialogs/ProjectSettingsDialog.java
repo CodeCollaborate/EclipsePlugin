@@ -354,7 +354,7 @@ public class ProjectSettingsDialog extends Dialog {
 	private void sendRevokePermissionRequest(String user) {
 		Semaphore waiter = new Semaphore(0);
 		
-		Request req = (new ProjectRevokePermissionsRequest(project.getProjectID(), 0)).getRequest( // TODO: CHANGE THIS after request model is fixed
+		Request req = (new ProjectRevokePermissionsRequest(project.getProjectID(), user)).getRequest(
 				new UIResponseHandler(shlCodecollbaorateProject, waiter, DialogStrings.ProjectSettingsDialog_PermissionRevokeRespHandlerMsg),
 				new UIRequestErrorHandler(shlCodecollbaorateProject, DialogStrings.ProjectSettingsDialog_RevokePermissionErr));
 		try {
