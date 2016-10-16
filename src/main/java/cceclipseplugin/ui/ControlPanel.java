@@ -1,5 +1,6 @@
 package cceclipseplugin.ui;
 
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.viewers.ListViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -8,9 +9,12 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.part.ViewPart;
 
+import cceclipseplugin.Activator;
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import dataMgmt.SessionStorage;
 import websocket.WSConnection;
 import websocket.WSConnection.State;
 import websocket.models.Project;
@@ -50,14 +54,27 @@ public class ControlPanel extends ViewPart {
 		statusData.grabExcessHorizontalSpace = true;
 		statusData.horizontalAlignment = GridData.FILL;
 		statusBar.setLayoutData(statusData);
+		initializePropertyChangeListeners();
 		initializeNotificationHandlers();
 		
 		PluginManager.getInstance().getUIManager().popupWelcomePrompt();
 	}
 	
+	private void initializePropertyChangeListeners() {
+		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
+			if (!event.getPropertyName().equals(SessionStorage.USERNAME))
+				return;
+			
+			this.setEnabled(true);
+		});
+	}
+	
 	private void initializeNotificationHandlers() {
 		WSManager wsManager = PluginManager.getInstance().getWSManager();
 		Shell shell = new Shell();
+		
+		// login property listener
+		
 		
 		// project handlers
 		

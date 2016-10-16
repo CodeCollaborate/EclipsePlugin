@@ -162,38 +162,7 @@ public class RegisterDialog extends Dialog {
 						msg.open();
 
 						// Send login request
-						Request loginReq = (new UserLoginRequest(username, password))
-								.getRequest(loginResponse -> {
-							if (loginResponse.getStatus() != 200) {
-								MessageDialog err = new MessageDialog(getShell(), DialogStrings.RegisterDialog_LoginFailedWithStatus
-										+ loginResponse.getStatus() + DialogStrings.RegisterDialog_TryAgainMsg);
-								getShell().getDisplay().asyncExec(() -> err.open());
-							} else {
-								MessageDialog err = new MessageDialog(getShell(), DialogStrings.RegisterDialog_LoginSuccessMsg);
-								getShell().getDisplay().asyncExec(() -> err.open());
-							}
-
-							waiter.release();
-						} , new UIRequestErrorHandler(getShell(), DialogStrings.RegisterDialog_UserLoginErr));
-						try {
-							PluginManager.getInstance().getWSManager().sendRequest(loginReq);
-							if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-								MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.RegisterDialog_TimeoutErr);
-								getShell().getDisplay().asyncExec(() -> errDialog.open());
-							}
-						} catch (InterruptedException e) {
-							String message = e.getMessage();
-							MessageDialog errDialog = new MessageDialog(getShell(), message);
-							getShell().getDisplay().asyncExec(() -> errDialog.open());
-							return;
-						}
-						
-						IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-						prefStore.setValue(PreferenceConstants.USERNAME, username);
-						prefStore.setValue(PreferenceConstants.PASSWORD, password);
-						
-						ControlPanel cp = (ControlPanel) PluginManager.getInstance().getUIManager().getControlView();
-						Display.getDefault().asyncExec(() -> cp.setEnabled(true));
+						PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
 					}
 
 					waiter.release();
