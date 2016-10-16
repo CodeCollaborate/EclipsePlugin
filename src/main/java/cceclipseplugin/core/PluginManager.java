@@ -3,22 +3,16 @@ package cceclipseplugin.core;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.ui.PlatformUI;
 
-import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
 import cceclipseplugin.ui.UIManager;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
+import requestMgmt.RequestManager;
 import websocket.ConnectException;
-import websocket.WSConnection;
 import websocket.WSManager;
 import websocket.models.ConnectionConfig;
 import websocket.models.Notification;
-import websocket.models.Request;
-import websocket.models.requests.ProjectSubscribeRequest;
-import websocket.models.requests.UserLoginRequest;
-import websocket.models.requests.UserRegisterRequest;
-import websocket.models.responses.UserLoginResponse;
 
 /**
  * Manager for the entire plugin. Should only be instantiated once.
@@ -44,6 +38,7 @@ public class PluginManager {
 	private final DataManager dataManager;
 	private final WSManager wsManager;
 	private final UIManager uiManager;
+	private final RequestManager requestManager;
 
 	// TODO: Add GUI modules and setup listeners in init()
 
@@ -69,7 +64,8 @@ public class PluginManager {
 		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
 		uiManager = new UIManager();
-
+		requestManager = new RequestManager(dataManager, wsManager);
+		
 //		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
 //			try {
 //				websocketLogin();
@@ -116,6 +112,10 @@ public class PluginManager {
 
 		System.out.println("PROJECT_METADATA: " + metadataManager
 				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/"));
+	}
+	
+	public RequestManager getRequestManager() {
+		return requestManager;
 	}
 
 	public WSManager getWSManager() {

@@ -1,7 +1,7 @@
 package cceclipseplugin.ui;
 
 import org.eclipse.core.runtime.preferences.InstanceScope;
-import java.util.Arrays;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MenuAdapter;
 import org.eclipse.swt.events.MenuEvent;
@@ -21,20 +21,11 @@ import cceclipseplugin.ui.dialogs.AddProjectDialog;
 import cceclipseplugin.ui.dialogs.DeleteProjectDialog;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import websocket.models.Project;
-import websocket.models.Request;
-import websocket.models.notifications.ProjectGrantPermissionsNotification;
-import websocket.models.requests.ProjectLookupRequest;
-import websocket.models.requests.UserProjectsRequest;
-import websocket.models.responses.ProjectLookupResponse;
-import websocket.models.responses.UserProjectsResponse;
 
 public class ProjectsListView extends ListView {
-	
-	private Shell shell;
-	
+		
 	public ProjectsListView(Composite parent, int style) {
 		super(parent, style, "Projects");
-		shell = getShell();
 		this.initializeData();
 		this.initContextMenu();
 	}
@@ -71,60 +62,19 @@ public class ProjectsListView extends ListView {
 
 			@Override
 			public void run() {
-				// query for projects
+				// register handler for projects
 				List list = getListWithButtons().getList();
-				sendRequestForProjects(list);
-				
-				// register a notification handler for new projects
-				PluginManager.getInstance().getWSManager().registerNotificationHandler("Project", "GrantPermissions", notification -> {
-					ProjectGrantPermissionsNotification pgpnotif = ((ProjectGrantPermissionsNotification) notification.getData());
-					if (pgpnotif.grantUsername.equals(PluginManager.getInstance().getDataManager().getSessionStorage().getUsername())) {
-						sendRequestForProjects(list);
-					} else {
-						Long[] projectIds = { notification.getResourceID() };
-						Request getProjectDetails = new ProjectLookupRequest(projectIds).getRequest(response -> {
-							int status = response.getStatus();
-							if (status != 200) {
-								MessageDialog errDialog = new MessageDialog(shell, "Unable to fetch project information.");
-								shell.getDisplay().asyncExec(() -> errDialog.open());
-							} else {
-								Project[] projectResponse = ((ProjectLookupResponse) response.getData()).getProjects();
-								if (projectResponse.length != 1) {
-									MessageDialog errDialog = new MessageDialog(shell, "Invalid number of projects updated for notification: " + projectResponse.length);
-									shell.getDisplay().asyncExec(() -> errDialog.open());
-								} else {
-									PluginManager.getInstance().getDataManager().getSessionStorage().addProject(projectResponse[0]);
-								}
-							}
-						}, new UIRequestErrorHandler(shell, "Could not send lookup project request"));
-						PluginManager.getInstance().getWSManager().sendRequest(getProjectDetails);
-					}
+				PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
+					list.getDisplay().asyncExec(() -> {
+						list.removeAll();
+						for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
+							list.add(p.getName());
+						}
+					}); 
 				});
+				PluginManager.getInstance().getRequestManager().fetchProjects();
 			}
 		}).start();
-	}
-	
-	private void sendRequestForProjects(List listToUpdate) {
-		Request getProjectsRequest = new UserProjectsRequest()
-				.getRequest(response -> {
-					int status = response.getStatus();
-					if (status != 200) {
-						MessageDialog errDialog = new MessageDialog(shell, "Unable to fetch projects.");
-						shell.getDisplay().asyncExec(() -> errDialog.open());
-					} else {
-						java.util.List<Project> projects = Arrays.asList(((UserProjectsResponse) response.getData()).getProjects());
-						PluginManager.getInstance().getDataManager().getSessionStorage().setProjects(projects);
-						listToUpdate.getDisplay().asyncExec(() -> {
-							listToUpdate.removeAll();
-							for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
-								listToUpdate.add(p.getName());
-							}
-						});
-					}
-					// TODO: notify userslistview of possible changes
-				}, new UIRequestErrorHandler(shell,  
-						"Could not send user projects request"));
-		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(getProjectsRequest);
 	}
 	
 	public void initSelectionListener(Listener listener) {

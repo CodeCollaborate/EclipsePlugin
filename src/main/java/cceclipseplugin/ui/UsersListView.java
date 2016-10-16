@@ -99,7 +99,8 @@ public class UsersListView extends ListView {
 		HashMap<String, Permission> permissions = project.getPermissions();
 		if (permissions != null) {
 			for (String key : permissions.keySet()) {
-				list.add(key + " " + permissions.get(key));
+				Permission permy = permissions.get(key);
+				list.add(key);
 			}
 		}
 	}
