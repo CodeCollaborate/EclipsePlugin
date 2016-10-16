@@ -15,6 +15,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
+import constants.CoreStringConstants;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
@@ -133,9 +134,10 @@ public class DocumentManager {
 		// Get file path to write to.
 		FileMetadata fileMetaData = PluginManager.getInstance().getMetadataManager()
 				.getFileMetadata(n.getResourceID());
+		String workspaceRootPath = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
 		String projectRootPath = PluginManager.getInstance().getMetadataManager()
-				.getProjectPath(fileMetaData.getProjectId());
-		String filepath = Paths.get(projectRootPath, StringConstants.PROJ_NAME, fileMetaData.getFilePath()).toString();
+				.getProjectLocation(fileMetaData.getProjectId());
+		String filepath = Paths.get(workspaceRootPath, projectRootPath, fileMetaData.getFilePath()).toString();
 
 		// TODO(wongb): FIND A WAY TO MAKE THIS MORE DETERMINISTIC
 		// Only apply patch if incoming fileVersion is greater than local fileVersion. 
@@ -149,10 +151,11 @@ public class DocumentManager {
 		
 		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
 				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
-		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(StringConstants.FILE_ID);
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(n.getResourceID());
 		
 		fileMeta.setVersion(changeNotif.fileVersion);
-		PluginManager.getInstance().getMetadataManager().writeProjectMetadata(projMeta, ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
+		PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta, projectRootPath,
+				CoreStringConstants.CONFIG_FILE_NAME);
 		
 	}
 

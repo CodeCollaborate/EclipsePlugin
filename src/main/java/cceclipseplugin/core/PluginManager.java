@@ -1,15 +1,20 @@
 package cceclipseplugin.core;
 
+import java.nio.file.Paths;
+
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.ui.PlatformUI;
 
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
+import constants.CoreStringConstants;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
+import dataMgmt.models.ProjectMetadata;
 import websocket.ConnectException;
-import websocket.WSConnection;
 import websocket.WSManager;
 import websocket.models.ConnectionConfig;
 import websocket.models.Notification;
@@ -66,22 +71,6 @@ public class PluginManager {
 		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
 
-		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
-			try {
-				websocketLogin();
-			} catch (ConnectException | InterruptedException e) {
-				throw new IllegalStateException("Failed to run login", e);
-			}
-		});
-
-		new Thread(() -> {
-			try {
-				wsManager.connect();
-			} catch (ConnectException e) {
-				e.printStackTrace();
-			}
-		}).start();
-
 		registerNotificationHooks();
 
 		// Start editor & document listeners
@@ -94,24 +83,47 @@ public class PluginManager {
 			}
 		});
 
-		// ProjectMetadata projMeta = new ProjectMetadata();
-		// projMeta.setName(StringConstants.PROJ_NAME);
-		// projMeta.setProjectId(StringConstants.PROJ_ID);
-		// projMeta.setOwner(StringConstants.PREFERENCES_USERNAME);
-		//
-		// FileMetadata fileMeta = new FileMetadata();
-		// fileMeta.setFileId(StringConstants.FILE_ID);
-		// fileMeta.setFilePath(StringConstants.FILE_PATH);
-		// fileMeta.setProjectId(StringConstants.PROJ_ID);
-		// fileMeta.setVersion(5);
-		//
-		// projMeta.setFiles(new FileMetadata[] { fileMeta });
-		//
-		// metadataManager.writeProjectMetadata(projMeta,
-		// ResourcesPlugin.getWorkspace().getRoot().getLocation().toString());
+		IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+		IProject[] projects = workspaceRoot.getProjects();
+		for (int i = 0; i < projects.length; i++) {
+			IProject project = projects[i];
+			if (project.isOpen()) {
+				if (project.getName().equalsIgnoreCase("RemoteSystemsTempFiles")) {
+					continue;
+				}
+				String projRoot = project.getLocation().toString();
+				try {
+					metadataManager.readProjectMetadataFromFile(projRoot, CoreStringConstants.CONFIG_FILE_NAME);
+					System.out.println("Loaded metadata from "
+							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+				} catch (IllegalArgumentException e) {
+					System.out.println("No such config file: "
+							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+				} catch (IllegalStateException e) {
+					System.out.println("Incorrect config file format: "
+							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+				}
+			}
+		}
 
-		System.out.println("PROJECT_METADATA: " + metadataManager
-				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/"));
+		System.out.println("Enumerated all files");
+		
+		// wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, ()
+		// -> {
+		// try {
+		// websocketLogin();
+		// } catch (ConnectException | InterruptedException e) {
+		// throw new IllegalStateException("Failed to run login", e);
+		// }
+		// });
+		//
+		// new Thread(() -> {
+		// try {
+		// wsManager.connect();
+		// } catch (ConnectException e) {
+		// e.printStackTrace();
+		// }
+		// }).start();
 	}
 
 	public WSManager getWSManager() {
@@ -151,8 +163,11 @@ public class PluginManager {
 										((UserLoginResponse) response.getData()).getToken());
 
 								try {
-									wsManager.sendRequest(new ProjectSubscribeRequest(StringConstants.PROJ_ID)
+									// Subscribe to all projects that are CCProjects
+									for(ProjectMetadata metadata : metadataManager.getAllProjects()){
+									wsManager.sendRequest(new ProjectSubscribeRequest(metadata.getProjectId())
 											.getRequest(null, null));
+									}
 								} catch (ConnectException e) {
 									e.printStackTrace();
 								}
