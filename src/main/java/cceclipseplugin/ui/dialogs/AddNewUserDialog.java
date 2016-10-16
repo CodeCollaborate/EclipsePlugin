@@ -73,6 +73,8 @@ public class AddNewUserDialog extends Dialog {
 		combo.setLayoutData(gd_combo);
 		
 		permissionMap = PluginManager.getInstance().getDataManager().getSessionStorage().getPermissionConstants();
+		if (permissionMap == null || permissionMap.isEmpty())
+			
 		
 		for (Map.Entry<String, Byte> e : permissionMap.entrySet()) {
 			combo.add(e.getValue() + " : " + e.getKey()); //$NON-NLS-1$

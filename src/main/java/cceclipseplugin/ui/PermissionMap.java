@@ -2,6 +2,9 @@ package cceclipseplugin.ui;
 
 import java.util.HashMap;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+
 /**
  * Hard-coded permission map. Only to be used until the server is capable of
  * sending the defined permission map.
@@ -10,15 +13,15 @@ import java.util.HashMap;
  *
  */
 public class PermissionMap {
-	public static final HashMap<Integer, String> permissions;
+	public static final BiMap<String, Byte> permissions;
 
 	static {
-		permissions = new HashMap<>();
-		permissions.put(0, "Blocked");
-		permissions.put(1, "Read");
-		permissions.put(3, "Write");
-		permissions.put(5, "Admin");
-		permissions.put(10, "Owner");
+		permissions = HashBiMap.create();
+		permissions.put("Blocked", (byte) 0);
+		permissions.put("Read", (byte) 1);
+		permissions.put("Write", (byte) 3);
+		permissions.put("Admin", (byte) 5);
+		permissions.put("Owner", (byte) 10);
 
 	}
 

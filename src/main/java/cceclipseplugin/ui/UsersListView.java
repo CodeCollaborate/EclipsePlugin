@@ -65,13 +65,15 @@ public class UsersListView extends ListView {
 					username = addUserDialog.getNewUserName();
 					permission = addUserDialog.getNewUserPermission();
 				}
-				List projectList = listView.getListWithButtons().getList();
-				Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects().get(projectList.getSelectionIndex());
-				
-				Request req = new ProjectGrantPermissionsRequest(p.getProjectID(), username, permission).getRequest(
-						new UIResponseHandler(new Shell(), "Project grant permissions request"), 
-						new UIRequestErrorHandler(new Shell(), "Could not send request."));
-				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+				if (username == null && permission == -1) {
+					List projectList = listView.getListWithButtons().getList();
+					Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects().get(projectList.getSelectionIndex());
+					
+					Request req = new ProjectGrantPermissionsRequest(p.getProjectID(), username, permission).getRequest(
+							new UIResponseHandler(new Shell(), "Project grant permissions request"), 
+							new UIRequestErrorHandler(new Shell(), "Could not send request."));
+					PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+				}
 				
 			}
 		});

@@ -46,11 +46,13 @@ public class Activator extends AbstractUIPlugin {
 			Display.getDefault().asyncExec(() -> dialog.open());
 			prefStore.setValue(PreferenceConstants.WELCOME_SHOWN, true);
 		} else {
-			new Thread(() -> {
-				PluginManager.getInstance().getRequestManager().loginAndSubscribe(
-						prefStore.getString(PreferenceConstants.USERNAME), 
-						prefStore.getString(PreferenceConstants.PASSWORD));
-			}).start();
+			if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
+				new Thread(() -> {
+					PluginManager.getInstance().getRequestManager().loginAndSubscribe(
+							prefStore.getString(PreferenceConstants.USERNAME), 
+							prefStore.getString(PreferenceConstants.PASSWORD));
+				}).start();
+			}
 		}
 	}
 
