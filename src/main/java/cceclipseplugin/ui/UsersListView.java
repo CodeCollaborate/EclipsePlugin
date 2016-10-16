@@ -109,20 +109,22 @@ public class UsersListView extends ListView {
 
 	public void setProject(Project project) {
 		this.currentProject = project;
-		List list = this.getListWithButtons().getList();
-		list.removeAll();
-		if (project == null) {
-			return;
-		}
-		HashMap<String, Permission> permissions = project.getPermissions();
-		if (permissions != null) {
-			for (String key : permissions.keySet()) {
-				Permission permy = permissions.get(key);
-				// TODO: add permision level strings to the list (or table, in
-				// the future)
-				list.add(key);
+		Display.getDefault().asyncExec(() -> {
+			List list = this.getListWithButtons().getList();
+			list.removeAll();
+			if (project == null) {
+				return;
 			}
-		}
-		getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
+			HashMap<String, Permission> permissions = project.getPermissions();
+			if (permissions != null) {
+				for (String key : permissions.keySet()) {
+					Permission permy = permissions.get(key);
+					// TODO: add permision level strings to the list (or table, in
+					// the future)
+					list.add(key);
+				}
+			}
+			getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
+		});
 	}
 }
