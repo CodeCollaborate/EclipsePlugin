@@ -57,8 +57,6 @@ public class ControlPanel extends ViewPart {
 		statusBar.setLayoutData(statusData);
 		initializePropertyChangeListeners();
 		initializeNotificationHandlers();
-		
-//		PluginManager.getInstance().getUIManager().popupWelcomePrompt();
 	}
 	
 	private void initializePropertyChangeListeners() {
@@ -66,7 +64,10 @@ public class ControlPanel extends ViewPart {
 			if (!event.getPropertyName().equals(SessionStorage.USERNAME))
 				return;
 			
-			Display.getDefault().asyncExec(() -> this.setEnabled(true));
+			if (event.getNewValue() != null)
+				Display.getDefault().asyncExec(() -> this.setEnabled(true));
+			else
+				Display.getDefault().asyncExec(() -> this.setEnabled(false));
 		});
 	}
 	
