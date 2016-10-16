@@ -1,11 +1,14 @@
 package cceclipseplugin;
 
+import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.part.ViewPart;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.ControlPanel;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
 
@@ -36,14 +39,17 @@ public class Activator extends AbstractUIPlugin {
 		
 		PluginManager.getInstance();
 		
-//		boolean welcomeDialogShown = getPreferenceStore().getBoolean("welcomeDialogShown");
-//		if (!welcomeDialogShown) {
-//			WelcomeDialog dialog = new WelcomeDialog(new Shell());
-//			dialog.open();
-//		}
-		
-//		ControlPanel cp = (ControlPanel) PluginManager.getInstance().getUIManager().getControlView();
-//		cp.setEnabled(false);
+		IPreferenceStore prefStore = getPreferenceStore();
+		boolean welcomeDialogShown = prefStore.getBoolean(PreferenceConstants.WELCOME_SHOWN);
+		if (!welcomeDialogShown) {
+			WelcomeDialog dialog = new WelcomeDialog(new Shell());
+			Display.getDefault().asyncExec(() -> dialog.open());
+			prefStore.setValue(PreferenceConstants.WELCOME_SHOWN, true);
+		} else {
+			PluginManager.getInstance().getRequestManager().loginAndSubscribe(
+					prefStore.getString(PreferenceConstants.USERNAME), 
+					prefStore.getString(PreferenceConstants.PASSWORD));
+		}
 	}
 
 	/*

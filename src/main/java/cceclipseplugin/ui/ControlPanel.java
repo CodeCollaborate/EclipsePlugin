@@ -58,7 +58,7 @@ public class ControlPanel extends ViewPart {
 		initializePropertyChangeListeners();
 		initializeNotificationHandlers();
 		
-		PluginManager.getInstance().getUIManager().popupWelcomePrompt();
+//		PluginManager.getInstance().getUIManager().popupWelcomePrompt();
 	}
 	
 	private void initializePropertyChangeListeners() {

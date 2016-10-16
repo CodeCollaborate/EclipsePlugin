@@ -25,6 +25,8 @@ public class PreferenceConstants {
 	
 	public static final String AUTO_CONNECT = "autoConnect";
 	
+	public static final String WELCOME_SHOWN = "welcomeDialogShown";
+	
 	// ===================
 	// Nodes and Variables
 	// ===================

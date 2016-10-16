@@ -10,8 +10,7 @@ public class DialogInvalidResponseHandler implements IInvalidResponseHandler {
 
 	@Override
 	public void handleInvalidResponse(int errorCode, String message) {
-		MessageDialog err = new MessageDialog(new Shell(), message);
-		Display.getDefault().asyncExec(() -> err.open());
+		Display.getDefault().asyncExec(() -> (new MessageDialog(new Shell(), message)).open());
 	}
 
 }

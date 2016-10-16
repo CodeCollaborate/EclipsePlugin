@@ -39,6 +39,7 @@ public class UsersListView extends ListView {
 			public void handleEvent(Event event) {
 				selectedListIndex = event.index;
 				setProject(listView.getProjectAt(event.index));
+				listView.getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
 			}
 		});
 		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
@@ -86,6 +87,18 @@ public class UsersListView extends ListView {
 				removeUserDialog.open();
 			}
 		});
+		
+		List list = this.getListWithButtons().getList();
+		list.addListener(SWT.Selection, new Listener() {
+
+			@Override
+			public void handleEvent(Event arg0) {
+				getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
+			}
+			
+		});
+		
+		
 	}
 	
 	public void setProject(Project project) {
@@ -103,5 +116,6 @@ public class UsersListView extends ListView {
 				list.add(key);
 			}
 		}
+		getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
 	}
 }
