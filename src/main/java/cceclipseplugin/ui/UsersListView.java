@@ -41,16 +41,15 @@ public class UsersListView extends ListView {
 				setProject(listView.getProjectAt(event.index));
 			}
 		});
-		PluginManager.getInstance().getDataManager().getSessionStorage().addObserver(new Observer() {
-
-			@Override
-			public void update(Observable arg0, Object arg1) {
-				SessionStorage storage = (SessionStorage) arg0;
-				java.util.List<Project> projects = storage.getProjects();
-				Project project = projects.get(selectedListIndex);
-				if (selectedListIndex != -1) {
-					setProject(project);
-				}
+		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
+			if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
+				return;
+			}
+			SessionStorage storage = (SessionStorage) event.getSource();
+			java.util.List<Project> projects = storage.getProjects();
+			Project project = projects.get(selectedListIndex);
+			if (selectedListIndex != -1) {
+				setProject(project);
 			}
 		});
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
@@ -100,6 +99,7 @@ public class UsersListView extends ListView {
 		if (permissions != null) {
 			for (String key : permissions.keySet()) {
 				Permission permy = permissions.get(key);
+				// TODO: add permision level strings to the list (or table, in the future)
 				list.add(key);
 			}
 		}
