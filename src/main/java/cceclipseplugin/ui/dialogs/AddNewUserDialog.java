@@ -21,6 +21,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.PermissionMap;
 import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
@@ -73,7 +74,7 @@ public class AddNewUserDialog extends Dialog {
 		
 		permissionMap = PluginManager.getInstance().getDataManager().getSessionStorage().getPermissionConstants();
 		if (permissionMap == null || permissionMap.isEmpty())
-			
+			permissionMap = PermissionMap.permissions;
 		
 		for (Map.Entry<String, Byte> e : permissionMap.entrySet()) {
 			combo.add(e.getValue() + " : " + e.getKey()); //$NON-NLS-1$
