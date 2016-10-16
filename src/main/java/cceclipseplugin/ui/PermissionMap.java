@@ -20,7 +20,5 @@ public class PermissionMap {
 		permissions.put("Write", (byte) 3);
 		permissions.put("Admin", (byte) 5);
 		permissions.put("Owner", (byte) 10);
-
 	}
-
 }

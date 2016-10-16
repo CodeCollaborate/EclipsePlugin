@@ -10,8 +10,8 @@ public class DialogRequestSendErrorHandler implements IRequestSendErrorHandler {
 
 	@Override
 	public void handleRequestSendError() {
+		// TODO: Log more detailed message
 		MessageDialog err = new MessageDialog(new Shell(), "Could not send request.");
 		Display.getDefault().asyncExec(() -> err.open());
 	}
-
 }

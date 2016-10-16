@@ -1,13 +1,11 @@
 package cceclipseplugin.core;
 
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.ui.PlatformUI;
 
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
-import cceclipseplugin.ui.UIManager;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import requestMgmt.RequestManager;
@@ -27,8 +25,6 @@ public class PluginManager {
 	private static PluginManager instance;
 
 	// PLUGIN SETTINGS (will be moved to preferences later)
-	// final private String WS_ADDRESS = "ws://echo.websocket.org";
-	// final private String WS_ADDRESS = "ws://localhost:8000/ws/";
 	final private String WS_ADDRESS = "ws://cody.csse.rose-hulman.edu:8000/ws/";
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
@@ -36,10 +32,8 @@ public class PluginManager {
 	// PLUGIN MODULES
 	private EditorChangeListener editorChangeListener;
 	private final DocumentManager documentManager;
-	private final MetadataManager metadataManager;
 	private final DataManager dataManager;
 	private final WSManager wsManager;
-	private final UIManager uiManager;
 	private final RequestManager requestManager;
 
 	/**
@@ -60,12 +54,11 @@ public class PluginManager {
 
 	private PluginManager() {
 		documentManager = new DocumentManager();
-		metadataManager = new MetadataManager();
 		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
-		uiManager = new UIManager();
 		requestManager = new RequestManager(dataManager, wsManager, new DialogRequestSendErrorHandler(), new DialogInvalidResponseHandler());
 
+		// TODO: Not connect until login requested from user
 		new Thread(() -> {
 			try {
 				wsManager.connect();
@@ -86,9 +79,6 @@ public class PluginManager {
 			}
 		});
 		requestManager.fetchPermissionConstants();
-		
-		System.out.println("PROJECT_METADATA: " + metadataManager
-				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/"));
 	}
 	
 	public RequestManager getRequestManager() {
@@ -98,17 +88,13 @@ public class PluginManager {
 	public WSManager getWSManager() {
 		return wsManager;
 	}
-	
-	public UIManager getUIManager() {
-		return uiManager;
-	}
 
 	public DocumentManager getDocumentManager() {
 		return documentManager;
 	}
 
 	public MetadataManager getMetadataManager() {
-		return metadataManager;
+		return dataManager.getMetadataManager();
 	}
 
 	public DataManager getDataManager() {

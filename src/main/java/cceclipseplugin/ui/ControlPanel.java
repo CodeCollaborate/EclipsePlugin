@@ -15,6 +15,7 @@ import cceclipseplugin.ui.dialogs.MessageDialog;
 import dataMgmt.SessionStorage;
 import websocket.WSConnection;
 import websocket.WSConnection.State;
+import websocket.models.Permission;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.notifications.ProjectGrantPermissionsNotification;
@@ -58,18 +59,21 @@ public class ControlPanel extends ViewPart {
 	
 	private void initializePropertyChangeListeners() {
 		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
-			if (!event.getPropertyName().equals(SessionStorage.USERNAME))
+			if (!event.getPropertyName().equals(SessionStorage.USERNAME)) {
 				return;
+			}
 			
-			if (event.getNewValue() != null)
+			if (event.getNewValue() != null) {
 				Display.getDefault().asyncExec(() -> this.setEnabled(true));
-			else
+			} else {
 				Display.getDefault().asyncExec(() -> this.setEnabled(false));
+			}
 		});
 	}
 	
 	private void initializeNotificationHandlers() {
 		WSManager wsManager = PluginManager.getInstance().getWSManager();
+		SessionStorage sessionStorage = PluginManager.getInstance().getDataManager().getSessionStorage();
 		Shell shell = new Shell();
 		
 		// project handlers
@@ -77,38 +81,41 @@ public class ControlPanel extends ViewPart {
 		// grant permissions
 		wsManager.registerNotificationHandler("Project", "GrantPermissions", notification -> {
 			ProjectGrantPermissionsNotification pgpnotif = ((ProjectGrantPermissionsNotification) notification.getData());
-			if (pgpnotif.grantUsername.equals(PluginManager.getInstance().getDataManager().getSessionStorage().getUsername())) {
-				PluginManager.getInstance().getRequestManager().fetchProjects();
-			} else {
+			if (pgpnotif.grantUsername.equals(sessionStorage.getUsername())) {
 				Long[] projectIds = { notification.getResourceID() };
 				Request getProjectDetails = new ProjectLookupRequest(projectIds).getRequest(response -> {
 					int status = response.getStatus();
-					if (status != 200) {
-						MessageDialog errDialog = new MessageDialog(shell, "Unable to fetch project information.");
-						shell.getDisplay().asyncExec(() -> errDialog.open());
-					} else {
+					if (status == 200) {
 						Project[] projectResponse = ((ProjectLookupResponse) response.getData()).getProjects();
-						if (projectResponse.length != 1) {
+						if (projectResponse.length == 1) {
+							sessionStorage.addProject(projectResponse[0]);
+						} else {
+							// TODO: Change to use UI logger
 							MessageDialog errDialog = new MessageDialog(shell, "Invalid number of projects updated for notification: " + projectResponse.length);
 							shell.getDisplay().asyncExec(() -> errDialog.open());
-						} else {
-							PluginManager.getInstance().getDataManager().getSessionStorage().addProject(projectResponse[0]);
 						}
+					} else {
+						MessageDialog errDialog = new MessageDialog(shell, "Unable to fetch project information.");
+						shell.getDisplay().asyncExec(() -> errDialog.open());
 					}
 				}, new UIRequestErrorHandler(shell, "Could not send lookup project request"));
-				PluginManager.getInstance().getWSManager().sendRequest(getProjectDetails);
+				wsManager.sendRequest(getProjectDetails);
+			} else {
+				Project toUpdate = sessionStorage.getProjectById(notification.getResourceID());
+				toUpdate.getPermissions().put(pgpnotif.grantUsername, new Permission(pgpnotif.grantUsername, pgpnotif.permissionLevel, null, null));
+				sessionStorage.addProject(toUpdate);
 			}
 		});
 		
 		// status bar handlers
 		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
-			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus("Connected to CodeCollaborate server."));
+			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.CONNECT_MESSAGE));
 		});
 		wsManager.registerEventHandler(WSConnection.EventType.ON_CLOSE, () -> {
-			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus("Disconnected from CodeCollaborate server."));
+			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.CLOSE_MESSAGE));
 		});
 		wsManager.registerEventHandler(WSConnection.EventType.ON_ERROR, () -> {
-			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus("Error on CodeCollaborate server."));
+			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.ERROR_MESSAGE));
 		});
 		State s = wsManager.getConnectionState();
 		switch (s) {
@@ -122,7 +129,6 @@ public class ControlPanel extends ViewPart {
 			statusBar.setStatus(StringConstants.ERROR_MESSAGE);
 			break;
 		default:
-			System.out.println(s);
 			break;
 		}
 	}
@@ -130,7 +136,6 @@ public class ControlPanel extends ViewPart {
 	@Override
 	public void setFocus() {
 		// TODO Auto-generated method stub
-		
 	}
 	
 	public void setEnabled(boolean b) {

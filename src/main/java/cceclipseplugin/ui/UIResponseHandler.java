@@ -15,6 +15,7 @@ public class UIResponseHandler implements IResponseHandler {
 	private Semaphore waiter;
 	private String requestName;
 	
+	// TODO: remove shell parameter and make new shell
 	public UIResponseHandler(Shell shell, Semaphore waiter, String requestName) {
 		this.shell = shell;
 		this.waiter = waiter;
@@ -33,9 +34,8 @@ public class UIResponseHandler implements IResponseHandler {
 			Display.getDefault().asyncExec(() -> err.open());
 		}
 		
-		if (waiter != null)
+		if (waiter != null) {
 			waiter.release();
-		
+		}
 	}
-	
 }

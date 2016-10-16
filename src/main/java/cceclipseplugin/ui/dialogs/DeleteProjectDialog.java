@@ -78,6 +78,7 @@ public class DeleteProjectDialog extends Dialog {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
 		Shell shell = getShell();
 		Display display = shell.getDisplay();
+		// TODO: Move this listener to okPressed()
 		button.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {

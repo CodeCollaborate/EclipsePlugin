@@ -136,8 +136,6 @@ public class AddProjectDialog extends Dialog {
 		super.okPressed();
 	}
 	
-	private int fileCreateStatusCode;
-	
 	private void sendCreateFileRequests(long projectID, List<IFile> files) throws CoreException, IOException {
 		Semaphore waiter = new Semaphore(0);
 		
@@ -147,7 +145,7 @@ public class AddProjectDialog extends Dialog {
 					projectID,
 					inputStreamToByteArray(f.getContents()))).getRequest(
 							response -> {
-								fileCreateStatusCode = response.getStatus();
+								int fileCreateStatusCode = response.getStatus();
 								
 								if (fileCreateStatusCode != 200) {
 									MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + "."); //$NON-NLS-2$
@@ -157,7 +155,7 @@ public class AddProjectDialog extends Dialog {
 								}
 							}, new UIRequestErrorHandler(new Shell(), DialogStrings.AddProjectDialog_FileCreateErr));
 			
-			PluginManager.getInstance().getWSManager().sendRequest(req);
+			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 			
 			try {
 				if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {

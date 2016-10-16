@@ -28,6 +28,7 @@ public class ProjectsListView extends ListView {
 		super(parent, style, "Projects");
 		this.initializeData();
 		this.initContextMenu();
+		this.initButtonListeners();
 	}
 	
 	private void initContextMenu() {
@@ -38,48 +39,46 @@ public class ProjectsListView extends ListView {
 			public void menuShown(MenuEvent e) {
 				int selected = list.getSelectionIndex();
 				
-				if (selected < 0 || selected > list.getItemCount())
+				for (MenuItem item : menu.getItems()) {
+					item.dispose();
+				}
+				
+				if (selected < 0 || selected > list.getItemCount()) {
 					return;
+				}
 								
 				Project selectedProj = null;
 				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
+				// TODO: sort projects here instead of in clientcore
 				selectedProj = projects.get(selected);
-				
-				for (MenuItem item : menu.getItems())
-					item.dispose();
-				
+
 				boolean subscribed = getSubscribedVarFromPrefs(selectedProj);
-				if (subscribed)
+				if (subscribed) {
 					ProjectListMenuItemFactory.makeUnsubscribeItem(menu, selectedProj);
-				else
+				} else {
 					ProjectListMenuItemFactory.makeSubscribeItem(menu, selectedProj);
+				}	
 			}
 		});
 	}
 	
 	private void initializeData() {	
-		new Thread(new Runnable() {
-
-			@Override
-			public void run() {
-				// register handler for projects
-				List list = getListWithButtons().getList();
-				PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
-					list.getDisplay().asyncExec(() -> {
-						list.removeAll();
-						for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
-							list.add(p.getName());
-						}
-					}); 
-				});
-				PluginManager.getInstance().getRequestManager().fetchProjects();
-			}
-		}).start();
+		// register handler for projects
+		List list = getListWithButtons().getList();
+		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
+			list.getDisplay().asyncExec(() -> {
+				// TODO: optimize to only update changed projects
+				list.removeAll();
+				for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
+					list.add(p.getName());
+				}
+			}); 
+		});
+		PluginManager.getInstance().getRequestManager().fetchProjects();
 	}
 	
-	public void initSelectionListener(Listener listener) {
-		List list = this.getListWithButtons().getList();
-		list.addListener(SWT.Selection, listener);
+	private void initButtonListeners() {
+		List list = getListWithButtons().getList();
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
 		bar.getPlusButton().addListener(SWT.Selection, new Listener() {
 
@@ -104,18 +103,14 @@ public class ProjectsListView extends ListView {
 				DeleteProjectDialog delete = new DeleteProjectDialog(new Shell(), selectedProject);
 				delete.open();
 			}
-			
 		});
 	}
 	
-	public Project getProjectAt(int index) {
-		java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
-		if (index < 0 || index >= projects.size())
-			return null;
-		return projects.get(index);
+	public void initSelectionListener(Listener listener) {
+		List list = this.getListWithButtons().getList();
+		list.addListener(SWT.Selection, listener);
 	}
 	
-	// TODO: Move this method to a class that allows you to access project-level prefs
 	private boolean getSubscribedVarFromPrefs(Project p) {
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);

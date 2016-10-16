@@ -1,6 +1,7 @@
 package cceclipseplugin.ui;
 
 import java.util.HashMap;
+
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
@@ -13,7 +14,6 @@ import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.dialogs.AddNewUserDialog;
-import cceclipseplugin.ui.dialogs.DialogStrings;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.RemoveUserDialog;
 import dataMgmt.SessionStorage;
@@ -31,14 +31,22 @@ public class UsersListView extends ListView {
 		super(parent, style, "Users");
 		this.initializeListeners(listView);
 	}
+	
+	private Project getProjectAt(int index) {
+		java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
+		if (index < 0 || index >= projects.size()) {
+			return null;
+		}
+		// TODO: sort projects here instead of in clientcore
+		return projects.get(index);
+	}
 
 	private void initializeListeners(ProjectsListView listView) {
 		listView.initSelectionListener(new Listener() {
-
 			@Override
 			public void handleEvent(Event event) {
 				selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
-				setProject(listView.getProjectAt(selectedListIndex));
+				setProject(getProjectAt(selectedListIndex));
 				listView.getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
 			}
 		});
@@ -49,13 +57,13 @@ public class UsersListView extends ListView {
 			if (selectedListIndex != -1) {
 				SessionStorage storage = (SessionStorage) event.getSource();
 				java.util.List<Project> projects = storage.getProjects();
+				// TODO: sort projects here instead of in clientcore
 				Project project = projects.get(selectedListIndex);
 				setProject(project);
 			}
 		});
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
 		bar.getPlusButton().addListener(SWT.Selection, new Listener() {
-
 			@Override
 			public void handleEvent(Event arg0) {
 				Display.getDefault().asyncExec(() -> {
@@ -69,7 +77,7 @@ public class UsersListView extends ListView {
 					} else {
 						return;
 					}
-
+					// TODO: Move this request inside addUserDialog
 					if (username != null && permission != -1) {
 						List projectList = listView.getListWithButtons().getList();
 						Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()
@@ -77,9 +85,7 @@ public class UsersListView extends ListView {
 
 						Request req = new ProjectGrantPermissionsRequest(p.getProjectID(), username, permission)
 								.getRequest((response) -> {
-									if (response.getStatus() == 200) {
-										PluginManager.getInstance().getRequestManager().fetchProjects();
-									} else {
+									if (response.getStatus() != 200) {
 										MessageDialog err = new MessageDialog(shell, "Error granting permissions: "+response.getStatus());
 										getShell().getDisplay().asyncExec(() -> err.open());
 									}
@@ -90,7 +96,6 @@ public class UsersListView extends ListView {
 			}
 		});
 		bar.getMinusButton().addListener(SWT.Selection, new Listener() {
-
 			@Override
 			public void handleEvent(Event arg0) {
 				if (currentProject == null) {
@@ -110,9 +115,7 @@ public class UsersListView extends ListView {
 			public void handleEvent(Event arg0) {
 				getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
 			}
-
 		});
-
 	}
 
 	public void setProject(Project project) {

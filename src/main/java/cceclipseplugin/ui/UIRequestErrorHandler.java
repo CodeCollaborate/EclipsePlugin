@@ -11,6 +11,7 @@ public class UIRequestErrorHandler implements IRequestSendErrorHandler {
 	private Shell shell;
 	private String errorMsg;
 	
+	// TODO: remove parentShell parameter and make new Shell()
 	public UIRequestErrorHandler(Shell parentShell, String errorMsg) {
 		shell = parentShell;
 		this.errorMsg = errorMsg;
@@ -21,5 +22,4 @@ public class UIRequestErrorHandler implements IRequestSendErrorHandler {
 		MessageDialog err = new MessageDialog(shell, errorMsg);
 		Display.getDefault().asyncExec(() -> err.open());
 	}
-
 }

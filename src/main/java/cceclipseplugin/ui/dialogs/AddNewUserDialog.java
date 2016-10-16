@@ -127,6 +127,7 @@ public class AddNewUserDialog extends Dialog {
 
 		permission = Integer.parseInt(combo.getItem(combo.getSelectionIndex()).split(" . ")[0]);
 		
+		// TODO: Potentially get rid of lookup request and move GrantPermissionsRequest to here
 		Request userLookupReq = (new UserLookupRequest(new String[] { text.getText() })).getRequest(
 				response -> {
 

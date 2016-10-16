@@ -28,25 +28,22 @@ public class ProjectListMenuItemFactory {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				// send request
 				Request req = (new ProjectSubscribeRequest(p.getProjectID())).getRequest(
 						response -> {
-							if (response.getStatus() != 200) {
-								MessageDialog err = new MessageDialog(new Shell(), "Project subscribe request failed with status code " + response.getStatus());
-								Display.getDefault().asyncExec(() ->err.open());
-								return;
-							}
-							
-//							Display.getDefault().asyncExec(() -> parentMenu.getParent().setEnabled(true));
-							Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
-							Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-							Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
-							thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
-							try {
-								pluginPrefs.flush();
-							} catch (Exception e) {
-								MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
-								Display.getDefault().asyncExec(() ->errDialog.open());
+							if (response.getStatus() == 200) {
+								Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+								Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
+								Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
+								thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
+								try {
+									pluginPrefs.flush();
+								} catch (Exception e) {
+									MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
+									Display.getDefault().asyncExec(() ->errDialog.open());
+								}
+							} else {
+								Display.getDefault().asyncExec(() -> 
+									new MessageDialog(new Shell(), "Project subscribe request failed with status code " + response.getStatus()).open());
 							}
 						},
 						new UIRequestErrorHandler(new Shell(), "Failed to send project subscribe request."));
@@ -62,35 +59,30 @@ public class ProjectListMenuItemFactory {
 		MenuItem unsub = new MenuItem(parentMenu, SWT.NONE);
 		unsub.setText("Unsubscribe");
 		unsub.addListener(SWT.Selection, new Listener() {
-
 			@Override
 			public void handleEvent(Event arg0) {
-				
 				Request req = (new ProjectUnsubscribeRequest(p.getProjectID())).getRequest(
 						response -> {
-							if (response.getStatus() != 200) {
-								MessageDialog err = new MessageDialog(new Shell(), "Project unsubscribe request failed with status code " + response.getStatus());
-								Display.getDefault().asyncExec(() ->err.open());
-								return;
-							}
-							
-//							Display.getDefault().asyncExec(() ->parentMenu.getParent().setEnabled(false));
-							Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
-							Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-							Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
-							thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
-							try {
-								pluginPrefs.flush();
-							} catch (Exception e) {
-								MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
-								Display.getDefault().asyncExec(() ->errDialog.open());
+							if (response.getStatus() == 200) {
+								Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+								Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
+								Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
+								thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
+								try {
+									pluginPrefs.flush();
+								} catch (Exception e) {
+									MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
+									Display.getDefault().asyncExec(() ->errDialog.open());
+								}
+							} else {
+								Display.getDefault().asyncExec(() -> 
+									new MessageDialog(new Shell(), "Project unsubscribe request failed with status code " + response.getStatus()).open());								
 							}
 						},
 						new UIRequestErrorHandler(new Shell(), "Failed to send project unsubscribe request."));
 				
 				PluginManager.getInstance().getWSManager().sendRequest(req);
 			}
-			
 		});
 	}
 	

@@ -134,6 +134,7 @@ public class RegisterDialog extends Dialog {
 
 	@Override
 	protected void okPressed() {
+		// TODO: Let user know that passwords aren't equal and disable ok button until they are
 		if (!passwordBox.getText().equals(confirmPasswordBox.getText()))
 			return;
 		Semaphore waiter = new Semaphore(0);
