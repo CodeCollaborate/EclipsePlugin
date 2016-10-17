@@ -58,8 +58,6 @@ public class MessageDialog extends Dialog {
 		Label label = new Label(container, SWT.WRAP | SWT.CENTER);
 		label.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
 		GridData gd_label = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
-		gd_label.heightHint = 44;
-		gd_label.widthHint = 240;
 		label.setLayoutData(gd_label);
 		label.setText(errorMessage);
 
@@ -76,14 +74,6 @@ public class MessageDialog extends Dialog {
 		createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
 		// cancel button inherently exists in superclass, but is removed since
 		// it serves the same functionality in this instance
-	}
-
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(271, 149);
 	}
 	
 	@Override

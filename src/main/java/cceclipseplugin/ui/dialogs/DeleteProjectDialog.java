@@ -54,15 +54,12 @@ public class DeleteProjectDialog extends Dialog {
 		
 		Label lblAreYouSure = new Label(container, SWT.CENTER);
 		GridData gd_lblAreYouSure = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
-		gd_lblAreYouSure.widthHint = 304;
 		lblAreYouSure.setLayoutData(gd_lblAreYouSure);
 		lblAreYouSure.setText(DialogStrings.DeleteProjectDialog_AreYouSure + project.getName() + "?"); //$NON-NLS-2$
 		
 		Label lblWarningThisAction = new Label(container, SWT.WRAP | SWT.CENTER);
 		lblWarningThisAction.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
 		GridData gd_lblWarningThisAction = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
-		gd_lblWarningThisAction.widthHint = 360;
-		gd_lblWarningThisAction.heightHint = 36;
 		lblWarningThisAction.setLayoutData(gd_lblWarningThisAction);
 		lblWarningThisAction.setText(DialogStrings.DeleteProjectDialog_DeleteWarning);
 
@@ -115,14 +112,6 @@ public class DeleteProjectDialog extends Dialog {
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(393, 159);
-	}
-	
 	@Override
 	protected void configureShell(Shell shell) {
 	      super.configureShell(shell);

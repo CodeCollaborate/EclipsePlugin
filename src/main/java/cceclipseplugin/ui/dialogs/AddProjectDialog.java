@@ -61,14 +61,11 @@ public class AddProjectDialog extends Dialog {
 		
 		Label lblProjectsArePulled = new Label(container, SWT.WRAP | SWT.CENTER);
 		GridData gd_lblProjectsArePulled = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
-		gd_lblProjectsArePulled.heightHint = 33;
-		gd_lblProjectsArePulled.widthHint = 380;
 		lblProjectsArePulled.setLayoutData(gd_lblProjectsArePulled);
 		lblProjectsArePulled.setText(DialogStrings.AddProjectDialog_Label1);
 		
 		combo = new Combo(container, SWT.NONE);
 		GridData gd_combo = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		gd_combo.widthHint = 409;
 		combo.setLayoutData(gd_combo);
 		
 		localProjects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
@@ -219,14 +216,6 @@ public class AddProjectDialog extends Dialog {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
 		button.setText(DialogStrings.AddProjectDialog_AddButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
-	}
-
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(417, 153);
 	}
 	
 	@Override

@@ -54,8 +54,6 @@ public class RemoveUserDialog extends Dialog {
 
 		Label lblAreYouSure = new Label(container, SWT.WRAP | SWT.CENTER);
 		GridData gd_lblAreYouSure = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
-		gd_lblAreYouSure.widthHint = 334;
-		gd_lblAreYouSure.heightHint = 33;
 		lblAreYouSure.setLayoutData(gd_lblAreYouSure);
 		lblAreYouSure.setText(DialogStrings.RemoveUserDialog_AreYouSure1 + username + DialogStrings.RemoveUserDialog_AreYouSure2 + projectName + DialogStrings.RemoveUserDialog_AreYouSure3);
 
@@ -87,14 +85,6 @@ public class RemoveUserDialog extends Dialog {
 		});
 		button.setText(DialogStrings.RemoveUserDialog_RemoveButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
-	}
-
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(362, 132);
 	}
 	
 	@Override

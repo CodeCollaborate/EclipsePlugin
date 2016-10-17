@@ -41,16 +41,12 @@ public class WelcomeDialog extends Dialog {
 
 		Label lblNewLabel = new Label(container, SWT.WRAP | SWT.CENTER);
 		GridData gd_lblNewLabel = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
-		gd_lblNewLabel.widthHint = 288;
-		gd_lblNewLabel.heightHint = 29;
 		lblNewLabel.setLayoutData(gd_lblNewLabel);
 		lblNewLabel.setText(DialogStrings.WelcomeDialog_InstructionsLabel);
 
 		Composite composite = new Composite(container, SWT.NONE);
 		composite.setLayout(new GridLayout(2, false));
 		GridData gd_composite = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
-		gd_composite.heightHint = 62;
-		gd_composite.widthHint = 287;
 		composite.setLayoutData(gd_composite);
 
 		Label lblUsername = new Label(composite, SWT.NONE);
@@ -70,8 +66,6 @@ public class WelcomeDialog extends Dialog {
 		Composite composite_1 = new Composite(container, SWT.NONE);
 		composite_1.setLayout(new GridLayout(5, false));
 		GridData gd_composite_1 = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
-		gd_composite_1.widthHint = 284;
-		gd_composite_1.heightHint = 34;
 		composite_1.setLayoutData(gd_composite_1);
 		new Label(composite_1, SWT.NONE);
 		new Label(composite_1, SWT.NONE);
@@ -90,7 +84,6 @@ public class WelcomeDialog extends Dialog {
 			}
 		});
 		GridData gd_btnRegister = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_btnRegister.widthHint = 79;
 		btnRegister.setLayoutData(gd_btnRegister);
 		btnRegister.setText(DialogStrings.WelcomeDialog_ReigsterLabel);
 
@@ -107,14 +100,6 @@ public class WelcomeDialog extends Dialog {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
 		button.setText(DialogStrings.WelcomeDialog_LoginLabel);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
-	}
-
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(316, 240);
 	}
 
 	@Override

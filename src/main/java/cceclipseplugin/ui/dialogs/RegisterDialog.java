@@ -58,7 +58,6 @@ public class RegisterDialog extends Dialog {
 
 		Composite composite = new Composite(container, SWT.NONE);
 		GridData gd_composite = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);
-		gd_composite.widthHint = 341;
 		composite.setLayoutData(gd_composite);
 		composite.setLayout(new GridLayout(2, false));
 
@@ -122,14 +121,6 @@ public class RegisterDialog extends Dialog {
 		});
 		btnCreateAccountAnd.setText(DialogStrings.RegisterDialog_RegisterButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
-	}
-
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(366, 300);
 	}
 
 	@Override

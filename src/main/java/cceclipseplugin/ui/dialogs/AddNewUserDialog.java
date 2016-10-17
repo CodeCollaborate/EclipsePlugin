@@ -62,14 +62,12 @@ public class AddNewUserDialog extends Dialog {
 
 		text = new Text(container, SWT.BORDER);
 		GridData gd_text = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1);
-		gd_text.widthHint = 292;
 		text.setLayoutData(gd_text);
 
 		combo = new CCombo(container, SWT.BORDER);
 		combo.setEditable(false);
 		combo.setText(DialogStrings.AddNewUserDialog_ChoosePermission);
 		GridData gd_combo = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
-		gd_combo.widthHint = 300;
 		combo.setLayoutData(gd_combo);
 		
 		permissionMap = PluginManager.getInstance().getDataManager().getSessionStorage().getPermissionConstants();
@@ -91,8 +89,6 @@ public class AddNewUserDialog extends Dialog {
 		errorLabel = new Label(container, SWT.NONE);
 		errorLabel.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
 		GridData gd_errorLabel = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		gd_errorLabel.widthHint = 355;
-		gd_errorLabel.heightHint = 21;
 		errorLabel.setLayoutData(gd_errorLabel);
 		errorLabel.setText(DialogStrings.AddNewUserDialog_ErrLabelPlaceholder);
 		errorLabel.setVisible(false);
@@ -111,14 +107,6 @@ public class AddNewUserDialog extends Dialog {
 		okButton.setText(DialogStrings.AddNewUserDialog_AddButton);
 		okButton.setEnabled(false);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
-	}
-
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(383, 199);
 	}
 
 	@Override

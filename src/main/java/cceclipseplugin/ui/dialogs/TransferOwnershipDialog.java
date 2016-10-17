@@ -44,7 +44,6 @@ public class TransferOwnershipDialog extends Dialog {
 		
 		combo = new Combo(container, SWT.NONE);
 		GridData gd_combo = new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1);
-		gd_combo.widthHint = 394;
 		combo.setLayoutData(gd_combo);
 		
 		// fill combo
@@ -64,14 +63,6 @@ public class TransferOwnershipDialog extends Dialog {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
 		button.setText(DialogStrings.TransferOwnershipDialog_TransferButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
-	}
-
-	/**
-	 * Return the initial size of the dialog.
-	 */
-	@Override
-	protected Point getInitialSize() {
-		return new Point(421, 152);
 	}
 	
 	public String getNewOwner() {

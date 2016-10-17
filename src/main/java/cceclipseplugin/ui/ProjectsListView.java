@@ -20,6 +20,7 @@ import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.AddProjectDialog;
 import cceclipseplugin.ui.dialogs.DeleteProjectDialog;
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import dataMgmt.SessionStorage;
 import websocket.models.Project;
 
 public class ProjectsListView extends ListView {
@@ -66,8 +67,10 @@ public class ProjectsListView extends ListView {
 		// register handler for projects
 		List list = getListWithButtons().getList();
 		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
+			if (event.getPropertyName() != SessionStorage.PROJECT_LIST) {
+				return;
+			}
 			list.getDisplay().asyncExec(() -> {
-				// TODO: optimize to only update changed projects
 				list.removeAll();
 				for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
 					list.add(p.getName());
