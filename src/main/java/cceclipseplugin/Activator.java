@@ -42,7 +42,7 @@ public class Activator extends AbstractUIPlugin {
 		String password = prefStore.getString(PreferenceConstants.PASSWORD);
 		boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
 		if (showWelcomeDialog) {
-			WelcomeDialog dialog = new WelcomeDialog(new Shell());
+			WelcomeDialog dialog = new WelcomeDialog(new Shell(), prefStore);
 			Display.getDefault().asyncExec(() -> dialog.open());
 		} else {
 			if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
