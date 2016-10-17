@@ -39,8 +39,11 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 				getTextControl().setEchoChar('*');
 			}
 		};
+		
 		BooleanFieldEditor autoConnect = new BooleanFieldEditor(PreferenceConstants.AUTO_CONNECT, "Auto-connect on startup",
 				getFieldEditorParent());
+		// TODO: implement auto-connect
+		autoConnect.setEnabled(false, getFieldEditorParent());
 
 		Button forgotPassword = new Button(getFieldEditorParent(), SWT.PUSH);
 		forgotPassword.setText("Forgot Password");
