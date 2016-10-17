@@ -38,17 +38,16 @@ public class Activator extends AbstractUIPlugin {
 		PluginManager.getInstance();
 		
 		IPreferenceStore prefStore = getPreferenceStore();
-		boolean welcomeDialogShown = prefStore.getBoolean(PreferenceConstants.WELCOME_SHOWN);
-		if (!welcomeDialogShown) {
+		String username = prefStore.getString(PreferenceConstants.USERNAME);
+		String password = prefStore.getString(PreferenceConstants.PASSWORD);
+		boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
+		if (showWelcomeDialog) {
 			WelcomeDialog dialog = new WelcomeDialog(new Shell());
 			Display.getDefault().asyncExec(() -> dialog.open());
-			prefStore.setValue(PreferenceConstants.WELCOME_SHOWN, true);
 		} else {
 			if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
 				new Thread(() -> {
-					PluginManager.getInstance().getRequestManager().loginAndSubscribe(
-							prefStore.getString(PreferenceConstants.USERNAME), 
-							prefStore.getString(PreferenceConstants.PASSWORD));
+					PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
 				}).start();
 			}
 		}
