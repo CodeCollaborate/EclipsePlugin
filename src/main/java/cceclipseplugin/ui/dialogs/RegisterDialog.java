@@ -22,6 +22,7 @@ import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserRegisterRequest;
 
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 
@@ -32,6 +33,7 @@ public class RegisterDialog extends Dialog {
 	private Text emailBox;
 	private Text passwordBox;
 	private Text confirmPasswordBox;
+	private Button okButton;
 
 	/**
 	 * Create the dialog.
@@ -102,7 +104,25 @@ public class RegisterDialog extends Dialog {
 
 		confirmPasswordBox = new Text(composite, SWT.BORDER | SWT.PASSWORD);
 		confirmPasswordBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-
+				
+		ModifyListener listener = (modifyEvent) -> {
+			if (!usernameBox.getText().equals("") && !passwordBox.getText().equals("") && 
+					!firstNameBox.getText().equals("") && !lastNameBox.getText().equals("") &&
+					!emailBox.getText().equals("") && !passwordBox.getText().equals("") &&
+					passwordBox.getText().equals(confirmPasswordBox.getText())) {
+				okButton.setEnabled(true);
+			} else {
+				okButton.setEnabled(false);
+			}
+		};
+		usernameBox.addModifyListener(listener);
+		passwordBox.addModifyListener(listener);
+		firstNameBox.addModifyListener(listener);
+		lastNameBox.addModifyListener(listener);
+		emailBox.addModifyListener(listener);
+		passwordBox.addModifyListener(listener);
+		confirmPasswordBox.addModifyListener(listener);
+		
 		return container;
 	}
 
@@ -113,13 +133,9 @@ public class RegisterDialog extends Dialog {
 	 */
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
-		Button btnCreateAccountAnd = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		btnCreateAccountAnd.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-			}
-		});
-		btnCreateAccountAnd.setText(DialogStrings.RegisterDialog_RegisterButton);
+		okButton = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
+		okButton.setText(DialogStrings.RegisterDialog_RegisterButton);
+		okButton.setEnabled(false);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
 	}
 
