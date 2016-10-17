@@ -73,39 +73,6 @@ public class ControlPanel extends ViewPart {
 	
 	private void initializeNotificationHandlers() {
 		WSManager wsManager = PluginManager.getInstance().getWSManager();
-		SessionStorage sessionStorage = PluginManager.getInstance().getDataManager().getSessionStorage();
-		Shell shell = new Shell();
-		
-		// project handlers
-		
-		// grant permissions
-		wsManager.registerNotificationHandler("Project", "GrantPermissions", notification -> {
-			ProjectGrantPermissionsNotification pgpnotif = ((ProjectGrantPermissionsNotification) notification.getData());
-			if (pgpnotif.grantUsername.equals(sessionStorage.getUsername())) {
-				Long[] projectIds = { notification.getResourceID() };
-				Request getProjectDetails = new ProjectLookupRequest(projectIds).getRequest(response -> {
-					int status = response.getStatus();
-					if (status == 200) {
-						Project[] projectResponse = ((ProjectLookupResponse) response.getData()).getProjects();
-						if (projectResponse.length == 1) {
-							sessionStorage.addProject(projectResponse[0]);
-						} else {
-							// TODO: Change to use UI logger
-							MessageDialog errDialog = new MessageDialog(shell, "Invalid number of projects updated for notification: " + projectResponse.length);
-							shell.getDisplay().asyncExec(() -> errDialog.open());
-						}
-					} else {
-						MessageDialog errDialog = new MessageDialog(shell, "Unable to fetch project information.");
-						shell.getDisplay().asyncExec(() -> errDialog.open());
-					}
-				}, new UIRequestErrorHandler(shell, "Could not send lookup project request"));
-				wsManager.sendRequest(getProjectDetails);
-			} else {
-				Project toUpdate = sessionStorage.getProjectById(notification.getResourceID());
-				toUpdate.getPermissions().put(pgpnotif.grantUsername, new Permission(pgpnotif.grantUsername, pgpnotif.permissionLevel, null, null));
-				sessionStorage.addProject(toUpdate);
-			}
-		});
 		
 		// status bar handlers
 		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
