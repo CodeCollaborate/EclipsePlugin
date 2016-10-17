@@ -24,7 +24,10 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.PermissionMap;
 import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
+import websocket.models.Permission;
+import websocket.models.Project;
 import websocket.models.Request;
+import websocket.models.requests.ProjectGrantPermissionsRequest;
 import websocket.models.requests.UserLookupRequest;
 import websocket.models.responses.UserLookupResponse;
 import org.eclipse.wb.swt.SWTResourceManager;
@@ -38,14 +41,17 @@ public class AddNewUserDialog extends Dialog {
 	private String username;
 	private int permission;
 	private Button okButton;
+	private Project selectedProject;
 	private BiMap<String, Byte> permissionMap;
+	private Text usernameBox;
 	/**
 	 * Create the dialog.
 	 * 
 	 * @param parentShell
 	 */
-	public AddNewUserDialog(Shell parentShell) {
+	public AddNewUserDialog(Shell parentShell, Project selectedProject) {
 		super(parentShell);
+		this.selectedProject = selectedProject;
 	}
 
 	/**
@@ -60,9 +66,9 @@ public class AddNewUserDialog extends Dialog {
 		lblAddANew.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1));
 		lblAddANew.setText(DialogStrings.AddNewUserDialog_AddByUsername);
 
-		text = new Text(container, SWT.BORDER);
+		usernameBox = new Text(container, SWT.BORDER);
 		GridData gd_text = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1);
-		text.setLayoutData(gd_text);
+		usernameBox.setLayoutData(gd_text);
 
 		combo = new CCombo(container, SWT.BORDER);
 		combo.setEditable(false);
@@ -77,14 +83,33 @@ public class AddNewUserDialog extends Dialog {
 		for (Map.Entry<String, Byte> e : permissionMap.entrySet()) {
 			combo.add(e.getValue() + " : " + e.getKey()); //$NON-NLS-1$
 		}
+		final boolean[] permissionSelected = {false};
+		final boolean[] usernameNotEmpty = {false};
 		combo.addListener(SWT.Selection, new Listener() {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				okButton.setEnabled(true);
+				permissionSelected[0] = true;
+				if (permissionSelected[0] && usernameNotEmpty[0]) {
+					okButton.setEnabled(true);
+				} else {
+					okButton.setEnabled(false);
+				}
 			}
-			
 		});		
+		
+		usernameBox.addModifyListener((event) -> {
+			if (usernameBox.getText() != "") {
+				usernameNotEmpty[0] = true;
+			} else {
+				usernameNotEmpty[0] = false;
+			}
+			if (permissionSelected[0] && usernameNotEmpty[0]) {
+				okButton.setEnabled(true);
+			} else {
+				okButton.setEnabled(false);
+			}
+		});
 		
 		errorLabel = new Label(container, SWT.NONE);
 		errorLabel.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
@@ -111,38 +136,25 @@ public class AddNewUserDialog extends Dialog {
 
 	@Override
 	protected void okPressed() {
-		Semaphore waiter = new Semaphore(0);
-
+		username = usernameBox.getText();
 		permission = Integer.parseInt(combo.getItem(combo.getSelectionIndex()).split(" . ")[0]);
-		
-		// TODO: Potentially get rid of lookup request and move GrantPermissionsRequest to here
-		Request userLookupReq = (new UserLookupRequest(new String[] { text.getText() })).getRequest(
-				response -> {
-
-					int status = response.getStatus();
-					if (status != 200) {
-						Display.getDefault().asyncExec(() -> errorLabel.setText("User does not exist."));
-						Display.getDefault().asyncExec(() -> errorLabel.setVisible(true));
-					} else {
-						username = ((UserLookupResponse) response.getData()).getUsers()[0].getUsername();
-					}
-					waiter.release();
-				},
-				new UIRequestErrorHandler(new Shell(), DialogStrings.AddNewUserDialog_UserLookupErr));
-		
-		try {
-			PluginManager.getInstance().getWSManager().sendRequest(userLookupReq);
-			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddNewUserDialog_TimeoutErr);
-	            Display.getDefault().asyncExec(() -> errDialog.open());
-			}
-		} catch (InterruptedException ex) {
-			MessageDialog err = new MessageDialog(new Shell(), ex.getMessage());
-			Display.getDefault().asyncExec(() -> err.open());
-		}
-		
-		if (username != null)
+		System.out.println("username: "+username+" permy: "+permission);
+		if (username != null && permission != -1) {
+			Request req = new ProjectGrantPermissionsRequest(selectedProject.getProjectID(), username, permission).getRequest((response) -> {
+				if (response.getStatus() == 200) {
+					// TODO: remove this when server supports notifications to the person who sent the request
+					Project proj = PluginManager.getInstance().getDataManager().getSessionStorage()
+							.getProjectById(selectedProject.getProjectID());
+					proj.getPermissions().put(username, new Permission(username, permission, null, null));
+					PluginManager.getInstance().getDataManager().getSessionStorage().setProject(proj);
+				} else {
+					MessageDialog err = new MessageDialog(getParentShell(), "Error granting permissions: "+response.getStatus());
+					getShell().getDisplay().asyncExec(() -> err.open());
+				}
+			}, new UIRequestErrorHandler(getParentShell(), "Could not send request to grant permissions."));
+			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 			super.okPressed();
+		}
 	}
 
 	public String getNewUserName() {

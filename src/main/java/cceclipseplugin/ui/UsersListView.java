@@ -68,30 +68,11 @@ public class UsersListView extends ListView {
 			public void handleEvent(Event arg0) {
 				Display.getDefault().asyncExec(() -> {
 					Shell shell = Display.getDefault().getActiveShell();
-					AddNewUserDialog addUserDialog = new AddNewUserDialog(shell);
-					String username = null;
-					int permission = -1;
-					if (Window.OK == addUserDialog.open()) {
-						username = addUserDialog.getNewUserName();
-						permission = addUserDialog.getNewUserPermission();
-					} else {
-						return;
-					}
-					// TODO: Move this request inside addUserDialog
-					if (username != null && permission != -1) {
-						List projectList = listView.getListWithButtons().getList();
-						Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()
-								.get(projectList.getSelectionIndex());
-
-						Request req = new ProjectGrantPermissionsRequest(p.getProjectID(), username, permission)
-								.getRequest((response) -> {
-									if (response.getStatus() != 200) {
-										MessageDialog err = new MessageDialog(shell, "Error granting permissions: "+response.getStatus());
-										getShell().getDisplay().asyncExec(() -> err.open());
-									}
-								}, new UIRequestErrorHandler(shell, "Could not send request."));
-						PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-					}
+					List projectList = listView.getListWithButtons().getList();
+					Project p = PluginManager.getInstance().getDataManager().getSessionStorage()
+							.getProjects().get(projectList.getSelectionIndex());
+					AddNewUserDialog addUserDialog = new AddNewUserDialog(shell, p);
+					addUserDialog.open();
 				});
 			}
 		});
