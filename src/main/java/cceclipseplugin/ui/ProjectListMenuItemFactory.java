@@ -46,7 +46,7 @@ public class ProjectListMenuItemFactory {
 									new MessageDialog(new Shell(), "Project subscribe request failed with status code " + response.getStatus()).open());
 							}
 						},
-						new UIRequestErrorHandler(new Shell(), "Failed to send project subscribe request."));
+						new UIRequestErrorHandler("Failed to send project subscribe request."));
 				
 				PluginManager.getInstance().getWSManager().sendRequest(req);
 			}
@@ -79,7 +79,7 @@ public class ProjectListMenuItemFactory {
 									new MessageDialog(new Shell(), "Project unsubscribe request failed with status code " + response.getStatus()).open());								
 							}
 						},
-						new UIRequestErrorHandler(new Shell(), "Failed to send project unsubscribe request."));
+						new UIRequestErrorHandler("Failed to send project unsubscribe request."));
 				
 				PluginManager.getInstance().getWSManager().sendRequest(req);
 			}

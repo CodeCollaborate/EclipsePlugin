@@ -93,7 +93,7 @@ public class DeleteProjectDialog extends Dialog {
 										
 										display.asyncExec(() -> errDialog.open());
 						},
-						new UIRequestErrorHandler(shell, DialogStrings.DeleteProjectDialog_ProjDeleteErr));
+						new UIRequestErrorHandler(DialogStrings.DeleteProjectDialog_ProjDeleteErr));
 				try {
 					PluginManager.getInstance().getWSManager().sendRequest(req);
 					if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {

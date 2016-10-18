@@ -4,11 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
+import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
@@ -17,17 +14,18 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
+import cceclipseplugin.ui.UIResponseHandler;
 import websocket.models.Request;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.ProjectCreateRequest;
+import websocket.models.requests.ProjectDeleteRequest;
 import websocket.models.responses.ProjectCreateResponse;
 
 import org.eclipse.swt.layout.GridLayout;
@@ -87,7 +85,6 @@ public class AddProjectDialog extends Dialog {
 		
 		IProject selectedProject = localProjects[combo.getSelectionIndex()];
 		
-		Semaphore waiter = new Semaphore(0);
 		Shell shell = new Shell();
 		Request req = (new ProjectCreateRequest(selectedProject.getName())).getRequest(
 				response -> {
@@ -96,45 +93,33 @@ public class AddProjectDialog extends Dialog {
 					if (status != 200) {
 						MessageDialog err = new MessageDialog(shell, DialogStrings.AddProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
 						getShell().getDisplay().asyncExec(() -> err.open());
-						waiter.release();
 						return;
-					}
-					
-					IFolder baseFolder = selectedProject.getFolder(selectedProject.getProjectRelativePath());
-					
+					}		
 					long id = ((ProjectCreateResponse) response.getData()).getProjectID();
 					try {
-						sendCreateFileRequests(id, recursivelyGetFiles(baseFolder));
+						sendCreateFileRequests(id, recursivelyGetFiles(selectedProject));
 					} catch (Exception e) {
-						MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_ReadFileErr);
-						getShell().getDisplay().asyncExec(() -> err.open());
+						Display.getDefault().asyncExec(() -> new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_ReadFileErr).open());
 						e.printStackTrace();
+						sendProjectDeleteRequest(id);
+						return;
 					}
-					
-					waiter.release();
 				}, 
-				new UIRequestErrorHandler(new Shell(), DialogStrings.AddProjectDialog_ProjCreateErr));
+				new UIRequestErrorHandler(DialogStrings.AddProjectDialog_ProjCreateErr));
 		
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-		
-		try {
-			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-	            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_TimeoutErr);
-				getShell().getDisplay().asyncExec(() -> errDialog.open());
-				return;
-			}
-		} catch (InterruptedException e1) {
-			String message = e1.getMessage();
-			MessageDialog errDialog = new MessageDialog(new Shell(), message);
-			getShell().getDisplay().asyncExec(() -> errDialog.open());
-			return;
-		}
 		
 		super.okPressed();
 	}
 	
+	private void sendProjectDeleteRequest(long projectID) {
+		Request req = (new ProjectDeleteRequest(projectID)).getRequest(
+				new UIResponseHandler("Project delete"), 
+				new UIRequestErrorHandler("Failed to send project delete request."));
+		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+	}
+	
 	private void sendCreateFileRequests(long projectID, List<IFile> files) throws CoreException, IOException {
-		Semaphore waiter = new Semaphore(0);
 		
 		for (IFile f : files) {
 			Request req = (new FileCreateRequest(f.getName(), 
@@ -146,26 +131,12 @@ public class AddProjectDialog extends Dialog {
 								
 								if (fileCreateStatusCode != 200) {
 									MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + "."); //$NON-NLS-2$
-									getShell().getDisplay().asyncExec(() -> err.open());
-									waiter.release();
+									Display.getDefault().asyncExec(() -> err.open());
 									return;
 								}
-							}, new UIRequestErrorHandler(new Shell(), DialogStrings.AddProjectDialog_FileCreateErr));
+							}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));
 			
 			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-			
-			try {
-				if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-		            MessageDialog errDialog = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_TimeoutErr);
-					getShell().getDisplay().asyncExec(() -> errDialog.open());
-		            return;
-				}
-			} catch (InterruptedException e1) {
-				String message = e1.getMessage();
-				MessageDialog errDialog = new MessageDialog(new Shell(), message);
-				getShell().getDisplay().asyncExec(() -> errDialog.open());
-				return;
-			}
 		}
 	}
 	
@@ -183,26 +154,26 @@ public class AddProjectDialog extends Dialog {
 		return out.toByteArray();
 	}
 	
-	private List<IFile> recursivelyGetFiles(IFolder f) {
+	private List<IFile> recursivelyGetFiles(IContainer f) {
 		ArrayList<IFile> files = new ArrayList<>();
 		ArrayList<IFolder> folders = new ArrayList<>();
+		IResource[] members = null;
 		try {
-			files = (ArrayList<IFile>) Arrays.asList((IFile[]) f.members(IResource.FILE));
-		} catch (CoreException e) {
-			e.printStackTrace();
+			members = f.members();
+		} catch (CoreException e1) {
+			e1.printStackTrace();
 		}
-		try {
-		folders = (ArrayList<IFolder>) Arrays.asList((IFolder[]) f.members(IResource.FOLDER));
-		} catch (CoreException e) {
-			e.printStackTrace();
-		}
-		
-		if (!folders.isEmpty()) {
-			for (IFolder folder : folders) {
-				files.addAll(recursivelyGetFiles(folder));
+		for(IResource m : members) {
+			if (m instanceof IFile) {
+				files.add((IFile) m);
+			} else if (m instanceof IFolder) {
+				folders.add((IFolder) m);
 			}
 		}
 		
+		for (IFolder folder : folders) {
+			files.addAll(recursivelyGetFiles(folder));
+		}
 		return files;
 	}
 	

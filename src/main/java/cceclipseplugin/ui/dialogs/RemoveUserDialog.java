@@ -79,7 +79,7 @@ public class RemoveUserDialog extends Dialog {
 						MessageDialog err = new MessageDialog(getShell(), "Server error revoking permissions for: "+username+" "+projectName);
 						getShell().getDisplay().asyncExec(() -> err.open());
 					}
-				}, new UIRequestErrorHandler(new Shell(), "Error sending revoke permissions request for: "+username+" "+projectName));
+				}, new UIRequestErrorHandler("Error sending revoke permissions request for: "+username+" "+projectName));
 				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(removeUserRequest);
 			}
 		});

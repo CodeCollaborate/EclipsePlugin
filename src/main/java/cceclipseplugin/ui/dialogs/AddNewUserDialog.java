@@ -151,7 +151,7 @@ public class AddNewUserDialog extends Dialog {
 					MessageDialog err = new MessageDialog(getParentShell(), "Error granting permissions: "+response.getStatus());
 					getShell().getDisplay().asyncExec(() -> err.open());
 				}
-			}, new UIRequestErrorHandler(getParentShell(), "Could not send request to grant permissions."));
+			}, new UIRequestErrorHandler("Could not send request to grant permissions."));
 			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 			super.okPressed();
 		}

@@ -168,7 +168,7 @@ public class RegisterDialog extends Dialog {
 					}
 
 					waiter.release();
-				} , new UIRequestErrorHandler(getShell(), DialogStrings.RegisterDialog_UserRegisterErr));
+				} , new UIRequestErrorHandler(DialogStrings.RegisterDialog_UserRegisterErr));
 
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(registerReq);

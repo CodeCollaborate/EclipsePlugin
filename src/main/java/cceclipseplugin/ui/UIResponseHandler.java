@@ -11,27 +11,24 @@ import websocket.models.Response;
 
 public class UIResponseHandler implements IResponseHandler {
 
-	private Shell shell;
 	private Semaphore waiter;
 	private String requestName;
 	
 	// TODO: remove shell parameter and make new shell
-	public UIResponseHandler(Shell shell, Semaphore waiter, String requestName) {
-		this.shell = shell;
+	public UIResponseHandler(Semaphore waiter, String requestName) {
 		this.waiter = waiter;
 		this.requestName = requestName;
 	}
 	
-	public UIResponseHandler(Shell shell, String requestName) {
-		this.shell = shell;
+	public UIResponseHandler(String requestName) {
 		this.requestName = requestName;
 	}
 	
 	@Override
 	public void handleResponse(Response response) {
 		if (response.getStatus() != 200) {
-			MessageDialog err = new MessageDialog(shell, requestName + " failed with status code " + response.getStatus() + ".");
-			Display.getDefault().asyncExec(() -> err.open());
+			Display.getDefault().asyncExec(() -> 
+				new MessageDialog(new Shell(), requestName + " failed with status code " + response.getStatus() + ".").open());
 		}
 		
 		if (waiter != null) {
