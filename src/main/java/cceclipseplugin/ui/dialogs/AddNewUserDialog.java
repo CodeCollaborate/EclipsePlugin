@@ -1,14 +1,10 @@
 package cceclipseplugin.ui.dialogs;
 
 import java.util.Map;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
@@ -22,20 +18,16 @@ import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.PermissionMap;
-import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Permission;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.ProjectGrantPermissionsRequest;
-import websocket.models.requests.UserLookupRequest;
-import websocket.models.responses.UserLookupResponse;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import com.google.common.collect.BiMap;
 
 public class AddNewUserDialog extends Dialog {
-	private Text text;
 	private CCombo combo;
 	private Label errorLabel;
 	private String username;
@@ -148,8 +140,7 @@ public class AddNewUserDialog extends Dialog {
 					proj.getPermissions().put(username, new Permission(username, permission, null, null));
 					PluginManager.getInstance().getDataManager().getSessionStorage().setProject(proj);
 				} else {
-					MessageDialog err = new MessageDialog(getParentShell(), "Error granting permissions: "+response.getStatus());
-					getShell().getDisplay().asyncExec(() -> err.open());
+					Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Error granting permissions: " + response.getStatus()).open());
 				}
 			}, new UIRequestErrorHandler("Could not send request to grant permissions."));
 			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);

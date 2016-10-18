@@ -1,11 +1,7 @@
 package cceclipseplugin.ui.dialogs;
 
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
@@ -17,14 +13,11 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
 import websocket.models.requests.UserRegisterRequest;
 
 import org.eclipse.swt.events.ModifyListener;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 
 public class RegisterDialog extends Dialog {
 	private Text usernameBox;
@@ -104,12 +97,12 @@ public class RegisterDialog extends Dialog {
 
 		confirmPasswordBox = new Text(composite, SWT.BORDER | SWT.PASSWORD);
 		confirmPasswordBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-				
+
 		ModifyListener listener = (modifyEvent) -> {
-			if (!usernameBox.getText().equals("") && !passwordBox.getText().equals("") && 
-					!firstNameBox.getText().equals("") && !lastNameBox.getText().equals("") &&
-					!emailBox.getText().equals("") && !passwordBox.getText().equals("") &&
-					passwordBox.getText().equals(confirmPasswordBox.getText())) {
+			if (!usernameBox.getText().equals("") && !passwordBox.getText().equals("")
+					&& !firstNameBox.getText().equals("") && !lastNameBox.getText().equals("")
+					&& !emailBox.getText().equals("") && !passwordBox.getText().equals("")
+					&& passwordBox.getText().equals(confirmPasswordBox.getText())) {
 				okButton.setEnabled(true);
 			} else {
 				okButton.setEnabled(false);
@@ -122,7 +115,7 @@ public class RegisterDialog extends Dialog {
 		emailBox.addModifyListener(listener);
 		passwordBox.addModifyListener(listener);
 		confirmPasswordBox.addModifyListener(listener);
-		
+
 		return container;
 	}
 
@@ -141,46 +134,31 @@ public class RegisterDialog extends Dialog {
 
 	@Override
 	protected void okPressed() {
-		// TODO: Let user know that passwords aren't equal and disable ok button until they are
+		// TODO: Let user know that passwords aren't equal and disable ok button
+		// until they are
 		if (!passwordBox.getText().equals(confirmPasswordBox.getText()))
 			return;
-		Semaphore waiter = new Semaphore(0);
-		
+
 		String username = usernameBox.getText();
 		String password = passwordBox.getText();
 		String email = emailBox.getText();
 		String firstName = firstNameBox.getText();
 		String lastName = lastNameBox.getText();
 
-		Request registerReq = (new UserRegisterRequest(username, firstName,
-				lastName, email, password)).getRequest(response -> {
+		Request registerReq = (new UserRegisterRequest(username, firstName, lastName, email, password))
+				.getRequest(response -> {
 					if (response.getStatus() != 200) {
-						MessageDialog err = new MessageDialog(getShell(),
-								DialogStrings.RegisterDialog_UserRegistrationErr + response.getStatus() + "."); //$NON-NLS-2$
-						err.open();
+						MessageDialog.createDialog(DialogStrings.RegisterDialog_UserRegistrationErr + response.getStatus() + ".").open(); // $NON-NLS-2$
 						return;
 					} else {
-						MessageDialog msg = new MessageDialog(getShell(), DialogStrings.RegisterDialog_RegistrationSuccessMsg);
-						msg.open();
+						MessageDialog.createDialog(DialogStrings.RegisterDialog_RegistrationSuccessMsg).open();
 
-						// Send login request
 						PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
 					}
 
-					waiter.release();
 				} , new UIRequestErrorHandler(DialogStrings.RegisterDialog_UserRegisterErr));
 
-		try {
-			PluginManager.getInstance().getWSManager().sendRequest(registerReq);
-			if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-				MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.RegisterDialog_TimeoutErr);
-				errDialog.open();
-			}
-		} catch (InterruptedException e) {
-			String message = e.getMessage();
-			MessageDialog errDialog = new MessageDialog(getShell(), message);
-			errDialog.open();
-		}
+		PluginManager.getInstance().getWSManager().sendRequest(registerReq);
 
 		super.okPressed();
 	}

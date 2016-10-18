@@ -3,7 +3,6 @@ package cceclipseplugin.ui.dialogs;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.preference.IPreferenceStore;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
@@ -84,8 +83,8 @@ public class WelcomeDialog extends Dialog {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				RegisterDialog dialog = new RegisterDialog(new Shell());
-				dialog.open();
 				close();
+				dialog.open();
 			}
 		});
 		GridData gd_btnRegister = new GridData(SWT.LEFT, SWT.CENTER, false, false, 1, 1);

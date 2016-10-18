@@ -1,11 +1,7 @@
 package cceclipseplugin.ui.dialogs;
 
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
@@ -17,7 +13,6 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.RequestConfigurations;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Project;
 import websocket.models.Request;
@@ -73,39 +68,24 @@ public class DeleteProjectDialog extends Dialog {
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		Shell shell = getShell();
-		Display display = shell.getDisplay();
 		// TODO: Move this listener to okPressed()
 		button.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				Semaphore waiter = new Semaphore(0);
 				Request req = (new ProjectDeleteRequest(project.getProjectID())).getRequest(
 						response -> {
 										MessageDialog errDialog;
 										int status = response.getStatus();
 										if (status == 200)
-											errDialog = new MessageDialog(shell, DialogStrings.DeleteProjectDialog_SuccessMsg);
+											errDialog = MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_SuccessMsg);
 										else
-											errDialog = new MessageDialog(shell, DialogStrings.DeleteProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
+											errDialog = MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
 										
-										waiter.release();
-										
-										display.asyncExec(() -> errDialog.open());
+										Display.getDefault().asyncExec(() -> errDialog.open());
 						},
 						new UIRequestErrorHandler(DialogStrings.DeleteProjectDialog_ProjDeleteErr));
-				try {
-					PluginManager.getInstance().getWSManager().sendRequest(req);
-					if (!waiter.tryAcquire(1, RequestConfigurations.REQUST_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-			            MessageDialog errDialog = new MessageDialog(getShell(), DialogStrings.DeleteProjectDialog_TimeoutErr);
-						display.asyncExec(() -> errDialog.open());
-					}
-				} catch (InterruptedException e1) {
-					String message = e1.getMessage();
-					MessageDialog errDialog = new MessageDialog(getShell(), message);
-					display.asyncExec(() -> errDialog.open());
-				}
 				
+				PluginManager.getInstance().getWSManager().sendRequest(req);				
 			}
 		});
 		button.setText(DialogStrings.DeleteProjectDialog_ConfirmButton);

@@ -2,7 +2,6 @@ package cceclipseplugin.ui.dialogs;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
@@ -76,8 +75,7 @@ public class RemoveUserDialog extends Dialog {
 					if (response.getStatus() == 200) {
 						PluginManager.getInstance().getRequestManager().fetchProjects();
 					} else {
-						MessageDialog err = new MessageDialog(getShell(), "Server error revoking permissions for: "+username+" "+projectName);
-						getShell().getDisplay().asyncExec(() -> err.open());
+						Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Server error revoking permissions for: "+username+" "+projectName).open());
 					}
 				}, new UIRequestErrorHandler("Error sending revoke permissions request for: "+username+" "+projectName));
 				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(removeUserRequest);

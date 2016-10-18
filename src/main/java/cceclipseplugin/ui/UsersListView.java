@@ -3,7 +3,6 @@ package cceclipseplugin.ui;
 import java.util.HashMap;
 
 import org.eclipse.jface.dialogs.Dialog;
-import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
@@ -14,13 +13,10 @@ import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.dialogs.AddNewUserDialog;
-import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.RemoveUserDialog;
 import dataMgmt.SessionStorage;
 import websocket.models.Permission;
 import websocket.models.Project;
-import websocket.models.Request;
-import websocket.models.requests.ProjectGrantPermissionsRequest;
 
 public class UsersListView extends ListView {
 

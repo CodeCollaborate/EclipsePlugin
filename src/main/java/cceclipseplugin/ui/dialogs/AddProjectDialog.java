@@ -78,28 +78,25 @@ public class AddProjectDialog extends Dialog {
 	@Override 
 	protected void okPressed() {
 		if (combo.getItemCount() == 0) {
-			MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_NoProjectsErr);
-			err.open();
+			MessageDialog.createDialog(DialogStrings.AddProjectDialog_NoProjectsErr).open();
 			return;
 		}
 		
 		IProject selectedProject = localProjects[combo.getSelectionIndex()];
-		
-		Shell shell = new Shell();
+
 		Request req = (new ProjectCreateRequest(selectedProject.getName())).getRequest(
 				response -> {
 					
 					int status = response.getStatus();
 					if (status != 200) {
-						MessageDialog err = new MessageDialog(shell, DialogStrings.AddProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
-						getShell().getDisplay().asyncExec(() -> err.open());
+						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + status + ".").open()); //$NON-NLS-2$
 						return;
 					}		
 					long id = ((ProjectCreateResponse) response.getData()).getProjectID();
 					try {
 						sendCreateFileRequests(id, recursivelyGetFiles(selectedProject));
 					} catch (Exception e) {
-						Display.getDefault().asyncExec(() -> new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_ReadFileErr).open());
+						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
 						e.printStackTrace();
 						sendProjectDeleteRequest(id);
 						return;
@@ -130,8 +127,7 @@ public class AddProjectDialog extends Dialog {
 								int fileCreateStatusCode = response.getStatus();
 								
 								if (fileCreateStatusCode != 200) {
-									MessageDialog err = new MessageDialog(new Shell(), DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + "."); //$NON-NLS-2$
-									Display.getDefault().asyncExec(() -> err.open());
+									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + ".").open()); //$NON-NLS-2$
 									return;
 								}
 							}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));

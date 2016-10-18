@@ -2,7 +2,6 @@ package cceclipseplugin.ui.dialogs;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
@@ -21,7 +20,7 @@ import org.eclipse.wb.swt.SWTResourceManager;
 public class MessageDialog extends Dialog {
 
 	private String errorMessage;
-
+	
 	/**
 	 * Create the dialog with a non-initialized error message. should only be
 	 * used for testing.
@@ -40,9 +39,13 @@ public class MessageDialog extends Dialog {
 	 * @param parentShell
 	 * @param message
 	 */
-	public MessageDialog(Shell parentShell, String message) {
+	private MessageDialog(Shell parentShell, String message) {
 		super(parentShell);
 		this.errorMessage = message;
+	}
+	
+	public static MessageDialog createDialog(String message) {
+		return new MessageDialog(new Shell(), message);
 	}
 
 	/**

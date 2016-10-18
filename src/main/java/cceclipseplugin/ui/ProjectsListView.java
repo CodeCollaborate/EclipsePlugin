@@ -96,8 +96,7 @@ public class ProjectsListView extends ListView {
 			@Override
 			public void handleEvent(Event arg0) {
 				if (list.getSelectionIndex() == -1) {
-					MessageDialog err = new MessageDialog(new Shell(), "No project is selected.");
-					err.open();
+					MessageDialog.createDialog("No project is selected.").open();
 					return;
 				}
 				

@@ -7,7 +7,6 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.Shell;
 import org.osgi.service.prefs.Preferences;
 
 import cceclipseplugin.Activator;
@@ -38,52 +37,47 @@ public class ProjectListMenuItemFactory {
 								try {
 									pluginPrefs.flush();
 								} catch (Exception e) {
-									MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
-									Display.getDefault().asyncExec(() ->errDialog.open());
+									Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Could not save preferences.").open());
 								}
 							} else {
-								Display.getDefault().asyncExec(() -> 
-									new MessageDialog(new Shell(), "Project subscribe request failed with status code " + response.getStatus()).open());
-							}
-						},
-						new UIRequestErrorHandler("Failed to send project subscribe request."));
-				
+								Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Project subscribe request failed with status code " + response.getStatus()).open());
+					}
+				} , new UIRequestErrorHandler("Failed to send project subscribe request."));
+
 				PluginManager.getInstance().getWSManager().sendRequest(req);
 			}
-			// TODO: make call to pull files in clientcore directory watching system
-			// TODO: import the directory of the project as a project in eclipse using programmatic import
+			// TODO: make call to pull files in clientcore directory watching
+			// system
+			// TODO: import the directory of the project as a project in eclipse
+			// using programmatic import
 		});
 	}
-	
+
 	public static void makeUnsubscribeItem(Menu parentMenu, Project p) {
 		MenuItem unsub = new MenuItem(parentMenu, SWT.NONE);
 		unsub.setText("Unsubscribe");
 		unsub.addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event arg0) {
-				Request req = (new ProjectUnsubscribeRequest(p.getProjectID())).getRequest(
-						response -> {
-							if (response.getStatus() == 200) {
-								Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
-								Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-								Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
-								thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
-								try {
-									pluginPrefs.flush();
-								} catch (Exception e) {
-									MessageDialog errDialog = new MessageDialog(new Shell(), "Could not save preferences.");
-									Display.getDefault().asyncExec(() ->errDialog.open());
-								}
-							} else {
-								Display.getDefault().asyncExec(() -> 
-									new MessageDialog(new Shell(), "Project unsubscribe request failed with status code " + response.getStatus()).open());								
-							}
-						},
-						new UIRequestErrorHandler("Failed to send project unsubscribe request."));
-				
+				Request req = (new ProjectUnsubscribeRequest(p.getProjectID())).getRequest(response -> {
+					if (response.getStatus() == 200) {
+						Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+						Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
+						Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
+						thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
+						try {
+							pluginPrefs.flush();
+						} catch (Exception e) {
+							Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Could not save preferences.").open());
+						}
+					} else {
+						Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Project unsubscribe request failed with status code " + response.getStatus()).open());
+					}
+				} , new UIRequestErrorHandler("Failed to send project unsubscribe request."));
+
 				PluginManager.getInstance().getWSManager().sendRequest(req);
 			}
 		});
 	}
-	
+
 }

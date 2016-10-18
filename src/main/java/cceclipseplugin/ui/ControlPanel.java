@@ -6,21 +6,13 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.part.ViewPart;
 
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.dialogs.MessageDialog;
 import dataMgmt.SessionStorage;
 import websocket.WSConnection;
 import websocket.WSConnection.State;
-import websocket.models.Permission;
-import websocket.models.Project;
-import websocket.models.Request;
-import websocket.models.notifications.ProjectGrantPermissionsNotification;
-import websocket.models.requests.ProjectLookupRequest;
-import websocket.models.responses.ProjectLookupResponse;
 import websocket.WSManager;
 
 public class ControlPanel extends ViewPart {
