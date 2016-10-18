@@ -46,10 +46,7 @@ public class ProjectListMenuItemFactory {
 
 				PluginManager.getInstance().getWSManager().sendRequest(req);
 			}
-			// TODO: make call to pull files in clientcore directory watching
-			// system
-			// TODO: import the directory of the project as a project in eclipse
-			// using programmatic import
+			// TODO: pull files
 		});
 	}
 

@@ -16,8 +16,6 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 
 public class RemoveUserDialog extends Dialog {
 
@@ -67,22 +65,20 @@ public class RemoveUserDialog extends Dialog {
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		// TODO: move to okPRessed()
-		button.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				Request removeUserRequest = (new ProjectRevokePermissionsRequest(projectId, username)).getRequest((response) -> {
-					if (response.getStatus() == 200) {
-						PluginManager.getInstance().getRequestManager().fetchProjects();
-					} else {
-						Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Server error revoking permissions for: "+username+" "+projectName).open());
-					}
-				}, new UIRequestErrorHandler("Error sending revoke permissions request for: "+username+" "+projectName));
-				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(removeUserRequest);
-			}
-		});
 		button.setText(DialogStrings.RemoveUserDialog_RemoveButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
+	}
+	
+	@Override
+	public void okPressed() {
+		Request removeUserRequest = (new ProjectRevokePermissionsRequest(projectId, username)).getRequest((response) -> {
+			if (response.getStatus() == 200) {
+				PluginManager.getInstance().getRequestManager().fetchProjects();
+			} else {
+				Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Server error revoking permissions for: "+username+" "+projectName).open());
+			}
+		}, new UIRequestErrorHandler("Error sending revoke permissions request for: "+username+" "+projectName));
+		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(removeUserRequest);
 	}
 	
 	@Override

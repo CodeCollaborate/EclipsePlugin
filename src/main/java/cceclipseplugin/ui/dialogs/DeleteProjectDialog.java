@@ -18,9 +18,6 @@ import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.ProjectDeleteRequest;
 
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-
 public class DeleteProjectDialog extends Dialog {
 
 	private Project project;
@@ -68,28 +65,26 @@ public class DeleteProjectDialog extends Dialog {
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
 		Button button = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		// TODO: Move this listener to okPressed()
-		button.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				Request req = (new ProjectDeleteRequest(project.getProjectID())).getRequest(
-						response -> {
-										MessageDialog errDialog;
-										int status = response.getStatus();
-										if (status == 200)
-											errDialog = MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_SuccessMsg);
-										else
-											errDialog = MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
-										
-										Display.getDefault().asyncExec(() -> errDialog.open());
-						},
-						new UIRequestErrorHandler(DialogStrings.DeleteProjectDialog_ProjDeleteErr));
-				
-				PluginManager.getInstance().getWSManager().sendRequest(req);				
-			}
-		});
 		button.setText(DialogStrings.DeleteProjectDialog_ConfirmButton);
 		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
+	}
+	
+	@Override
+	protected void okPressed() {
+		Request req = (new ProjectDeleteRequest(project.getProjectID())).getRequest(
+				response -> {
+								MessageDialog errDialog;
+								int status = response.getStatus();
+								if (status == 200)
+									errDialog = MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_SuccessMsg);
+								else
+									errDialog = MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
+								
+								Display.getDefault().asyncExec(() -> errDialog.open());
+				},
+				new UIRequestErrorHandler(DialogStrings.DeleteProjectDialog_ProjDeleteErr));
+		
+		PluginManager.getInstance().getWSManager().sendRequest(req);	
 	}
 
 	@Override
