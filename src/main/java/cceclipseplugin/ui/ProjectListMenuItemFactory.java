@@ -1,5 +1,6 @@
 package cceclipseplugin.ui;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
@@ -11,12 +12,16 @@ import org.osgi.service.prefs.Preferences;
 
 import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.core.ProjectManager;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
+import websocket.models.requests.ProjectGetFilesRequest;
 import websocket.models.requests.ProjectSubscribeRequest;
 import websocket.models.requests.ProjectUnsubscribeRequest;
+import websocket.models.responses.ProjectGetFilesResponse;
 
 public class ProjectListMenuItemFactory {
 	
@@ -76,5 +81,29 @@ public class ProjectListMenuItemFactory {
 			}
 		});
 	}
-
+	
+	public static void makeAddProjectToWorkspaceItem(Menu parentMenu, Project p) {
+		MenuItem pull = new MenuItem(parentMenu, SWT.NONE);
+		pull.setText("Add project to workspace");
+		pull.addListener(SWT.Selection, new Listener() {
+			@Override
+			public void handleEvent(Event arg0) {
+				Request req = (new ProjectGetFilesRequest(p.getProjectID())).getRequest(response -> {
+					PluginManager pluginManager = PluginManager.getInstance();
+					
+					File[] files = ((ProjectGetFilesResponse) response.getData()).files;
+					ProjectManager pm = pluginManager.getProjectManager();
+					try {
+						pm.createEclipseProject(p, files, pm.pullFiles(files));
+					} catch (CoreException e) {
+						MessageDialog.createDialog("Files were pulled but could not be put into an Eclipse project.").open();
+						pm.deleteEclipseProject(p);
+					}
+				}, new UIRequestErrorHandler("Failed to send project get files request."));
+				
+				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);				
+			}
+		});
+	}
+	
 }
