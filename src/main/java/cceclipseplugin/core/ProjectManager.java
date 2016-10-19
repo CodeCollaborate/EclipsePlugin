@@ -29,8 +29,15 @@ public class ProjectManager {
 		project.open(progressMonitor);
 		
 		for (int i = 0; i < files.length; i++) {
-			// maybe create folders?
-			IFile newFile = project.getFile(new Path(files[i].getRelativePath()));
+			String path = files[i].getRelativePath();
+			path = path.replace("/", "\\");
+			if (path.contains("\\")) {
+				path = path.substring(path.indexOf("\\") + 1, path.length()); // get rid of project name from dir
+			} else {
+				path = "";
+			}
+			path = path + files[i].getFilename();
+			IFile newFile = project.getFile(new Path(path));
 			newFile.create(new ByteArrayInputStream(fileBytes[i]), true, progressMonitor);
 		}
 	}
