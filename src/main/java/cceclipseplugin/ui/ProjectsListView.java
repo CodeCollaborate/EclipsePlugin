@@ -1,5 +1,8 @@
 package cceclipseplugin.ui;
 
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 
 import org.eclipse.swt.SWT;
@@ -58,7 +61,12 @@ public class ProjectsListView extends ListView {
 					ProjectListMenuItemFactory.makeUnsubscribeItem(menu, selectedProj);
 				} else {
 					ProjectListMenuItemFactory.makeSubscribeItem(menu, selectedProj);
-				}	
+				}
+				IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+				IProject project = root.getProject(selectedProj.getName());
+				if (!project.exists()) {
+					ProjectListMenuItemFactory.makeAddProjectToWorkspaceItem(menu, selectedProj);
+				}
 			}
 		});
 	}

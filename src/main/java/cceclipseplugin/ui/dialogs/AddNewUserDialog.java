@@ -134,7 +134,6 @@ public class AddNewUserDialog extends Dialog {
 		if (username != null && permission != -1) {
 			Request req = new ProjectGrantPermissionsRequest(selectedProject.getProjectID(), username, permission).getRequest((response) -> {
 				if (response.getStatus() == 200) {
-					// TODO: remove this when server supports notifications to the person who sent the request
 					Project proj = PluginManager.getInstance().getDataManager().getSessionStorage()
 							.getProjectById(selectedProject.getProjectID());
 					proj.getPermissions().put(username, new Permission(username, permission, null, null));

@@ -22,11 +22,15 @@ import org.eclipse.swt.widgets.Shell;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.UIResponseHandler;
+import dataMgmt.SessionStorage;
+import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.ProjectCreateRequest;
 import websocket.models.requests.ProjectDeleteRequest;
+import websocket.models.requests.ProjectLookupRequest;
 import websocket.models.responses.ProjectCreateResponse;
+import websocket.models.responses.ProjectLookupResponse;
 
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Label;
@@ -88,25 +92,48 @@ public class AddProjectDialog extends Dialog {
 				response -> {
 					
 					int status = response.getStatus();
-					if (status != 200) {
+					if (status == 200) {
+						long id = ((ProjectCreateResponse) response.getData()).getProjectID();
+						try {
+							sendCreateFileRequests(selectedProject.getName(), id, recursivelyGetFiles(selectedProject));
+						} catch (Exception e) {
+							Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
+							e.printStackTrace();
+							sendProjectDeleteRequest(id);
+							return;
+						}
+						
+						long projID = ((ProjectCreateResponse) response.getData()).getProjectID();
+						lookupProjectAndStore(projID);
+						
+					} else {
 						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + status + ".").open()); //$NON-NLS-2$
-						return;
-					}		
-					long id = ((ProjectCreateResponse) response.getData()).getProjectID();
-					try {
-						sendCreateFileRequests(id, recursivelyGetFiles(selectedProject));
-					} catch (Exception e) {
-						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
-						e.printStackTrace();
-						sendProjectDeleteRequest(id);
-						return;
 					}
+					
 				}, 
 				new UIRequestErrorHandler(DialogStrings.AddProjectDialog_ProjCreateErr));
 		
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 		
 		super.okPressed();
+	}
+	
+	private void lookupProjectAndStore(long projectID) {
+		Request lookupReq = (new ProjectLookupRequest(new Long[] { projectID })).getRequest(
+				lookupResponse -> {
+					int lookupStatus = lookupResponse.getStatus();
+					
+					if (lookupStatus == 200) {
+						SessionStorage storage = PluginManager.getInstance().getDataManager().getSessionStorage();
+						storage.setProject(((ProjectLookupResponse) lookupResponse.getData()).getProjects()[0]);
+					} else {
+						Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Project lookup failed with status code " + lookupStatus + ".").open());
+					}
+
+				}
+				, new UIRequestErrorHandler("Failed to send project lookup request."));
+		
+		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(lookupReq);
 	}
 	
 	private void sendProjectDeleteRequest(long projectID) {
@@ -116,11 +143,25 @@ public class AddProjectDialog extends Dialog {
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 	}
 	
-	private void sendCreateFileRequests(long projectID, List<IFile> files) throws CoreException, IOException {
+	private void sendCreateFileRequests(String name, long projectID, List<IFile> files) throws CoreException, IOException {
 		
 		for (IFile f : files) {
+			String path = f.getProjectRelativePath().toString();
+			path = path.replace('\\', '/');
+			// remove filename from path
+			if (path.contains("/")) {
+				path = path.substring(0, path.lastIndexOf('/')); 
+			} else {
+				path = "";
+			}
+			
+			if (path.isEmpty()) {
+				path = name;
+			} else {
+				path = name + "/" + path;
+			}
 			Request req = (new FileCreateRequest(f.getName(), 
-					f.getProjectRelativePath().toString(), 
+					path, 
 					projectID,
 					inputStreamToByteArray(f.getContents()))).getRequest(
 							response -> {

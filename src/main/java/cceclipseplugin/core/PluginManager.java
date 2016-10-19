@@ -43,6 +43,7 @@ public class PluginManager {
 	private final DataManager dataManager;
 	private final WSManager wsManager;
 	private final RequestManager requestManager;
+	private final ProjectManager projectManager;
 
 	/**
 	 * Get the active instance of the PluginManager class.
@@ -65,6 +66,7 @@ public class PluginManager {
 		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
 		requestManager = new RequestManager(dataManager, wsManager, new DialogRequestSendErrorHandler(), new DialogInvalidResponseHandler());
+		projectManager = new ProjectManager();
 
 		// TODO: Not connect until login requested from user
 		new Thread(() -> {
@@ -109,6 +111,10 @@ public class PluginManager {
 		return dataManager;
 	}
 
+	public ProjectManager getProjectManager() {
+		return projectManager;
+	}
+	
 	private void registerNotificationHooks() {
 		SessionStorage storage = dataManager.getSessionStorage();
 		// ~~~ project hooks ~~~

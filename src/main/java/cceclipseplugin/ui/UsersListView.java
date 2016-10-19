@@ -38,6 +38,7 @@ public class UsersListView extends ListView {
 	}
 
 	private void initializeListeners(ProjectsListView listView) {
+		// project listview selection
 		listView.initSelectionListener(new Listener() {
 			@Override
 			public void handleEvent(Event event) {
@@ -46,18 +47,25 @@ public class UsersListView extends ListView {
 				listView.getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
 			}
 		});
+		
+		// project list property change
 		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
 			if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
 				return;
 			}
-			if (selectedListIndex != -1) {
-				SessionStorage storage = (SessionStorage) event.getSource();
-				java.util.List<Project> projects = storage.getProjects();
-				// TODO: sort projects here instead of in clientcore
-				Project project = projects.get(selectedListIndex);
-				setProject(project);
+			
+			if (event.getNewValue() != null) {
+				if (selectedListIndex != -1) {
+					SessionStorage storage = (SessionStorage) event.getSource();
+					java.util.List<Project> projects = storage.getProjects();
+					// TODO: sort projects here instead of in clientcore
+					Project project = projects.get(selectedListIndex);
+					setProject(project);
+				}
 			}
 		});
+		
+		// plus button pressed
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
 		bar.getPlusButton().addListener(SWT.Selection, new Listener() {
 			@Override
@@ -72,6 +80,8 @@ public class UsersListView extends ListView {
 				});
 			}
 		});
+		
+		// minus button pressed
 		bar.getMinusButton().addListener(SWT.Selection, new Listener() {
 			@Override
 			public void handleEvent(Event arg0) {
@@ -85,6 +95,7 @@ public class UsersListView extends ListView {
 			}
 		});
 
+		// user list selection
 		List list = this.getListWithButtons().getList();
 		list.addListener(SWT.Selection, new Listener() {
 

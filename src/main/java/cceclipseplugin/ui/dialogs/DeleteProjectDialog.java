@@ -14,6 +14,7 @@ import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.UIRequestErrorHandler;
+import dataMgmt.SessionStorage;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.ProjectDeleteRequest;
@@ -73,18 +74,20 @@ public class DeleteProjectDialog extends Dialog {
 	protected void okPressed() {
 		Request req = (new ProjectDeleteRequest(project.getProjectID())).getRequest(
 				response -> {
-								MessageDialog errDialog;
 								int status = response.getStatus();
-								if (status == 200)
-									errDialog = MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_SuccessMsg);
-								else
-									errDialog = MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_FailedWithStatus + status + "."); //$NON-NLS-2$
-								
-								Display.getDefault().asyncExec(() -> errDialog.open());
+								if (status == 200) {
+									SessionStorage storage = PluginManager.getInstance().getDataManager().getSessionStorage();
+									storage.removeProjectById(project.getProjectID());
+									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_SuccessMsg).open());
+								} else {
+									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_FailedWithStatus + status + ".").open()); //$NON-NLS-2$
+								}
 				},
 				new UIRequestErrorHandler(DialogStrings.DeleteProjectDialog_ProjDeleteErr));
 		
-		PluginManager.getInstance().getWSManager().sendRequest(req);	
+		PluginManager.getInstance().getWSManager().sendRequest(req);
+		
+		super.okPressed();
 	}
 
 	@Override
