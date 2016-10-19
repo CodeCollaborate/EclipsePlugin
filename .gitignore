@@ -11,6 +11,7 @@ target/*
 .idea
 *.project
 *.settings
+*.classpath
 
 # Config files
 /config*
