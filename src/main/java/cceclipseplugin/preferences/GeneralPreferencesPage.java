@@ -11,6 +11,8 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import cceclipseplugin.Activator;
+import cceclipseplugin.core.PluginManager;
+import websocket.ConnectException;
 
 public class GeneralPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
@@ -54,7 +56,13 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 		Button reconnect = new Button(getFieldEditorParent(), SWT.PUSH);
 		reconnect.setText("Reconnect to Server");
 		reconnect.addListener(SWT.Selection, (event) -> {
-			// TODO: add reconnect
+			 new Thread(() -> {
+				 try {
+					 PluginManager.getInstance().getWSManager().connect();
+				 } catch (ConnectException e) {
+					 e.printStackTrace();
+				 }
+			 }).start();
 		});
 
 		addField(userBox);

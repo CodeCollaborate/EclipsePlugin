@@ -7,13 +7,19 @@ import java.nio.file.Paths;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 
+import cceclipseplugin.Activator;
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
+import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
+import cceclipseplugin.ui.dialogs.WelcomeDialog;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import dataMgmt.SessionStorage;
@@ -124,14 +130,22 @@ public class PluginManager {
 
 		System.out.println("Enumerated all files");
 		
-//		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, ()
-//			 -> {
-//				 try {
-//					 websocketLogin();
-//				 } catch (ConnectException | InterruptedException e) {
-//					 throw new IllegalStateException("Failed to run login", e);
-//				 }
-//			 });
+		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, ()
+			 -> {
+					IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
+					String username = prefStore.getString(PreferenceConstants.USERNAME);
+					String password = prefStore.getString(PreferenceConstants.PASSWORD);
+					boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
+					if (showWelcomeDialog) {
+						Display.getDefault().asyncExec(() -> new WelcomeDialog(new Shell(), prefStore).open());
+					} else {
+						if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
+							new Thread(() -> {
+								PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
+							}).start();
+						}
+					}
+			 });
 			
 		 new Thread(() -> {
 			 try {
