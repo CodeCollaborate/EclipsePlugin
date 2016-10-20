@@ -3,13 +3,15 @@ package cceclipseplugin.editor.listeners;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocumentListener;
+import org.eclipse.ui.texteditor.ITextEditor;
 
-import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
+import constants.CoreStringConstants;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
@@ -39,6 +41,8 @@ public class DocumentChangeListener implements IDocumentListener {
 	public void documentAboutToBeChanged(DocumentEvent event) {
 		List<Diff> diffs = new ArrayList<>();
 		String currDocument = event.getDocument().get();
+		
+		// TODO: check metadata to see if file is 'tracked'
 
 		// Create removal diffs if needed
 		if (event.getLength() > 0) {
@@ -63,6 +67,12 @@ public class DocumentChangeListener implements IDocumentListener {
 			}
 		}
 
+		ITextEditor editor = docMgr.getEditor(docMgr.getCurrFile());
+		IFile file = editor.getEditorInput().getAdapter(IFile.class);
+		IProject proj = file.getProject();
+
+		proj.getName();
+
 		// If no diffs left; abort
 		if (diffs.isEmpty()) {
 			return;
@@ -79,16 +89,17 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		// Send to server
 		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
-				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/");
-
+				.getProjectMetadata(proj.getLocation().toString());
 		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager()
-				.getFileMetadata(StringConstants.FILE_ID);
+				.getFileMetadata(file.getLocation().toString());
 
-		Request req = getFileChangeRequest(StringConstants.FILE_ID, new String[] { patch.toString() }, response -> {
-					fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
-					PluginManager.getInstance().getMetadataManager().writeProjectMetadata(projMeta,
-							ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/");
-				}, null, 1);
+		String projRootPath = proj.getLocation().toString();
+
+		Request req = getFileChangeRequest(fileMeta, new String[] { patch.toString() }, response -> {
+			fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
+			PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta, projRootPath,
+					CoreStringConstants.CONFIG_FILE_NAME);
+		}, null, 1);
 
 		try {
 			PluginManager.getInstance().getWSManager().sendRequest(req);
@@ -98,16 +109,15 @@ public class DocumentChangeListener implements IDocumentListener {
 		}
 	}
 
-	private Request getFileChangeRequest(long fileID, String[] changes, IResponseHandler respHandler,
+	private Request getFileChangeRequest(FileMetadata fileMeta, String[] changes, IResponseHandler respHandler,
 			IRequestSendErrorHandler sendErrHandler, int retryCount) {
-		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager()
-				.getFileMetadata(StringConstants.FILE_ID);
 
-		return new FileChangeRequest(fileID, changes, fileMeta.getVersion()).getRequest(response -> {
-			
-			// If we failed the first time around, update the fileVersion and retry.
-			if(response.getStatus() == 409 && retryCount > 0){
-				Request req = getFileChangeRequest(fileID, changes, respHandler, sendErrHandler, retryCount - 1);
+		return new FileChangeRequest(fileMeta.getFileID(), changes, fileMeta.getVersion()).getRequest(response -> {
+
+			// If we failed the first time around, update the fileVersion and
+			// retry.
+			if (response.getStatus() == 409 && retryCount > 0) {
+				Request req = getFileChangeRequest(fileMeta, changes, respHandler, sendErrHandler, retryCount - 1);
 				try {
 					PluginManager.getInstance().getWSManager().sendRequest(req);
 				} catch (ConnectException e) {

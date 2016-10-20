@@ -1,7 +1,13 @@
 package cceclipseplugin.core;
 
+import java.nio.file.Paths;
+
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.ui.PlatformUI;
 
+import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
@@ -10,17 +16,25 @@ import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import dataMgmt.SessionStorage;
 import requestMgmt.RequestManager;
+import constants.CoreStringConstants;
+import dataMgmt.models.ProjectMetadata;
 import websocket.ConnectException;
+import websocket.WSConnection;
 import websocket.WSManager;
 import websocket.models.ConnectionConfig;
 import websocket.models.Notification;
 import websocket.models.Permission;
 import websocket.models.Project;
+import websocket.models.Request;
 import websocket.models.notifications.ProjectGrantPermissionsNotification;
 import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.notifications.ProjectRevokePermissionsNotification;
 import websocket.models.notifications.ProjectSubscribeNotification;
 import websocket.models.notifications.ProjectUnsubscribeNotification;
+import websocket.models.requests.ProjectSubscribeRequest;
+import websocket.models.requests.UserLoginRequest;
+import websocket.models.requests.UserRegisterRequest;
+import websocket.models.responses.UserLoginResponse;
 
 /**
  * Manager for the entire plugin. Should only be instantiated once.
@@ -68,15 +82,6 @@ public class PluginManager {
 		requestManager = new RequestManager(dataManager, wsManager, new DialogRequestSendErrorHandler(), new DialogInvalidResponseHandler());
 		projectManager = new ProjectManager();
 
-		// TODO: Not connect until login requested from user
-		new Thread(() -> {
-			try {
-				wsManager.connect();
-			} catch (ConnectException e) {
-				e.printStackTrace();
-			}
-		}).start();
-
 		registerNotificationHooks();
 
 		// Start editor & document listeners
@@ -88,13 +93,57 @@ public class PluginManager {
 						.addPartListener(editorChangeListener);
 			}
 		});
+
+		IWorkspaceRoot workspaceRoot = ResourcesPlugin.getWorkspace().getRoot();
+		IProject[] projects = workspaceRoot.getProjects();
+		MetadataManager metadataManager = dataManager.getMetadataManager();
+		for (int i = 0; i < projects.length; i++) {
+			IProject project = projects[i];
+			if (project.isOpen()) {
+				if (project.getName().equalsIgnoreCase("RemoteSystemsTempFiles")) {
+					continue;
+				}
+				String projRoot = project.getLocation().toString();
+				try {
+					metadataManager.readProjectMetadataFromFile(projRoot, CoreStringConstants.CONFIG_FILE_NAME);
+					System.out.println("Loaded metadata from "
+							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+				} catch (IllegalArgumentException e) {
+					System.out.println("No such config file: "
+							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+				} catch (IllegalStateException e) {
+					System.out.println("Incorrect config file format: "
+							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+				}
+			}
+		}
+
+		System.out.println("Enumerated all files");
+		
+		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, ()
+			 -> {
+				 try {
+					 websocketLogin();
+				 } catch (ConnectException | InterruptedException e) {
+					 throw new IllegalStateException("Failed to run login", e);
+				 }
+			 });
+			
+			 new Thread(() -> {
+				 try {
+					 wsManager.connect();
+				 } catch (ConnectException e) {
+					 e.printStackTrace();
+				 }
+		 }).start();
+		
 		requestManager.fetchPermissionConstants();
 	}
-	
+
 	public RequestManager getRequestManager() {
 		return requestManager;
 	}
-
+	
 	public WSManager getWSManager() {
 		return wsManager;
 	}
@@ -165,22 +214,65 @@ public class PluginManager {
 		// File.Create
 		wsManager.registerNotificationHandler("File", "Create", (notification) -> {
 			// TODO: add metadata calls
+			// check if exists
+			// create file on disk w/ filePullRequest
+			// create file metadata from file in notification and metadatamanager.putFileMetadata()
 		});
 		// File.Rename
 		wsManager.registerNotificationHandler("File", "Rename", (notification) -> {
 			// TODO: add metadata calls
+			// check if has name
+			// rename file on disk
+			// rename file's metadata
 		});
 		// File.Move
 		wsManager.registerNotificationHandler("File", "Move", (notification) -> {
 			// TODO: add metadata calls
+			// edit on disk
+			// edit metadata
 		});
 		// File.Delete
 		wsManager.registerNotificationHandler("File", "Delete", (notification) -> {
 			// TODO: add metadata calls
+			// delete on disk, if exists
+			// delete metadata
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",
 				(Notification n) -> documentManager.handleNotification(n));
 	}
 
+	private void websocketLogin() throws ConnectException, InterruptedException {
+		Request req1 = new UserRegisterRequest(StringConstants.PREFERENCES_USERNAME,
+				StringConstants.PREFERENCES_FIRSTNAME, StringConstants.PREFERENCES_LASTNAME,
+				StringConstants.PREFERENCES_EMAIL, StringConstants.PREFERENCES_PASSWORD).getRequest(resp -> {
+
+					Request req2 = new UserLoginRequest(StringConstants.PREFERENCES_USERNAME,
+							StringConstants.PREFERENCES_PASSWORD).getRequest(response -> {
+								// TODO(wongb) Add login logic for server
+								if (response.getStatus() != 200) {
+									throw new IllegalStateException("Failed to log in");
+								}
+
+								getWSManager().setAuthInfo(StringConstants.PREFERENCES_USERNAME,
+										((UserLoginResponse) response.getData()).getToken());
+
+								try {
+									// Subscribe to all projects that are CCProjects
+									for(ProjectMetadata metadata : dataManager.getMetadataManager().getAllProjects()){
+									wsManager.sendRequest(new ProjectSubscribeRequest(metadata.getProjectID())
+											.getRequest(null, null));
+									}
+								} catch (ConnectException e) {
+									e.printStackTrace();
+								}
+							}, null);
+					try {
+						getWSManager().sendRequest(req2, -1);
+					} catch (ConnectException e) {
+						throw new IllegalStateException("Failed to connect while attempting to log in", e);
+					}
+				}, null);
+		getWSManager().sendRequest(req1, -1);
+	}
 }
