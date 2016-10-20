@@ -4,6 +4,7 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Label;
@@ -148,10 +149,10 @@ public class RegisterDialog extends Dialog {
 		Request registerReq = (new UserRegisterRequest(username, firstName, lastName, email, password))
 				.getRequest(response -> {
 					if (response.getStatus() != 200) {
-						MessageDialog.createDialog(DialogStrings.RegisterDialog_UserRegistrationErr + response.getStatus() + ".").open(); // $NON-NLS-2$
+						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.RegisterDialog_UserRegistrationErr + response.getStatus() + ".").open()); // $NON-NLS-2$
 						return;
 					} else {
-						MessageDialog.createDialog(DialogStrings.RegisterDialog_RegistrationSuccessMsg).open();
+						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.RegisterDialog_RegistrationSuccessMsg).open());
 
 						PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
 					}

@@ -2,6 +2,7 @@ package cceclipseplugin.core;
 
 import java.io.ByteArrayInputStream;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -65,7 +66,7 @@ public class ProjectManager {
 			Request req = (new FilePullRequest(files[i].getFileID())).getRequest(response -> {
 				if (response.getStatus() == 200) {
 					fileBytes[index] = ((FilePullResponse) response.getData()).getFileBytes();
-					if (index == files.length - 1)
+					if (index == (files.length - 1))
 						waiter.release();
 				} else {
 					MessageDialog.createDialog("Failed to pull file" + files[index].getFilename() + " with status code " + response.getStatus()).open();
@@ -75,8 +76,12 @@ public class ProjectManager {
 			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 		}
 		
-		while (!waiter.tryAcquire(1)) {
-//			 wait... (eventually notify UI)
+		try {
+			if (!waiter.tryAcquire(1, 30, TimeUnit.SECONDS)) {
+				System.out.println("Couldn't get dem files");
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 		return fileBytes;
 	}
