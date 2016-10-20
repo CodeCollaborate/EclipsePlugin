@@ -1,5 +1,7 @@
 package cceclipseplugin.core;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Paths;
 
 import org.eclipse.core.resources.IProject;
@@ -17,6 +19,7 @@ import dataMgmt.MetadataManager;
 import dataMgmt.SessionStorage;
 import requestMgmt.RequestManager;
 import constants.CoreStringConstants;
+import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import websocket.ConnectException;
 import websocket.WSConnection;
@@ -26,11 +29,12 @@ import websocket.models.Notification;
 import websocket.models.Permission;
 import websocket.models.Project;
 import websocket.models.Request;
+import websocket.models.notifications.FileCreateNotification;
+import websocket.models.notifications.FileMoveNotification;
+import websocket.models.notifications.FileRenameNotification;
 import websocket.models.notifications.ProjectGrantPermissionsNotification;
 import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.notifications.ProjectRevokePermissionsNotification;
-import websocket.models.notifications.ProjectSubscribeNotification;
-import websocket.models.notifications.ProjectUnsubscribeNotification;
 import websocket.models.requests.ProjectSubscribeRequest;
 import websocket.models.requests.UserLoginRequest;
 import websocket.models.requests.UserRegisterRequest;
@@ -192,18 +196,6 @@ public class PluginManager {
 			project.getPermissions().remove(n.revokeUsername);
 			storage.setProject(project);
 		});
-		// Project.Subscribe
-		wsManager.registerNotificationHandler("Project", "Subscribe", (notification) -> {
-			long resId = notification.getResourceID();
-			ProjectSubscribeNotification n = ((ProjectSubscribeNotification) notification.getData());
-			// TODO: add pull files & set subscribed in prefs
-		});
-		// Project.Unsubscribe
-		wsManager.registerNotificationHandler("Project", "Subscribe", (notification) -> {
-			long resId = notification.getResourceID();
-			ProjectUnsubscribeNotification n = ((ProjectUnsubscribeNotification) notification.getData());
-			// TODO: add set subscribed in prefs
-		});
 		// Project.Delete
 		wsManager.registerNotificationHandler("Project", "Delete", (notification) -> {
 			long resId = notification.getResourceID();
@@ -213,29 +205,129 @@ public class PluginManager {
 		// ~~~ file hooks ~~~
 		// File.Create
 		wsManager.registerNotificationHandler("File", "Create", (notification) -> {
-			// TODO: add metadata calls
-			// check if exists
-			// create file on disk w/ filePullRequest
-			// create file metadata from file in notification and metadatamanager.putFileMetadata()
+			MetadataManager mm = dataManager.getMetadataManager();
+			long resId = notification.getResourceID();
+			ProjectMetadata pmeta = mm.getProjectMetadata(resId);
+			if (pmeta == null) {
+				System.out.println("Received File.Create notification for unsubscribed project.");
+				return;
+			}
+			FileCreateNotification n = ((FileCreateNotification) notification.getData());
+			FileMetadata meta = mm.getFileMetadata(n.file.getFileID());
+			if (meta != null) {
+				return;
+			}
+			meta = new FileMetadata();
+			meta.setFileID(n.file.getFileID());
+			meta.setFilename(n.file.getFilename());
+			meta.setRelativePath(n.file.getRelativePath());
+			meta.setVersion(n.file.getFileVersion());
+			meta.setCreator(n.file.getCreator());
+			meta.setCreationDate(n.file.getCreationDate());
+			
+			StringBuilder pathBuilder = new StringBuilder();
+			pathBuilder.append(mm.getProjectLocation(resId));
+			pathBuilder.append(n.file.getRelativePath());
+			pathBuilder.append(n.file.getFilename());
+			
+			File file = new File(pathBuilder.toString());
+			if (file.exists()) {
+				file.delete();
+			}
+			try {
+				file.createNewFile();
+				mm.putFileMetadata(pathBuilder.toString(), resId, meta);
+				// TODO: pull file contents
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		});
 		// File.Rename
 		wsManager.registerNotificationHandler("File", "Rename", (notification) -> {
-			// TODO: add metadata calls
-			// check if has name
-			// rename file on disk
-			// rename file's metadata
+			long resId = notification.getResourceID();
+			MetadataManager mm = dataManager.getMetadataManager();
+			FileMetadata meta = mm.getFileMetadata(resId);
+			if (meta == null) {
+				System.out.println("Received File.Rename notification for unsubscribed project.");
+				return;
+			}
+			FileRenameNotification n = ((FileRenameNotification) notification.getData());
+			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
+			
+			StringBuilder pathBuilder = new StringBuilder();
+			pathBuilder.append(projectLocation);
+			pathBuilder.append(meta.getRelativePath());
+			pathBuilder.append(meta.getFilename());
+			
+			StringBuilder newPathBuilder = new StringBuilder();
+			newPathBuilder.append(projectLocation);
+			newPathBuilder.append(meta.getRelativePath());
+			newPathBuilder.append(n.newName);
+			
+			File file = new File(pathBuilder.toString());
+			if (file.exists()) {
+				file.renameTo(new File(newPathBuilder.toString()));
+				meta.setFilename(n.newName);
+			} else {
+				System.out.println("Tried to rename file that does not exist: " + pathBuilder.toString());
+				return;
+			}
 		});
 		// File.Move
 		wsManager.registerNotificationHandler("File", "Move", (notification) -> {
-			// TODO: add metadata calls
-			// edit on disk
-			// edit metadata
+			long resId = notification.getResourceID();
+			MetadataManager mm = dataManager.getMetadataManager();
+			FileMetadata meta = mm.getFileMetadata(resId);
+			if (meta == null) {
+				System.out.println("Received File.Move notification for unsubscribed project.");
+				return;
+			}
+			FileMoveNotification n = ((FileMoveNotification) notification.getData());
+			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
+			
+			StringBuilder pathBuilder = new StringBuilder();
+			pathBuilder.append(projectLocation);
+			pathBuilder.append(meta.getRelativePath());
+			pathBuilder.append(meta.getFilename());
+			
+			StringBuilder newPathBuilder = new StringBuilder();
+			newPathBuilder.append(projectLocation);
+			newPathBuilder.append(n.newPath);
+			newPathBuilder.append(meta.getFilename());
+			
+			File file = new File(pathBuilder.toString());
+			if (file.exists()) {
+				file.renameTo(new File(newPathBuilder.toString()));
+				meta.setRelativePath(n.newPath);
+			} else {
+				System.out.println("Tried to move file that does not exist: " + pathBuilder.toString());
+				return;
+			}
 		});
 		// File.Delete
 		wsManager.registerNotificationHandler("File", "Delete", (notification) -> {
-			// TODO: add metadata calls
-			// delete on disk, if exists
-			// delete metadata
+			long resId = notification.getResourceID();
+			MetadataManager mm = dataManager.getMetadataManager();
+			FileMetadata meta = mm.getFileMetadata(resId);
+			if (meta == null) {
+				System.out.println("Received File.Delete notification for unsubscribed project or file that does not exist.");
+				return;
+			}
+			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
+			
+			StringBuilder pathBuilder = new StringBuilder();
+			pathBuilder.append(projectLocation);
+			pathBuilder.append(meta.getRelativePath());
+			pathBuilder.append(meta.getFilename());
+			
+			File file = new File(pathBuilder.toString());
+			if (file.exists()) {
+				file.delete();
+				mm.fileDeleted(resId);
+			} else {
+				System.out.println("Tried to delete file that does not exist: " + pathBuilder.toString());
+				return;
+			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",
