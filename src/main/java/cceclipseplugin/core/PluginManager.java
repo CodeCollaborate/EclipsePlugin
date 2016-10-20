@@ -124,21 +124,21 @@ public class PluginManager {
 
 		System.out.println("Enumerated all files");
 		
-		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, ()
-			 -> {
-				 try {
-					 websocketLogin();
-				 } catch (ConnectException | InterruptedException e) {
-					 throw new IllegalStateException("Failed to run login", e);
-				 }
-			 });
+//		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, ()
+//			 -> {
+//				 try {
+//					 websocketLogin();
+//				 } catch (ConnectException | InterruptedException e) {
+//					 throw new IllegalStateException("Failed to run login", e);
+//				 }
+//			 });
 			
-			 new Thread(() -> {
-				 try {
-					 wsManager.connect();
-				 } catch (ConnectException e) {
-					 e.printStackTrace();
-				 }
+		 new Thread(() -> {
+			 try {
+				 wsManager.connect();
+			 } catch (ConnectException e) {
+				 e.printStackTrace();
+			 }
 		 }).start();
 		
 		requestManager.fetchPermissionConstants();
