@@ -24,7 +24,6 @@ public class PreferenceInitializer extends AbstractPreferenceInitializer {
 		store.setDefault(PreferenceConstants.USERNAME, "");
 		store.setDefault(PreferenceConstants.PASSWORD, "");
 		store.setDefault(PreferenceConstants.AUTO_CONNECT, true);
-		store.setDefault("welcomeDialogShown", false);
 	}
 
 }

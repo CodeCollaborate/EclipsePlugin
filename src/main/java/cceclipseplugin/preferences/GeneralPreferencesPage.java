@@ -26,9 +26,6 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 	 * editor knows how to save and restore itself.
 	 */
 	public void createFieldEditors() {
-
-		StringFieldEditor hostBox = new StringFieldEditor(PreferenceConstants.HOST_NAME,
-				"Host name:", getFieldEditorParent());
 		StringFieldEditor userBox = new StringFieldEditor(PreferenceConstants.USERNAME,
 				"Username:", getFieldEditorParent());
 		StringFieldEditor pwBox = new StringFieldEditor(PreferenceConstants.PASSWORD,
@@ -42,13 +39,24 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 		
 		BooleanFieldEditor autoConnect = new BooleanFieldEditor(PreferenceConstants.AUTO_CONNECT, "Auto-connect on startup",
 				getFieldEditorParent());
+		// TODO: change when implementing other ways to connect other than on startup
+		autoConnect.setEnabled(false, getFieldEditorParent());
 
 		Button forgotPassword = new Button(getFieldEditorParent(), SWT.PUSH);
 		forgotPassword.setText("Forgot Password");
+		// TODO: change when forgot password is implemented
+		forgotPassword.setEnabled(false);
 		Button changePassword = new Button(getFieldEditorParent(), SWT.PUSH);
 		changePassword.setText("Change Password");
+		// TODO: change when change password is implemented
+		changePassword.setEnabled(false);
+		
+		Button reconnect = new Button(getFieldEditorParent(), SWT.PUSH);
+		reconnect.setText("Reconnect to Server");
+		reconnect.addListener(SWT.Selection, (event) -> {
+			// TODO: add reconnect
+		});
 
-		addField(hostBox);
 		addField(userBox);
 		addField(pwBox);
 		addField(autoConnect);

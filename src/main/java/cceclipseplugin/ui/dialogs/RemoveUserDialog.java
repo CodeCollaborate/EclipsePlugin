@@ -79,6 +79,7 @@ public class RemoveUserDialog extends Dialog {
 			}
 		}, new UIRequestErrorHandler("Error sending revoke permissions request for: "+username+" "+projectName));
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(removeUserRequest);
+		super.okPressed();
 	}
 	
 	@Override
