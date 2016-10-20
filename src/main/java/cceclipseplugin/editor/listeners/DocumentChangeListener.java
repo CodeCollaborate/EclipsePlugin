@@ -12,6 +12,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
 import constants.CoreStringConstants;
+import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
@@ -42,7 +43,18 @@ public class DocumentChangeListener implements IDocumentListener {
 		List<Diff> diffs = new ArrayList<>();
 		String currDocument = event.getDocument().get();
 		
-		// TODO: check metadata to see if file is 'tracked'
+		MetadataManager mm = PluginManager.getInstance().getDataManager().getMetadataManager();
+		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
+
+		ITextEditor editor = docMgr.getEditor(docMgr.getCurrFile());
+		IFile file = editor.getEditorInput().getAdapter(IFile.class);
+		IProject proj = file.getProject();
+		
+		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
+		FileMetadata fileMeta = mm.getFileMetadata(file.getLocation().toString());
+		if (projMeta == null || fileMeta == null) {
+			return;
+		}
 
 		// Create removal diffs if needed
 		if (event.getLength() > 0) {
@@ -57,7 +69,6 @@ public class DocumentChangeListener implements IDocumentListener {
 		}
 
 		// If diffs were incoming, applied diffs, early-out
-		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
 		for (int i = 0; i < diffs.size(); i++) {
 			while (!docMgr.getAppliedDiffs().isEmpty()) {
 				if (diffs.get(i).equals(docMgr.getAppliedDiffs().poll())) {
@@ -66,10 +77,6 @@ public class DocumentChangeListener implements IDocumentListener {
 				}
 			}
 		}
-
-		ITextEditor editor = docMgr.getEditor(docMgr.getCurrFile());
-		IFile file = editor.getEditorInput().getAdapter(IFile.class);
-		IProject proj = file.getProject();
 
 		proj.getName();
 
@@ -86,12 +93,6 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		// Create the patch
 		Patch patch = new Patch(0, newDiffs);
-
-		// Send to server
-		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
-				.getProjectMetadata(proj.getLocation().toString());
-		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager()
-				.getFileMetadata(file.getLocation().toString());
 
 		String projRootPath = proj.getLocation().toString();
 
