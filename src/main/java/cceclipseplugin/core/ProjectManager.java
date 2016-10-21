@@ -63,22 +63,28 @@ public class ProjectManager {
 					if (path.contains("/")) {
 						path = "../" + path.substring(path.indexOf("/") + 1, path.length()); // get rid of project name from dir
 					} else {
-						path = "../";
+						path = "";
 					}
 					Path relPath = new Path(path);
-					System.out.println("Making folder " + path);
-					IFolder newFolder = p.getFolder(new Path(path));
-					try {
-						newFolder.create(true, true, progressMonitor);
-					} catch (Exception e1) {
-						System.out.println("Could not create folder for " + path);
-						e1.printStackTrace();
+					if (!path.equals("")) {
+						System.out.println("Making folder " + path);
+						IFolder newFolder = p.getFolder(new Path(path));
+						try {
+							newFolder.create(true, true, progressMonitor);
+						} catch (Exception e1) {
+							System.out.println("Could not create folder for " + path);
+							e1.printStackTrace();
+						}
 					}
 					path = path + file.getFilename();
 					System.out.println("Making file " + path);
 					IFile newFile = p.getFile(new Path(path));
 					try {
-						newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
+						if (newFile.exists()) {
+							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
+						} else {
+							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
+						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
