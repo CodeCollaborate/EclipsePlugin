@@ -95,7 +95,7 @@ public class ProjectListMenuItemFactory {
 					File[] files = ((ProjectGetFilesResponse) response.getData()).files;
 					ProjectManager pm = pluginManager.getProjectManager();
 					try {
-						pm.createEclipseProject(p, files, pm.pullFiles(files));
+						pm.createEclipseProject(p, files);
 					} catch (Exception e) {
 						Display.getDefault().asyncExec(() -> 
 							MessageDialog.createDialog("Files were pulled but could not be put into an Eclipse project.").open());
