@@ -15,6 +15,7 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.core.ProjectManager;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import dataMgmt.DataManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;

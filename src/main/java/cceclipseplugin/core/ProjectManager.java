@@ -60,19 +60,21 @@ public class ProjectManager {
 	
 	public byte[][] pullFiles(File[] files) {
 		byte[][] fileBytes = new byte[files.length][];
-		final boolean[] foundSomeBytes = {false};
 		Semaphore waiter = new Semaphore(0);
-		for (int i = 0; i < files.length; i++) {
+		final int limit = files.length;
+		for (int i = 0; i < limit; i++) {
 			final int index = i; // have to assign index to final ref to use in response
 			Request req = (new FilePullRequest(files[i].getFileID())).getRequest(response -> {
-				if (response.getStatus() == 200) {
-					fileBytes[index] = ((FilePullResponse) response.getData()).getFileBytes();
-					foundSomeBytes[0] = true;
-					if (index == (files.length - 1))
-						waiter.release();
-				} else {
-					MessageDialog.createDialog("Failed to pull file" + files[index].getFilename() + " with status code " + response.getStatus()).open();
-				}
+				System.out.println("Got some stuff");
+//				if (response.getStatus() == 200) {
+//					fileBytes[index] = ((FilePullResponse) response.getData()).getFileBytes();
+//					System.out.println("Index: "+index+" limit: "+files.length);
+//					if (index == (limit - 1)) {
+//						waiter.release();
+//					}
+//				} else {
+//					MessageDialog.createDialog("Failed to pull file" + files[index].getFilename() + " with status code " + response.getStatus()).open();
+//				}
 			}, new UIRequestErrorHandler("Couldn't send file pull request."));
 			
 			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
@@ -84,9 +86,6 @@ public class ProjectManager {
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
-		}
-		if (!foundSomeBytes[0]) {
-			throw new RuntimeException("Failed to find any bytes");
 		}
 		return fileBytes;
 	}
