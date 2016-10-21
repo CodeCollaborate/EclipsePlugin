@@ -95,8 +95,9 @@ public class ProjectListMenuItemFactory {
 					ProjectManager pm = pluginManager.getProjectManager();
 					try {
 						pm.createEclipseProject(p, files, pm.pullFiles(files));
-					} catch (CoreException e) {
-						MessageDialog.createDialog("Files were pulled but could not be put into an Eclipse project.").open();
+					} catch (Exception e) {
+						Display.getDefault().asyncExec(() -> 
+							MessageDialog.createDialog("Files were pulled but could not be put into an Eclipse project.").open());
 						pm.deleteEclipseProject(p);
 					}
 				}, new UIRequestErrorHandler("Failed to send project get files request."));

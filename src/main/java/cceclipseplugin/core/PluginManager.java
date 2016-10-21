@@ -130,22 +130,25 @@ public class PluginManager {
 
 		System.out.println("Enumerated all files");
 		
-		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, ()
-			 -> {
-					IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-					String username = prefStore.getString(PreferenceConstants.USERNAME);
-					String password = prefStore.getString(PreferenceConstants.PASSWORD);
-					boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
-					if (showWelcomeDialog) {
-						Display.getDefault().asyncExec(() -> new WelcomeDialog(new Shell(), prefStore).open());
-					} else {
-						if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
-							new Thread(() -> {
-								PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
-							}).start();
-						}
-					}
-			 });
+		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
+			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
+			String username = prefStore.getString(PreferenceConstants.USERNAME);
+			String password = prefStore.getString(PreferenceConstants.PASSWORD);
+			if (username.equals(dataManager.getSessionStorage().getUsername())) {
+				System.out.println("Already logged in skipping login");
+				return;
+			}
+			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
+			if (showWelcomeDialog) {
+				Display.getDefault().asyncExec(() -> new WelcomeDialog(new Shell(), prefStore).open());
+			} else {
+				if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
+					new Thread(() -> {
+						PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
+					}).start();
+				}
+			}
+		 });
 			
 		 new Thread(() -> {
 			 try {
