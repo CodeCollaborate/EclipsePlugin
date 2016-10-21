@@ -3,6 +3,7 @@ package cceclipseplugin.core;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashMap;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -202,6 +203,9 @@ public class PluginManager {
 			ProjectGrantPermissionsNotification n = ((ProjectGrantPermissionsNotification) notification.getData());
 			Project project = storage.getProjectById(resId);
 			Permission permy = new Permission(n.grantUsername, n.permissionLevel, null, null);
+			if (project.getPermissions() == null) {
+				project.setPermissions(new HashMap<>());
+			}
 			project.getPermissions().put(permy.getUsername(), permy);
 			storage.setProject(project);
 		});
@@ -210,6 +214,9 @@ public class PluginManager {
 			long resId = notification.getResourceID();
 			ProjectRevokePermissionsNotification n = ((ProjectRevokePermissionsNotification) notification.getData());
 			Project project = storage.getProjectById(resId);
+			if (project.getPermissions() == null) {
+				project.setPermissions(new HashMap<>());
+			}
 			project.getPermissions().remove(n.revokeUsername);
 			storage.setProject(project);
 		});
