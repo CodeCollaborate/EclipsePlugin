@@ -199,15 +199,19 @@ public class PluginManager {
 		});
 		// Project.GrantPermissions
 		wsManager.registerNotificationHandler("Project", "GrantPermissions", (notification) -> {
-			long resId = notification.getResourceID();
-			ProjectGrantPermissionsNotification n = ((ProjectGrantPermissionsNotification) notification.getData());
-			Project project = storage.getProjectById(resId);
-			Permission permy = new Permission(n.grantUsername, n.permissionLevel, null, null);
-			if (project.getPermissions() == null) {
-				project.setPermissions(new HashMap<>());
-			}
-			project.getPermissions().put(permy.getUsername(), permy);
-			storage.setProject(project);
+			requestManager.fetchProjects();
+//			long resId = notification.getResourceID();
+//			ProjectGrantPermissionsNotification n = ((ProjectGrantPermissionsNotification) notification.getData());
+//			Project project = storage.getProjectById(resId);
+//			Permission permy = new Permission(n.grantUsername, n.permissionLevel, null, null);
+//			if (project == null) {
+//				
+//			}
+//			if (project.getPermissions() == null) {
+//				project.setPermissions(new HashMap<>());
+//			}
+//			project.getPermissions().put(permy.getUsername(), permy);
+//			storage.setProject(project);
 		});
 		// Project.RevokePermissions
 		wsManager.registerNotificationHandler("Project", "RevokePermissions", (notification) -> {
