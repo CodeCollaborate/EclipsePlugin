@@ -1,5 +1,7 @@
 package cceclipseplugin.ui;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.HashMap;
 
 import org.eclipse.jface.dialogs.Dialog;
@@ -37,6 +39,8 @@ public class UsersListView extends ListView {
 		return projects.get(index);
 	}
 
+	PropertyChangeListener projectListListener;
+	
 	private void initializeListeners(ProjectsListView listView) {
 		// project listview selection
 		listView.initSelectionListener(new Listener() {
@@ -49,21 +53,25 @@ public class UsersListView extends ListView {
 		});
 		
 		// project list property change
-		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
-			if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
-				return;
-			}
-			
-			if (event.getNewValue() != null) {
-				if (selectedListIndex != -1) {
-					SessionStorage storage = (SessionStorage) event.getSource();
-					java.util.List<Project> projects = storage.getProjects();
-					// TODO: sort projects here instead of in clientcore
-					Project project = projects.get(selectedListIndex);
-					setProject(project);
+		projectListListener = new PropertyChangeListener() {
+			@Override
+			public void propertyChange(PropertyChangeEvent event) {
+				if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
+					return;
+				}
+				
+				if (event.getNewValue() != null) {
+					if (selectedListIndex != -1) {
+						SessionStorage storage = (SessionStorage) event.getSource();
+						java.util.List<Project> projects = storage.getProjects();
+						// TODO: sort projects here instead of in clientcore
+						Project project = projects.get(selectedListIndex);
+						setProject(project);
+					}
 				}
 			}
-		});
+		};
+		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener(projectListListener);
 		
 		// plus button pressed
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
@@ -105,12 +113,18 @@ public class UsersListView extends ListView {
 			}
 		});
 	}
+	
+	private void removePropertyChangeListeners() {
+		PluginManager.getInstance().getDataManager().getSessionStorage().removePropertyChangeListener(projectListListener);
+	}
 
 	public void setProject(Project project) {
 		this.currentProject = project;
 		Display.getDefault().asyncExec(() -> {
 			List list = this.getListWithButtons().getList();
-			list.removeAll();
+			if (!list.isDisposed()) {
+				list.removeAll();
+			}
 			if (project == null) {
 				return;
 			}
@@ -120,10 +134,18 @@ public class UsersListView extends ListView {
 					Permission permy = permissions.get(key);
 					// TODO: add permision level strings to the list (or table, in
 					// the future)
-					list.add(key);
+					if (!list.isDisposed()) {
+						list.add(key);
+					}
 				}
 			}
 			getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
 		});
+	}
+	
+	@Override
+	public void dispose() {
+		removePropertyChangeListeners();
+		super.dispose();
 	}
 }

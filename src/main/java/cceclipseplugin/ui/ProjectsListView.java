@@ -1,5 +1,8 @@
 package cceclipseplugin.ui;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -72,21 +75,34 @@ public class ProjectsListView extends ListView {
 		});
 	}
 	
+	PropertyChangeListener projectListListener;
 	private void initializeData() {	
 		// register handler for projects
 		List list = getListWithButtons().getList();
-		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
-			if (event.getPropertyName() != SessionStorage.PROJECT_LIST) {
-				return;
-			}
-			Display.getDefault().asyncExec(() -> {
-				list.removeAll();
-				for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
-					list.add(p.getName());
+		projectListListener = new PropertyChangeListener() {
+			@Override
+			public void propertyChange(PropertyChangeEvent event) {
+				if (event.getPropertyName() != SessionStorage.PROJECT_LIST) {
+					return;
 				}
-			}); 
-		});
+				Display.getDefault().asyncExec(() -> {
+					if (!list.isDisposed()) {
+						list.removeAll();
+					}
+					for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
+						if (!list.isDisposed()) {
+							list.add(p.getName());
+						}
+					}
+				}); 
+			}
+		};
+		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener(projectListListener);
 		PluginManager.getInstance().getRequestManager().fetchProjects();
+	}
+	
+	private void removePropertyListeners() {
+		PluginManager.getInstance().getDataManager().getSessionStorage().removePropertyChangeListener(projectListListener);
 	}
 	
 	private void initButtonListeners() {
@@ -127,5 +143,11 @@ public class ProjectsListView extends ListView {
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 		Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
 		return thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
+	}
+	
+	@Override
+	public void dispose() {
+		removePropertyListeners();
+		super.dispose();
 	}
 }
