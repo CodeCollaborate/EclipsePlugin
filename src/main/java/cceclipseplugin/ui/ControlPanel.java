@@ -1,5 +1,7 @@
 package cceclipseplugin.ui;
 
+import java.beans.PropertyChangeListener;
+
 import org.eclipse.jface.viewers.ListViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -47,10 +49,16 @@ public class ControlPanel extends ViewPart {
 		statusBar.setLayoutData(statusData);
 		initializePropertyChangeListeners();
 		initializeNotificationHandlers();
+		
+		if (PluginManager.getInstance().getDataManager().getSessionStorage().getUsername() != null) {
+			setEnabled(true);
+			PluginManager.getInstance().getRequestManager().fetchProjects();
+		}
 	}
 	
+	private PropertyChangeListener usernameListener;
 	private void initializePropertyChangeListeners() {
-		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener((event) -> {
+		usernameListener = (event) -> {
 			if (!event.getPropertyName().equals(SessionStorage.USERNAME)) {
 				return;
 			}
@@ -60,7 +68,9 @@ public class ControlPanel extends ViewPart {
 			} else {
 				Display.getDefault().asyncExec(() -> this.setEnabled(false));
 			}
-		});
+		};
+		
+		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener(usernameListener);
 	}
 	
 	private void initializeNotificationHandlers() {
@@ -70,12 +80,10 @@ public class ControlPanel extends ViewPart {
 			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.CONNECT_MESSAGE));
 		});
 		wsManager.registerEventHandler(WSConnection.EventType.ON_CLOSE, () -> {
-			if (!statusBar.isDisposed())
-				statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.CLOSE_MESSAGE));
+			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.CLOSE_MESSAGE));
 		});
 		wsManager.registerEventHandler(WSConnection.EventType.ON_ERROR, () -> {
-			if (!statusBar.isDisposed())
-				statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.ERROR_MESSAGE));
+			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.ERROR_MESSAGE));
 		});
 		State s = wsManager.getConnectionState();
 		switch (s) {
@@ -99,6 +107,10 @@ public class ControlPanel extends ViewPart {
 		wsManager.deregisterEventHandler(WSConnection.EventType.ON_CLOSE);
 		wsManager.deregisterEventHandler(WSConnection.EventType.ON_ERROR);
 	}
+	
+	private void removePropertyChangeListener() {
+		PluginManager.getInstance().getDataManager().getSessionStorage().removePropertyChangeListener(usernameListener);
+	}
 
 	@Override
 	public void setFocus() {
@@ -113,6 +125,7 @@ public class ControlPanel extends ViewPart {
 	@Override
 	public void dispose() {
 		undoNotificationHandlers();
+		removePropertyChangeListener();
 		super.dispose();
 	}
 }
