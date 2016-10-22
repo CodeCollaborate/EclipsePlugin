@@ -9,6 +9,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MenuAdapter;
 import org.eclipse.swt.events.MenuEvent;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
@@ -78,7 +79,7 @@ public class ProjectsListView extends ListView {
 			if (event.getPropertyName() != SessionStorage.PROJECT_LIST) {
 				return;
 			}
-			list.getDisplay().asyncExec(() -> {
+			Display.getDefault().asyncExec(() -> {
 				list.removeAll();
 				for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
 					list.add(p.getName());

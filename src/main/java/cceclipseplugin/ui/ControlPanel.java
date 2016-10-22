@@ -65,16 +65,17 @@ public class ControlPanel extends ViewPart {
 	
 	private void initializeNotificationHandlers() {
 		WSManager wsManager = PluginManager.getInstance().getWSManager();
-		
 		// status bar handlers
 		wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
 			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.CONNECT_MESSAGE));
 		});
 		wsManager.registerEventHandler(WSConnection.EventType.ON_CLOSE, () -> {
-			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.CLOSE_MESSAGE));
+			if (!statusBar.isDisposed())
+				statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.CLOSE_MESSAGE));
 		});
 		wsManager.registerEventHandler(WSConnection.EventType.ON_ERROR, () -> {
-			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.ERROR_MESSAGE));
+			if (!statusBar.isDisposed())
+				statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.ERROR_MESSAGE));
 		});
 		State s = wsManager.getConnectionState();
 		switch (s) {
@@ -91,6 +92,13 @@ public class ControlPanel extends ViewPart {
 			break;
 		}
 	}
+	
+	private void undoNotificationHandlers() {
+		WSManager wsManager = PluginManager.getInstance().getWSManager();
+		wsManager.deregisterEventHandler(WSConnection.EventType.ON_CONNECT);
+		wsManager.deregisterEventHandler(WSConnection.EventType.ON_CLOSE);
+		wsManager.deregisterEventHandler(WSConnection.EventType.ON_ERROR);
+	}
 
 	@Override
 	public void setFocus() {
@@ -100,5 +108,11 @@ public class ControlPanel extends ViewPart {
 	public void setEnabled(boolean b) {
 		views.getProjectListView().getListWithButtons().setEnabled(b);
 		views.getUserListView().getListWithButtons().setEnabled(b);
+	}
+	
+	@Override
+	public void dispose() {
+		undoNotificationHandlers();
+		super.dispose();
 	}
 }
