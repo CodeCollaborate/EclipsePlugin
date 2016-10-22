@@ -1,5 +1,9 @@
 package cceclipseplugin.ui;
 
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
@@ -49,8 +53,18 @@ public class ProjectListMenuItemFactory {
 				} , new UIRequestErrorHandler("Failed to send project subscribe request."));
 
 				PluginManager.getInstance().getWSManager().sendRequest(req);
+				
+				Request getFilesReq = (new ProjectGetFilesRequest(p.getProjectID())).getRequest(response -> {
+					File[] files = ((ProjectGetFilesResponse) response.getData()).files;
+					IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+					IProject eclipseProject = root.getProject(p.getName());
+					ProjectManager pm = new ProjectManager();
+					for (File f : files) {
+						pm.pullFileAndCreate(eclipseProject, f, new NullProgressMonitor());
+					}
+				}, new UIRequestErrorHandler("Failed to send project get files request."));
 			}
-			// TODO: pull files
+			
 		});
 	}
 
