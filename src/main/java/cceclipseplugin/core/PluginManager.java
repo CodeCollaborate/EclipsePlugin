@@ -206,6 +206,8 @@ public class PluginManager {
 			String newName = (((ProjectRenameNotification) notification.getData()).newName);
 			Project project = storage.getProjectById(resId);
 			project.setName(newName);
+			ProjectMetadata meta = getMetadataManager().getProjectMetadata(resId);
+			meta.setName(newName);
 			storage.setProject(project);
 		});
 		// Project.GrantPermissions
@@ -251,6 +253,7 @@ public class PluginManager {
 			project.getPermissions().remove(n.revokeUsername);
 			if (storage.getUsername().equals(n.revokeUsername)) {
 				storage.removeProjectById(resId);
+				getMetadataManager().projectDeleted(resId);
 			} else {
 				storage.setProject(project);
 			}
@@ -258,6 +261,7 @@ public class PluginManager {
 		// Project.Delete
 		wsManager.registerNotificationHandler("Project", "Delete", (notification) -> {
 			long resId = notification.getResourceID();
+			getMetadataManager().projectDeleted(resId);
 			storage.removeProjectById(resId);
 		});
 		
@@ -300,7 +304,7 @@ public class PluginManager {
 				IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 				IProject eclipseProject = root.getProject(p.getName());
 				IProgressMonitor monitor = new NullProgressMonitor();
-				new ProjectManager().pullFileAndCreate(eclipseProject, n.file, monitor);
+				new ProjectManager().pullFileAndCreate(eclipseProject, p, n.file, monitor);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

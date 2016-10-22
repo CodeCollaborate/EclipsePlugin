@@ -13,6 +13,7 @@ import org.eclipse.core.runtime.Path;
 
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import dataMgmt.models.FileMetadata;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
@@ -28,7 +29,7 @@ public class ProjectManager {
 		project.open(progressMonitor);
 		
 		for (int i = 0; i < files.length; i++) {
-			pullFileAndCreate(project, files[i], progressMonitor);
+			pullFileAndCreate(project, p, files[i], progressMonitor);
 		}
 	}
 	
@@ -45,7 +46,7 @@ public class ProjectManager {
 	
 	private byte[] fileBytes;
 	
-	public void pullFileAndCreate(IProject p, File file, IProgressMonitor progressMonitor) {
+	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor) {
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 				System.out.println("Got some stuff");
 				if (response.getStatus() == 200) {
@@ -84,6 +85,12 @@ public class ProjectManager {
 							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
 						} else {
 							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
+							FileMetadata meta = new FileMetadata();
+							meta.setFileID(file.getFileID());
+							meta.setFilename(file.getFilename());
+							meta.setRelativePath(file.getRelativePath());
+							meta.setVersion(file.getFileVersion());
+							PluginManager.getInstance().getMetadataManager().putFileMetadata(path, ccp.getProjectID(), meta);
 						}
 					} catch (Exception e) {
 						e.printStackTrace();

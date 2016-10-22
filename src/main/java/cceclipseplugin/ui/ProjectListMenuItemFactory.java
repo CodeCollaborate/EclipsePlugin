@@ -18,6 +18,7 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.core.ProjectManager;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import dataMgmt.MetadataManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
@@ -51,8 +52,7 @@ public class ProjectListMenuItemFactory {
 								Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Project subscribe request failed with status code " + response.getStatus()).open());
 					}
 				} , new UIRequestErrorHandler("Failed to send project subscribe request."));
-
-				PluginManager.getInstance().getWSManager().sendRequest(req);
+				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 				
 				Request getFilesReq = (new ProjectGetFilesRequest(p.getProjectID())).getRequest(response -> {
 					File[] files = ((ProjectGetFilesResponse) response.getData()).files;
@@ -60,9 +60,10 @@ public class ProjectListMenuItemFactory {
 					IProject eclipseProject = root.getProject(p.getName());
 					ProjectManager pm = new ProjectManager();
 					for (File f : files) {
-						pm.pullFileAndCreate(eclipseProject, f, new NullProgressMonitor());
+						pm.pullFileAndCreate(eclipseProject, p, f, new NullProgressMonitor());
 					}
 				}, new UIRequestErrorHandler("Failed to send project get files request."));
+				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(getFilesReq);
 			}
 			
 		});
