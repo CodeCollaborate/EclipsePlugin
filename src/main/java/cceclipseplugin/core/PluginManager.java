@@ -51,6 +51,7 @@ import websocket.models.notifications.ProjectGrantPermissionsNotification;
 import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.notifications.ProjectRevokePermissionsNotification;
 import websocket.models.requests.ProjectLookupRequest;
+import websocket.models.requests.ProjectSubscribeRequest;
 import websocket.models.responses.ProjectLookupResponse;
 
 /**
