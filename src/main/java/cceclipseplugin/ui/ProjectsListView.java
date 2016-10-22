@@ -56,8 +56,7 @@ public class ProjectsListView extends ListView {
 				}
 								
 				Project selectedProj = null;
-				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
-				// TODO: sort projects here instead of in clientcore
+				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects();
 				selectedProj = projects.get(selected);
 
 				boolean subscribed = getSubscribedVarFromPrefs(selectedProj);
@@ -89,7 +88,7 @@ public class ProjectsListView extends ListView {
 					if (!list.isDisposed()) {
 						list.removeAll();
 					}
-					for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getProjects()) {
+					for (Project p : PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects()) {
 						if (!list.isDisposed()) {
 							list.add(p.getName());
 						}
@@ -125,7 +124,7 @@ public class ProjectsListView extends ListView {
 					return;
 				}
 				
-				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
+				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects();
 				Project selectedProject = projects.get(list.getSelectionIndex());
 				DeleteProjectDialog delete = new DeleteProjectDialog(new Shell(), selectedProject);
 				delete.open();

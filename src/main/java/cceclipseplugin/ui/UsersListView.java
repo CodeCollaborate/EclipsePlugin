@@ -31,11 +31,10 @@ public class UsersListView extends ListView {
 	}
 	
 	private Project getProjectAt(int index) {
-		java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getProjects();
+		java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects();
 		if (index < 0 || index >= projects.size()) {
 			return null;
 		}
-		// TODO: sort projects here instead of in clientcore
 		return projects.get(index);
 	}
 
@@ -63,8 +62,7 @@ public class UsersListView extends ListView {
 				if (event.getNewValue() != null) {
 					if (selectedListIndex != -1) {
 						SessionStorage storage = (SessionStorage) event.getSource();
-						java.util.List<Project> projects = storage.getProjects();
-						// TODO: sort projects here instead of in clientcore
+						java.util.List<Project> projects = storage.getSortedProjects();
 						Project project = projects.get(selectedListIndex);
 						setProject(project);
 					}
@@ -82,7 +80,7 @@ public class UsersListView extends ListView {
 					Shell shell = Display.getDefault().getActiveShell();
 					List projectList = listView.getListWithButtons().getList();
 					Project p = PluginManager.getInstance().getDataManager().getSessionStorage()
-							.getProjects().get(projectList.getSelectionIndex());
+							.getSortedProjects().get(projectList.getSelectionIndex());
 					AddNewUserDialog addUserDialog = new AddNewUserDialog(shell, p);
 					addUserDialog.open();
 				});
