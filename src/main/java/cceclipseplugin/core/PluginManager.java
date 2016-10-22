@@ -9,10 +9,12 @@ import java.util.HashMap;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
+import org.osgi.service.prefs.Preferences;
 
 import cceclipseplugin.Activator;
 import cceclipseplugin.constants.StringConstants;
@@ -22,6 +24,8 @@ import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
 import cceclipseplugin.ui.UIRequestErrorHandler;
+import cceclipseplugin.ui.UIResponseHandler;
+import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
@@ -153,6 +157,8 @@ public class PluginManager {
 					}).start();
 				}
 			}
+			
+			
 		 });
 			
 		 new Thread(() -> {
@@ -164,6 +170,8 @@ public class PluginManager {
 		 }).start();
 		
 		requestManager.fetchPermissionConstants();
+		
+		initPropertyListeners();
 	}
 
 	public RequestManager getRequestManager() {
@@ -384,5 +392,39 @@ public class PluginManager {
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",
 				(Notification n) -> documentManager.handleNotification(n));
+	}
+	
+	private void initPropertyListeners() {
+		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
+			if (!event.getPropertyName().equals(SessionStorage.USERNAME)) {
+				return;
+			}
+			
+			if (event.getNewValue() != null) {
+				projectAutoSubscribe();
+			}
+		});
+	}
+	
+	private void projectAutoSubscribe() {
+		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
+		String[] projectIDs;
+		try {
+			projectIDs = projectPrefs.childrenNames();
+			for (int i = 0; i < projectIDs.length; i++) {
+				Preferences thisProjectPrefs = projectPrefs.node(projectIDs[i]);
+				boolean subscribed = thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
+				if (subscribed) {
+					Request req = (new ProjectSubscribeRequest(Long.parseLong(projectIDs[i]))).getRequest(
+							new UIResponseHandler("Project subscribe")
+							, new UIRequestErrorHandler("Could not send project subscribe request."));
+					wsManager.sendAuthenticatedRequest(req);
+				}
+			}
+		} catch (Exception e) {
+			MessageDialog.createDialog("Could not auto-subscribe to projects.").open();
+			e.printStackTrace();
+		}
 	}
 }
