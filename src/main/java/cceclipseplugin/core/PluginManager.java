@@ -1,6 +1,7 @@
 package cceclipseplugin.core;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -9,6 +10,8 @@ import java.util.HashMap;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.widgets.Display;
@@ -297,7 +300,11 @@ public class PluginManager {
 			try {
 				file.createNewFile();
 				mm.putFileMetadata(pathBuilder.toString(), resId, meta);
-				// TODO: pull file contents
+				Project p = dataManager.getSessionStorage().getProjectById(pmeta.getProjectID());
+				IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+				IProject eclipseProject = root.getProject(p.getName());
+				IProgressMonitor monitor = new NullProgressMonitor();
+				new ProjectManager().pullFileAndCreate(eclipseProject, n.file, monitor);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
