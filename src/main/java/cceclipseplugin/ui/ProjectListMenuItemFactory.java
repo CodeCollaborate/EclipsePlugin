@@ -1,6 +1,5 @@
 package cceclipseplugin.ui;
 
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
@@ -15,7 +14,6 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.core.ProjectManager;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.MessageDialog;
-import dataMgmt.DataManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;

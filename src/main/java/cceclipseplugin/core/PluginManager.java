@@ -20,7 +20,6 @@ import org.eclipse.ui.PlatformUI;
 import org.osgi.service.prefs.Preferences;
 
 import cceclipseplugin.Activator;
-import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
 import cceclipseplugin.preferences.PreferenceConstants;
@@ -52,11 +51,7 @@ import websocket.models.notifications.ProjectGrantPermissionsNotification;
 import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.notifications.ProjectRevokePermissionsNotification;
 import websocket.models.requests.ProjectLookupRequest;
-import websocket.models.requests.ProjectSubscribeRequest;
-import websocket.models.requests.UserLoginRequest;
-import websocket.models.requests.UserRegisterRequest;
 import websocket.models.responses.ProjectLookupResponse;
-import websocket.models.responses.UserLoginResponse;
 
 /**
  * Manager for the entire plugin. Should only be instantiated once.
