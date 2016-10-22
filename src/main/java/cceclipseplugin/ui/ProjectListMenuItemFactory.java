@@ -18,7 +18,6 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.core.ProjectManager;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.MessageDialog;
-import dataMgmt.MetadataManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
@@ -48,22 +47,21 @@ public class ProjectListMenuItemFactory {
 								} catch (Exception e) {
 									Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Could not save preferences.").open());
 								}
+								Request getFilesReq = (new ProjectGetFilesRequest(p.getProjectID())).getRequest(r -> {
+									File[] files = ((ProjectGetFilesResponse) r.getData()).files;
+									IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+									IProject eclipseProject = root.getProject(p.getName());
+									ProjectManager pm = new ProjectManager();
+									for (File f : files) {
+										pm.pullFileAndCreate(eclipseProject, p, f, new NullProgressMonitor());
+									}
+								}, new UIRequestErrorHandler("Failed to send project get files request."));
+								PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(getFilesReq);
 							} else {
 								Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Project subscribe request failed with status code " + response.getStatus()).open());
 					}
 				} , new UIRequestErrorHandler("Failed to send project subscribe request."));
 				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-				
-				Request getFilesReq = (new ProjectGetFilesRequest(p.getProjectID())).getRequest(response -> {
-					File[] files = ((ProjectGetFilesResponse) response.getData()).files;
-					IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-					IProject eclipseProject = root.getProject(p.getName());
-					ProjectManager pm = new ProjectManager();
-					for (File f : files) {
-						pm.pullFileAndCreate(eclipseProject, p, f, new NullProgressMonitor());
-					}
-				}, new UIRequestErrorHandler("Failed to send project get files request."));
-				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(getFilesReq);
 			}
 			
 		});
@@ -91,7 +89,7 @@ public class ProjectListMenuItemFactory {
 					}
 				} , new UIRequestErrorHandler("Failed to send project unsubscribe request."));
 
-				PluginManager.getInstance().getWSManager().sendRequest(req);
+				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 			}
 		});
 	}

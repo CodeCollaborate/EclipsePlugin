@@ -13,7 +13,6 @@ import org.eclipse.core.runtime.Path;
 
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
-import dataMgmt.models.FileMetadata;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
@@ -85,12 +84,6 @@ public class ProjectManager {
 							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
 						} else {
 							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
-							FileMetadata meta = new FileMetadata();
-							meta.setFileID(file.getFileID());
-							meta.setFilename(file.getFilename());
-							meta.setRelativePath(file.getRelativePath());
-							meta.setVersion(file.getFileVersion());
-							PluginManager.getInstance().getMetadataManager().putFileMetadata(path, ccp.getProjectID(), meta);
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
