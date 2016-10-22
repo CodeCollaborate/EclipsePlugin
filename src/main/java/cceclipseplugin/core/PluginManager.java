@@ -3,6 +3,7 @@ package cceclipseplugin.core;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.eclipse.core.resources.IProject;
@@ -20,6 +21,7 @@ import cceclipseplugin.editor.listeners.EditorChangeListener;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
+import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
@@ -42,9 +44,11 @@ import websocket.models.notifications.FileRenameNotification;
 import websocket.models.notifications.ProjectGrantPermissionsNotification;
 import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.notifications.ProjectRevokePermissionsNotification;
+import websocket.models.requests.ProjectLookupRequest;
 import websocket.models.requests.ProjectSubscribeRequest;
 import websocket.models.requests.UserLoginRequest;
 import websocket.models.requests.UserRegisterRequest;
+import websocket.models.responses.ProjectLookupResponse;
 import websocket.models.responses.UserLoginResponse;
 
 /**
@@ -200,18 +204,34 @@ public class PluginManager {
 		// Project.GrantPermissions
 		wsManager.registerNotificationHandler("Project", "GrantPermissions", (notification) -> {
 			requestManager.fetchProjects();
-//			long resId = notification.getResourceID();
-//			ProjectGrantPermissionsNotification n = ((ProjectGrantPermissionsNotification) notification.getData());
-//			Project project = storage.getProjectById(resId);
-//			Permission permy = new Permission(n.grantUsername, n.permissionLevel, null, null);
-//			if (project == null) {
-//				
-//			}
-//			if (project.getPermissions() == null) {
-//				project.setPermissions(new HashMap<>());
-//			}
-//			project.getPermissions().put(permy.getUsername(), permy);
-//			storage.setProject(project);
+			long resId = notification.getResourceID();
+			ProjectGrantPermissionsNotification n = ((ProjectGrantPermissionsNotification) notification.getData());
+			Project project = storage.getProjectById(resId);
+			Permission permy = new Permission(n.grantUsername, n.permissionLevel, null, null);
+			if (project == null) {
+				ArrayList<Long> projects = new ArrayList<>();
+				projects.add(resId);
+		        Request projectLookupRequest = new ProjectLookupRequest(projects).getRequest(response -> {
+		        	ProjectLookupResponse r = (ProjectLookupResponse) response.getData();
+		        	if (r.getProjects() == null || r.getProjects().length != 1) {
+		        		System.out.println("Couldn't read projects from lookup");
+		        	} else {
+		        		Project p = r.getProjects()[0];
+		    			if (p.getPermissions() == null) {
+		    				p.setPermissions(new HashMap<>());
+		    			}
+		    			p.getPermissions().put(permy.getUsername(), permy);
+		    			storage.setProject(p);
+		        	}
+		        }, new UIRequestErrorHandler("Couldn't send Project Lookup Request."));
+		        wsManager.sendAuthenticatedRequest(projectLookupRequest);
+			} else {
+				if (project.getPermissions() == null) {
+					project.setPermissions(new HashMap<>());
+				}
+				project.getPermissions().put(permy.getUsername(), permy);
+				storage.setProject(project);
+			}
 		});
 		// Project.RevokePermissions
 		wsManager.registerNotificationHandler("Project", "RevokePermissions", (notification) -> {
@@ -222,7 +242,11 @@ public class PluginManager {
 				project.setPermissions(new HashMap<>());
 			}
 			project.getPermissions().remove(n.revokeUsername);
-			storage.setProject(project);
+			if (storage.getUsername().equals(n.revokeUsername)) {
+				storage.removeProjectById(resId);
+			} else {
+				storage.setProject(project);
+			}
 		});
 		// Project.Delete
 		wsManager.registerNotificationHandler("Project", "Delete", (notification) -> {
@@ -360,39 +384,5 @@ public class PluginManager {
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",
 				(Notification n) -> documentManager.handleNotification(n));
-	}
-
-	private void websocketLogin() throws ConnectException, InterruptedException {
-		Request req1 = new UserRegisterRequest(StringConstants.PREFERENCES_USERNAME,
-				StringConstants.PREFERENCES_FIRSTNAME, StringConstants.PREFERENCES_LASTNAME,
-				StringConstants.PREFERENCES_EMAIL, StringConstants.PREFERENCES_PASSWORD).getRequest(resp -> {
-
-					Request req2 = new UserLoginRequest(StringConstants.PREFERENCES_USERNAME,
-							StringConstants.PREFERENCES_PASSWORD).getRequest(response -> {
-								// TODO(wongb) Add login logic for server
-								if (response.getStatus() != 200) {
-									throw new IllegalStateException("Failed to log in");
-								}
-
-								getWSManager().setAuthInfo(StringConstants.PREFERENCES_USERNAME,
-										((UserLoginResponse) response.getData()).getToken());
-
-								try {
-									// Subscribe to all projects that are CCProjects
-									for(ProjectMetadata metadata : dataManager.getMetadataManager().getAllProjects()){
-									wsManager.sendRequest(new ProjectSubscribeRequest(metadata.getProjectID())
-											.getRequest(null, null));
-									}
-								} catch (ConnectException e) {
-									e.printStackTrace();
-								}
-							}, null);
-					try {
-						getWSManager().sendRequest(req2, -1);
-					} catch (ConnectException e) {
-						throw new IllegalStateException("Failed to connect while attempting to log in", e);
-					}
-				}, null);
-		getWSManager().sendRequest(req1, -1);
 	}
 }
