@@ -1,9 +1,6 @@
 package cceclipseplugin.core;
 
 import java.io.ByteArrayInputStream;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
@@ -46,37 +43,40 @@ public class ProjectManager {
 		}
 	}
 	
-	public void updateEclipseProjectFiles(File[] files, byte[][] fileBytes) {
-		
-	}
-	
 	private byte[] fileBytes;
 	
-	public byte[] pullFileAndCreate(IProject p, File file, IProgressMonitor progressMonitor) {
+	public void pullFileAndCreate(IProject p, File file, IProgressMonitor progressMonitor) {
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 				System.out.println("Got some stuff");
 				if (response.getStatus() == 200) {
 					fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
 					
 					String path = file.getRelativePath();
-//					path = path.replace("/", "\\");
 					if (path.contains("/")) {
-						path = "../" + path.substring(path.indexOf("/") + 1, path.length()); // get rid of project name from dir
+						path = path.substring(path.indexOf("/") + 1, path.length()); // get rid of project name from dir
 					} else {
 						path = "";
 					}
 					Path relPath = new Path(path);
 					if (!path.equals("")) {
-						System.out.println("Making folder " + path);
-						IFolder newFolder = p.getFolder(new Path(path));
-						try {
-							newFolder.create(true, true, progressMonitor);
-						} catch (Exception e1) {
-							System.out.println("Could not create folder for " + path);
-							e1.printStackTrace();
+						String currentFolder = "";
+						for (int i = 0; i < relPath.segmentCount(); i++) {
+							// iterate through path segments and create if they don't exist
+							currentFolder += "/" + relPath.segment(i);
+							Path currentPath = new Path(currentFolder);
+							System.out.println("Making folder " + currentPath.toString());
+							IFolder newFolder = p.getFolder(currentPath);
+							try {
+								if (!newFolder.exists()) {
+									newFolder.create(true, true, progressMonitor);
+								}
+							} catch (Exception e1) {
+								System.out.println("Could not create folder for " + currentPath.toString());
+								e1.printStackTrace();
+							}
 						}
 					}
-					path = path + file.getFilename();
+					path += "/" + file.getFilename();
 					System.out.println("Making file " + path);
 					IFile newFile = p.getFile(new Path(path));
 					try {
@@ -94,7 +94,5 @@ public class ProjectManager {
 		}, new UIRequestErrorHandler("Couldn't send file pull request."));
 		
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-		
-		return fileBytes;
 	}
 }
