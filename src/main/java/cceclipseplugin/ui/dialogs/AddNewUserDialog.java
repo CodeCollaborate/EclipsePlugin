@@ -130,19 +130,9 @@ public class AddNewUserDialog extends Dialog {
 	protected void okPressed() {
 		username = usernameBox.getText();
 		permission = Integer.parseInt(combo.getItem(combo.getSelectionIndex()).split(" . ")[0]);
-		System.out.println("username: "+username+" permy: "+permission);
 		if (username != null && permission != -1) {
-			Request req = new ProjectGrantPermissionsRequest(selectedProject.getProjectID(), username, permission).getRequest((response) -> {
-				if (response.getStatus() == 200) {
-					Project proj = PluginManager.getInstance().getDataManager().getSessionStorage()
-							.getProjectById(selectedProject.getProjectID());
-					proj.getPermissions().put(username, new Permission(username, permission, null, null));
-					PluginManager.getInstance().getDataManager().getSessionStorage().setProject(proj);
-				} else {
-					Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Error granting permissions: " + response.getStatus()).open());
-				}
-			}, new UIRequestErrorHandler("Could not send request to grant permissions."));
-			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+			PluginManager.getInstance().getRequestManager()
+				.addUserToProject(selectedProject.getProjectID(), username, permission);
 			super.okPressed();
 		}
 	}

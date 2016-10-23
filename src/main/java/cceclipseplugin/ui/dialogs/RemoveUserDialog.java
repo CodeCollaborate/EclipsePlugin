@@ -71,14 +71,11 @@ public class RemoveUserDialog extends Dialog {
 	
 	@Override
 	public void okPressed() {
-		Request removeUserRequest = (new ProjectRevokePermissionsRequest(projectId, username)).getRequest((response) -> {
-			if (response.getStatus() == 200) {
-				PluginManager.getInstance().getRequestManager().fetchProjects();
-			} else {
-				Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Server error revoking permissions for: "+username+" "+projectName).open());
-			}
-		}, new UIRequestErrorHandler("Error sending revoke permissions request for: "+username+" "+projectName));
-		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(removeUserRequest);
+		if (PluginManager.getInstance().getDataManager().getSessionStorage().getUsername().equals(username)) {
+			PluginManager.getInstance().getRequestManager().removeSelfFromProject(projectId);
+		} else {
+			PluginManager.getInstance().getRequestManager().removeUserFromProject(projectId, username);
+		}
 		super.okPressed();
 	}
 	

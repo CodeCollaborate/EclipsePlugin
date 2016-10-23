@@ -72,20 +72,7 @@ public class DeleteProjectDialog extends Dialog {
 	
 	@Override
 	protected void okPressed() {
-		Request req = (new ProjectDeleteRequest(project.getProjectID())).getRequest(
-				response -> {
-								int status = response.getStatus();
-								if (status == 200) {
-									SessionStorage storage = PluginManager.getInstance().getDataManager().getSessionStorage();
-									storage.removeProjectById(project.getProjectID());
-									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_SuccessMsg).open());
-								} else {
-									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_FailedWithStatus + status + ".").open()); //$NON-NLS-2$
-								}
-				},
-				new UIRequestErrorHandler(DialogStrings.DeleteProjectDialog_ProjDeleteErr));
-		
-		PluginManager.getInstance().getWSManager().sendRequest(req);
+		PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());
 		
 		super.okPressed();
 	}
