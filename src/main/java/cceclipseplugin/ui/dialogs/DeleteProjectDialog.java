@@ -4,7 +4,6 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;
@@ -13,11 +12,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.UIRequestErrorHandler;
-import dataMgmt.SessionStorage;
 import websocket.models.Project;
-import websocket.models.Request;
-import websocket.models.requests.ProjectDeleteRequest;
 
 public class DeleteProjectDialog extends Dialog {
 
@@ -72,20 +67,7 @@ public class DeleteProjectDialog extends Dialog {
 	
 	@Override
 	protected void okPressed() {
-		Request req = (new ProjectDeleteRequest(project.getProjectID())).getRequest(
-				response -> {
-								int status = response.getStatus();
-								if (status == 200) {
-									SessionStorage storage = PluginManager.getInstance().getDataManager().getSessionStorage();
-									storage.removeProjectById(project.getProjectID());
-									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_SuccessMsg).open());
-								} else {
-									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.DeleteProjectDialog_FailedWithStatus + status + ".").open()); //$NON-NLS-2$
-								}
-				},
-				new UIRequestErrorHandler(DialogStrings.DeleteProjectDialog_ProjDeleteErr));
-		
-		PluginManager.getInstance().getWSManager().sendRequest(req);
+		PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());
 		
 		super.okPressed();
 	}

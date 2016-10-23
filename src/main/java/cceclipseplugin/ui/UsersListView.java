@@ -21,9 +21,7 @@ import websocket.models.Permission;
 import websocket.models.Project;
 
 public class UsersListView extends ListView {
-
 	private Project currentProject = null;
-	private int selectedListIndex = -1;
 
 	public UsersListView(Composite parent, int style, ProjectsListView listView) {
 		super(parent, style, "Users");
@@ -45,7 +43,7 @@ public class UsersListView extends ListView {
 		listView.initSelectionListener(new Listener() {
 			@Override
 			public void handleEvent(Event event) {
-				selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
+				int selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
 				setProject(getProjectAt(selectedListIndex));
 				listView.getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
 			}
@@ -58,14 +56,18 @@ public class UsersListView extends ListView {
 				if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
 					return;
 				}
-				
 				if (event.getNewValue() != null) {
-					if (selectedListIndex != -1) {
-						SessionStorage storage = (SessionStorage) event.getSource();
-						java.util.List<Project> projects = storage.getSortedProjects();
-						Project project = projects.get(selectedListIndex);
-						setProject(project);
-					}
+					Display.getDefault().asyncExec(() -> {
+						int selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
+						if (selectedListIndex != -1) {
+							SessionStorage storage = (SessionStorage) event.getSource();
+							java.util.List<Project> projects = storage.getSortedProjects();
+							Project project = projects.get(selectedListIndex);
+							setProject(project);
+						} else {
+							setProject(null);
+						}
+					});
 				}
 			}
 		};

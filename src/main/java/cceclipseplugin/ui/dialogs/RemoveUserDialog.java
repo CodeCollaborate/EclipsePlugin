@@ -4,14 +4,9 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.UIRequestErrorHandler;
-import websocket.models.Request;
-import websocket.models.requests.ProjectRevokePermissionsRequest;
-
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -71,14 +66,11 @@ public class RemoveUserDialog extends Dialog {
 	
 	@Override
 	public void okPressed() {
-		Request removeUserRequest = (new ProjectRevokePermissionsRequest(projectId, username)).getRequest((response) -> {
-			if (response.getStatus() == 200) {
-				PluginManager.getInstance().getRequestManager().fetchProjects();
-			} else {
-				Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Server error revoking permissions for: "+username+" "+projectName).open());
-			}
-		}, new UIRequestErrorHandler("Error sending revoke permissions request for: "+username+" "+projectName));
-		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(removeUserRequest);
+		if (PluginManager.getInstance().getDataManager().getSessionStorage().getUsername().equals(username)) {
+			PluginManager.getInstance().getRequestManager().removeSelfFromProject(projectId);
+		} else {
+			PluginManager.getInstance().getRequestManager().removeUserFromProject(projectId, username);
+		}
 		super.okPressed();
 	}
 	

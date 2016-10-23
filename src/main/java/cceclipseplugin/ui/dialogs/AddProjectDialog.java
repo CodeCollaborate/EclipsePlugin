@@ -1,37 +1,14 @@
 package cceclipseplugin.ui.dialogs;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import org.eclipse.core.resources.IContainer;
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.UIRequestErrorHandler;
-import cceclipseplugin.ui.UIResponseHandler;
-import dataMgmt.SessionStorage;
-import websocket.models.Project;
-import websocket.models.Request;
-import websocket.models.requests.FileCreateRequest;
-import websocket.models.requests.ProjectCreateRequest;
-import websocket.models.requests.ProjectDeleteRequest;
-import websocket.models.requests.ProjectLookupRequest;
-import websocket.models.responses.ProjectCreateResponse;
-import websocket.models.responses.ProjectLookupResponse;
-
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;
@@ -87,133 +64,111 @@ public class AddProjectDialog extends Dialog {
 		}
 		
 		IProject selectedProject = localProjects[combo.getSelectionIndex()];
-
-		Request req = (new ProjectCreateRequest(selectedProject.getName())).getRequest(
-				response -> {
-					
-					int status = response.getStatus();
-					if (status == 200) {
-						long id = ((ProjectCreateResponse) response.getData()).getProjectID();
-						try {
-							sendCreateFileRequests(selectedProject.getName(), id, recursivelyGetFiles(selectedProject));
-						} catch (Exception e) {
-							Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
-							e.printStackTrace();
-							sendProjectDeleteRequest(id);
-							return;
-						}
-						
-						long projID = ((ProjectCreateResponse) response.getData()).getProjectID();
-						lookupProjectAndStore(projID);
-						
-					} else {
-						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + status + ".").open()); //$NON-NLS-2$
-					}
-					
-				}, 
-				new UIRequestErrorHandler(DialogStrings.AddProjectDialog_ProjCreateErr));
 		
-		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+		PluginManager.getInstance().getRequestManager().createProject(selectedProject.getName());
+
+//		Request req = (new ProjectCreateRequest(selectedProject.getName())).getRequest(
+//				response -> {
+//					
+//					int status = response.getStatus();
+//					if (status == 200) {
+//						long id = ((ProjectCreateResponse) response.getData()).getProjectID();
+//						try {
+//							sendCreateFileRequests(selectedProject.getName(), id, recursivelyGetFiles(selectedProject));
+//						} catch (Exception e) {
+//							Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
+//							e.printStackTrace();
+//							sendProjectDeleteRequest(id);
+//							return;
+//						}
+//						
+//						long projID = ((ProjectCreateResponse) response.getData()).getProjectID();
+//						lookupProjectAndStore(projID);
+//						
+//					} else {
+//						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + status + ".").open()); //$NON-NLS-2$
+//					}
+//					
+//				}, 
+//				new UIRequestErrorHandler(DialogStrings.AddProjectDialog_ProjCreateErr));
+//		
+//		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 		
 		super.okPressed();
 	}
 	
-	private void lookupProjectAndStore(long projectID) {
-		Request lookupReq = (new ProjectLookupRequest(new Long[] { projectID })).getRequest(
-				lookupResponse -> {
-					int lookupStatus = lookupResponse.getStatus();
-					
-					if (lookupStatus == 200) {
-						SessionStorage storage = PluginManager.getInstance().getDataManager().getSessionStorage();
-						storage.setProject(((ProjectLookupResponse) lookupResponse.getData()).getProjects()[0]);
-					} else {
-						Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Project lookup failed with status code " + lookupStatus + ".").open());
-					}
-
-				}
-				, new UIRequestErrorHandler("Failed to send project lookup request."));
-		
-		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(lookupReq);
-	}
+//	private void lookupProjectAndStore(long projectID) {
+//		Request lookupReq = (new ProjectLookupRequest(new Long[] { projectID })).getRequest(
+//				lookupResponse -> {
+//					int lookupStatus = lookupResponse.getStatus();
+//					
+//					if (lookupStatus == 200) {
+//						SessionStorage storage = PluginManager.getInstance().getDataManager().getSessionStorage();
+//						storage.setProject(((ProjectLookupResponse) lookupResponse.getData()).getProjects()[0]);
+//					} else {
+//						Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Project lookup failed with status code " + lookupStatus + ".").open());
+//					}
+//
+//				}
+//				, new UIRequestErrorHandler("Failed to send project lookup request."));
+//		
+//		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(lookupReq);
+//	}
 	
-	private void sendProjectDeleteRequest(long projectID) {
-		Request req = (new ProjectDeleteRequest(projectID)).getRequest(
-				new UIResponseHandler("Project delete"), 
-				new UIRequestErrorHandler("Failed to send project delete request."));
-		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-	}
+//	private void sendProjectDeleteRequest(long projectID) {
+//		Request req = (new ProjectDeleteRequest(projectID)).getRequest(
+//				new UIResponseHandler("Project delete"), 
+//				new UIRequestErrorHandler("Failed to send project delete request."));
+//		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+//	}
 	
-	private void sendCreateFileRequests(String name, long projectID, List<IFile> files) throws CoreException, IOException {
-		
-		for (IFile f : files) {
-			String path = f.getProjectRelativePath().toString();
-			path = path.replace('\\', '/');
-			// remove filename from path
-			if (path.contains("/")) {
-				path = path.substring(0, path.lastIndexOf('/')); 
-			} else {
-				path = "";
-			}
-			
-			if (path.isEmpty()) {
-				path = name;
-			} else {
-				path = name + "/" + path;
-			}
-			Request req = (new FileCreateRequest(f.getName(), 
-					path, 
-					projectID,
-					inputStreamToByteArray(f.getContents()))).getRequest(
-							response -> {
-								int fileCreateStatusCode = response.getStatus();
-								
-								if (fileCreateStatusCode != 200) {
-									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + ".").open()); //$NON-NLS-2$
-									return;
-								}
-							}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));
-			
-			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-		}
-	}
+//	private void sendCreateFileRequests(String name, long projectID, List<IFile> files) throws CoreException, IOException {
+//		
+//		for (IFile f : files) {
+//			String path = f.getProjectRelativePath().toString();
+//			path = path.replace('\\', '/');
+//			// remove filename from path
+//			if (path.contains("/")) {
+//				path = path.substring(0, path.lastIndexOf('/')); 
+//			} else {
+//				path = "";
+//			}
+//			
+//			if (path.isEmpty()) {
+//				path = name;
+//			} else {
+//				path = name + "/" + path;
+//			}
+//			Request req = (new FileCreateRequest(f.getName(), 
+//					path, 
+//					projectID,
+//					inputStreamToByteArray(f.getContents()))).getRequest(
+//							response -> {
+//								int fileCreateStatusCode = response.getStatus();
+//								
+//								if (fileCreateStatusCode != 200) {
+//									Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + ".").open()); //$NON-NLS-2$
+//									return;
+//								}
+//							}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));
+//			
+//			PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+//		}
+//	}
 	
-	private byte[] inputStreamToByteArray(InputStream is) throws IOException {
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		
-		byte curr;
-		while(true) {
-			curr = (byte) is.read();
-			if (curr == -1)
-				break;
-			out.write(curr);
-		}
-		
-		return out.toByteArray();
-	}
-	
-	private List<IFile> recursivelyGetFiles(IContainer f) {
-		ArrayList<IFile> files = new ArrayList<>();
-		ArrayList<IFolder> folders = new ArrayList<>();
-		IResource[] members = null;
-		try {
-			members = f.members();
-		} catch (CoreException e1) {
-			e1.printStackTrace();
-		}
-		for(IResource m : members) {
-			if (m instanceof IFile) {
-				files.add((IFile) m);
-			} else if (m instanceof IFolder) {
-				folders.add((IFolder) m);
-			}
-		}
-		
-		for (IFolder folder : folders) {
-			files.addAll(recursivelyGetFiles(folder));
-		}
-		return files;
-	}
-	
+//	private byte[] inputStreamToByteArray(InputStream is) throws IOException {
+//		ByteArrayOutputStream out = new ByteArrayOutputStream();
+//		
+//		byte curr;
+//		while(true) {
+//			curr = (byte) is.read();
+//			if (curr == -1)
+//				break;
+//			out.write(curr);
+//		}
+//		
+//		return out.toByteArray();
+//	}
 
 	/**
 	 * Create contents of the button bar.
