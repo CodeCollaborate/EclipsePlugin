@@ -4,6 +4,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -356,14 +357,42 @@ public class PluginManager {
 	
 	private void initPropertyListeners() {
 		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
-			if (!event.getPropertyName().equals(SessionStorage.USERNAME)) {
+			if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
 				return;
 			}
-			
-			if (event.getNewValue() != null) {
-				requestManager.fetchAndSubscribeAll(getSubscribedProjectIds());
+			SessionStorage storage = dataManager.getSessionStorage();
+			List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
+			Set<Long> subscribedIds = storage.getSubscribedIds();
+			for (Long id : subscribedIdsFromPrefs) {
+				Project p = storage.getProjectById(id);
+				if (p == null) {
+					removeProjectIdFromPrefs(id);
+				} else if (!subscribedIds.contains(id)) {
+					requestManager.subscribeToProject(id);
+				}
+					
 			}
+			requestManager.fetchAndSubscribeAll(getSubscribedProjectIds());
 		});
+	}
+	
+	public void removeProjectIdFromPrefs(long id) {
+		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
+		String[] projectIDs;
+		try {
+			projectIDs = projectPrefs.childrenNames();
+			for (int i = 0; i < projectIDs.length; i++) {
+				if (id == Long.parseLong(projectIDs[i])) {
+					Preferences thisProjectPrefs = projectPrefs.node(projectIDs[i]);
+					thisProjectPrefs.removeNode();
+				}
+			}
+		} catch (BackingStoreException e) {
+			MessageDialog.createDialog("Could not remove project from subscribe preferences.").open();
+			e.printStackTrace();
+		}
+		
 	}
 	
 	public List<Long> getSubscribedProjectIds() {
