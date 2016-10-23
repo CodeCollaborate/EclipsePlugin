@@ -1,18 +1,27 @@
 package cceclipseplugin.core;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.swt.widgets.Display;
 
 import cceclipseplugin.ui.UIRequestErrorHandler;
+import cceclipseplugin.ui.dialogs.DialogStrings;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import dataMgmt.DataManager;
 import dataMgmt.models.FileMetadata;
@@ -24,7 +33,9 @@ import websocket.WSManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
+import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
+import websocket.models.responses.FileCreateResponse;
 import websocket.models.responses.FilePullResponse;
 
 public class EclipseRequestManager extends RequestManager {
@@ -117,6 +128,94 @@ public class EclipseRequestManager extends RequestManager {
 
 	@Override
 	public void finishCreateProject(Project project) {
+		IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+		ProjectMetadata meta = new ProjectMetadata();
+		meta.setName(project.getName());
+		meta.setProjectID(project.getProjectID());
+		PluginManager.getInstance().getMetadataManager().putProjectMetadata(iproject.getFullPath().toString(), meta);
+		List<IFile> files = recursivelyGetFiles(iproject);
+		for (IFile f : files) {
+			String path = f.getProjectRelativePath().toString();
+			path = path.replace('\\', '/');
+			// remove filename from path
+			if (path.contains("/")) {
+				path = path.substring(0, path.lastIndexOf('/')); 
+			} else {
+				path = "";
+			}
+			
+			if (path.isEmpty()) {
+				path = project.getName();
+			} else {
+				path = project.getName() + "/" + path;
+			}
+			try {
+				Request req = (new FileCreateRequest(f.getName(), 
+						path, 
+						project.getProjectID(),
+						inputStreamToByteArray(f.getContents()))).getRequest(
+								response -> {
+									int fileCreateStatusCode = response.getStatus();
+									if (fileCreateStatusCode == 200) {
+										FileCreateResponse r = ((FileCreateResponse) response.getData());
+										FileMetadata fmeta = new FileMetadata();
+										fmeta.setFileID(r.getFileID());
+										fmeta.setFilename(f.getName());
+										// TODO: have gene look at this to make sure path is right
+										fmeta.setRelativePath(f.getProjectRelativePath().toString());
+										// TODO: make file version be sent with file create request
+										fmeta.setVersion(0);
+										// TODO: have gene look at this to make sure path is right
+										PluginManager.getInstance().getMetadataManager().putFileMetadata(f.getFullPath().toString(), project.getProjectID(), fmeta);
+									} else {
+										Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + ".").open()); //$NON-NLS-2$
+										return;
+									}
+								}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));
+				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+			} catch (IOException | CoreException e) {
+				Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
+				e.printStackTrace();
+				PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());
+				return;
+			}			
+		}
+	}
+	
+	private List<IFile> recursivelyGetFiles(IContainer f) {
+		ArrayList<IFile> files = new ArrayList<>();
+		ArrayList<IFolder> folders = new ArrayList<>();
+		IResource[] members = null;
+		try {
+			members = f.members();
+		} catch (CoreException e1) {
+			e1.printStackTrace();
+		}
+		for(IResource m : members) {
+			if (m instanceof IFile) {
+				files.add((IFile) m);
+			} else if (m instanceof IFolder) {
+				folders.add((IFolder) m);
+			}
+		}
 		
+		for (IFolder folder : folders) {
+			files.addAll(recursivelyGetFiles(folder));
+		}
+		return files;
+	}
+	
+	private byte[] inputStreamToByteArray(InputStream is) throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		
+		byte curr;
+		while(true) {
+			curr = (byte) is.read();
+			if (curr == -1)
+				break;
+			out.write(curr);
+		}
+		
+		return out.toByteArray();
 	}
 }
