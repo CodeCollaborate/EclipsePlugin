@@ -4,14 +4,9 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.UIRequestErrorHandler;
-import websocket.models.Request;
-import websocket.models.requests.ProjectRevokePermissionsRequest;
-
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;

@@ -1,37 +1,14 @@
 package cceclipseplugin.ui.dialogs;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import org.eclipse.core.resources.IContainer;
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.UIRequestErrorHandler;
-import cceclipseplugin.ui.UIResponseHandler;
-import dataMgmt.SessionStorage;
-import websocket.models.Project;
-import websocket.models.Request;
-import websocket.models.requests.FileCreateRequest;
-import websocket.models.requests.ProjectCreateRequest;
-import websocket.models.requests.ProjectDeleteRequest;
-import websocket.models.requests.ProjectLookupRequest;
-import websocket.models.responses.ProjectCreateResponse;
-import websocket.models.responses.ProjectLookupResponse;
-
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.SWT;

@@ -76,13 +76,8 @@ public class EclipseRequestManager extends RequestManager {
 					fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
 					
 					String path = file.getRelativePath();
-					if (path.contains("/")) {
-						path = path.substring(path.indexOf("/") + 1, path.length()); // get rid of project name from dir
-					} else {
-						path = "";
-					}
 					Path relPath = new Path(path);
-					if (!path.equals("")) {
+					if (!path.equals("") && !path.equals(".")) {
 						String currentFolder = "";
 						for (int i = 0; i < relPath.segmentCount(); i++) {
 							// iterate through path segments and create if they don't exist
@@ -135,20 +130,7 @@ public class EclipseRequestManager extends RequestManager {
 		PluginManager.getInstance().getMetadataManager().putProjectMetadata(iproject.getFullPath().toString(), meta);
 		List<IFile> files = recursivelyGetFiles(iproject);
 		for (IFile f : files) {
-			String path = f.getProjectRelativePath().toString();
-			path = path.replace('\\', '/');
-			// remove filename from path
-			if (path.contains("/")) {
-				path = path.substring(0, path.lastIndexOf('/')); 
-			} else {
-				path = "";
-			}
-			
-			if (path.isEmpty()) {
-				path = project.getName();
-			} else {
-				path = project.getName() + "/" + path;
-			}
+			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
 			try {
 				Request req = (new FileCreateRequest(f.getName(), 
 						path, 
@@ -161,12 +143,10 @@ public class EclipseRequestManager extends RequestManager {
 										FileMetadata fmeta = new FileMetadata();
 										fmeta.setFileID(r.getFileID());
 										fmeta.setFilename(f.getName());
-										// TODO: have gene look at this to make sure path is right
-										fmeta.setRelativePath(f.getProjectRelativePath().toString());
+										fmeta.setRelativePath(path);
 										// TODO: make file version be sent with file create request
 										fmeta.setVersion(0);
-										// TODO: have gene look at this to make sure path is right
-										PluginManager.getInstance().getMetadataManager().putFileMetadata(f.getFullPath().toString(), project.getProjectID(), fmeta);
+										PluginManager.getInstance().getMetadataManager().putFileMetadata(f.getFullPath().removeLastSegments(1).toString(), project.getProjectID(), fmeta);
 									} else {
 										Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + ".").open()); //$NON-NLS-2$
 										return;

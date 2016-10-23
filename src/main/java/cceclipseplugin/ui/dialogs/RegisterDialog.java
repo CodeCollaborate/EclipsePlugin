@@ -153,7 +153,6 @@ public class RegisterDialog extends Dialog {
 						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.RegisterDialog_RegistrationSuccessMsg).open());
 
 						PluginManager.getInstance().getRequestManager().login(username, password);
-						PluginManager.getInstance().getRequestManager().fetchAndSubscribeAll(PluginManager.getInstance().getSubscribedProjectIds());
 					}
 
 				} , new UIRequestErrorHandler(DialogStrings.RegisterDialog_UserRegisterErr));

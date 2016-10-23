@@ -1,7 +1,5 @@
 package cceclipseplugin.ui.dialogs;
 
-import java.util.ArrayList;
-
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.preference.IPreferenceStore;

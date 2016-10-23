@@ -3,9 +3,6 @@ package cceclipseplugin.ui;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
-import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 
 import org.eclipse.swt.SWT;
