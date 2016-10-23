@@ -1,5 +1,7 @@
 package cceclipseplugin.ui.dialogs;
 
+import java.util.ArrayList;
+
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -111,7 +113,7 @@ public class WelcomeDialog extends Dialog {
 		String username = usernameBox.getText();
 		String password = passwordBox.getText();
 		
-		PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
+		PluginManager.getInstance().getRequestManager().login(username, password);
 		
 		prefStore.setValue(PreferenceConstants.USERNAME, username);
 		prefStore.setValue(PreferenceConstants.PASSWORD, password);

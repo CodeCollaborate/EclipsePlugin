@@ -59,16 +59,12 @@ public class ProjectsListView extends ListView {
 				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects();
 				selectedProj = projects.get(selected);
 
-				boolean subscribed = getSubscribedVarFromPrefs(selectedProj);
+				boolean subscribed = PluginManager.getInstance().getDataManager().getSessionStorage()
+						.getSubscribedIds().contains(selectedProj.getProjectID());
 				if (subscribed) {
 					ProjectListMenuItemFactory.makeUnsubscribeItem(menu, selectedProj);
 				} else {
 					ProjectListMenuItemFactory.makeSubscribeItem(menu, selectedProj);
-				}
-				IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-				IProject project = root.getProject(selectedProj.getName());
-				if (!project.exists()) {
-					ProjectListMenuItemFactory.makeAddProjectToWorkspaceItem(menu, selectedProj);
 				}
 			}
 		});
@@ -97,7 +93,6 @@ public class ProjectsListView extends ListView {
 			}
 		};
 		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener(projectListListener);
-		PluginManager.getInstance().getRequestManager().fetchProjects();
 	}
 	
 	private void removePropertyListeners() {

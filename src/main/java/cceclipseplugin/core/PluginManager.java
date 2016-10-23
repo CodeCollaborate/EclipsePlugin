@@ -1,11 +1,9 @@
 package cceclipseplugin.core;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -17,6 +15,7 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
+import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import cceclipseplugin.Activator;
@@ -26,13 +25,11 @@ import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
 import cceclipseplugin.ui.UIRequestErrorHandler;
-import cceclipseplugin.ui.UIResponseHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import dataMgmt.SessionStorage;
-import requestMgmt.RequestManager;
 import constants.CoreStringConstants;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
@@ -41,17 +38,14 @@ import websocket.WSConnection;
 import websocket.WSManager;
 import websocket.models.ConnectionConfig;
 import websocket.models.Notification;
-import websocket.models.Permission;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.notifications.FileCreateNotification;
 import websocket.models.notifications.FileMoveNotification;
 import websocket.models.notifications.FileRenameNotification;
-import websocket.models.notifications.ProjectGrantPermissionsNotification;
 import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.notifications.ProjectRevokePermissionsNotification;
 import websocket.models.requests.ProjectLookupRequest;
-import websocket.models.requests.ProjectSubscribeRequest;
 import websocket.models.responses.ProjectLookupResponse;
 
 /**
@@ -74,8 +68,7 @@ public class PluginManager {
 	private final DocumentManager documentManager;
 	private final DataManager dataManager;
 	private final WSManager wsManager;
-	private final RequestManager requestManager;
-	private final ProjectManager projectManager;
+	private final EclipseRequestManager requestManager;
 
 	/**
 	 * Get the active instance of the PluginManager class.
@@ -97,8 +90,7 @@ public class PluginManager {
 		documentManager = new DocumentManager();
 		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
-		requestManager = new RequestManager(dataManager, wsManager, new DialogRequestSendErrorHandler(), new DialogInvalidResponseHandler());
-		projectManager = new ProjectManager();
+		requestManager = new EclipseRequestManager(dataManager, wsManager, new DialogRequestSendErrorHandler(), new DialogInvalidResponseHandler());
 
 		registerNotificationHooks();
 
@@ -135,45 +127,23 @@ public class PluginManager {
 				}
 			}
 		}
-
 		System.out.println("Enumerated all files");
 		
-		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
-			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-			String username = prefStore.getString(PreferenceConstants.USERNAME);
-			String password = prefStore.getString(PreferenceConstants.PASSWORD);
-			if (username.equals(dataManager.getSessionStorage().getUsername())) {
-				System.out.println("Already logged in skipping login");
-				return;
+		registerWSHooks();
+		initPropertyListeners();
+			
+		new Thread(() -> {
+			try {
+				wsManager.connect();
+			} catch (ConnectException e) {
+				e.printStackTrace();
 			}
-			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
-			if (showWelcomeDialog) {
-				Display.getDefault().asyncExec(() -> new WelcomeDialog(new Shell(), prefStore).open());
-			} else {
-				if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
-					new Thread(() -> {
-						PluginManager.getInstance().getRequestManager().loginAndSubscribe(username, password);
-					}).start();
-				}
-			}
-			
-			
-		 });
-			
-		 new Thread(() -> {
-			 try {
-				 wsManager.connect();
-			 } catch (ConnectException e) {
-				 e.printStackTrace();
-			 }
-		 }).start();
+		}).start();
 		
 		requestManager.fetchPermissionConstants();
-		
-		initPropertyListeners();
 	}
 
-	public RequestManager getRequestManager() {
+	public EclipseRequestManager getRequestManager() {
 		return requestManager;
 	}
 	
@@ -192,9 +162,27 @@ public class PluginManager {
 	public DataManager getDataManager() {
 		return dataManager;
 	}
-
-	public ProjectManager getProjectManager() {
-		return projectManager;
+	
+	private void registerWSHooks() {
+		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
+			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
+			String username = prefStore.getString(PreferenceConstants.USERNAME);
+			String password = prefStore.getString(PreferenceConstants.PASSWORD);
+			if (username.equals(dataManager.getSessionStorage().getUsername())) {
+				System.out.println("Already logged in; skipping login");
+				return;
+			}
+			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
+			if (showWelcomeDialog) {
+				Display.getDefault().asyncExec(() -> new WelcomeDialog(new Shell(), prefStore).open());
+			} else {
+				if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
+					new Thread(() -> {
+						requestManager.login(username, password);
+					}).start();
+				}
+			}
+		 });
 	}
 	
 	private void registerNotificationHooks() {
@@ -212,35 +200,19 @@ public class PluginManager {
 		});
 		// Project.GrantPermissions
 		wsManager.registerNotificationHandler("Project", "GrantPermissions", (notification) -> {
-			requestManager.fetchProjects();
 			long resId = notification.getResourceID();
-			ProjectGrantPermissionsNotification n = ((ProjectGrantPermissionsNotification) notification.getData());
-			Project project = storage.getProjectById(resId);
-			Permission permy = new Permission(n.grantUsername, n.permissionLevel, null, null);
-			if (project == null) {
-				ArrayList<Long> projects = new ArrayList<>();
-				projects.add(resId);
-		        Request projectLookupRequest = new ProjectLookupRequest(projects).getRequest(response -> {
-		        	ProjectLookupResponse r = (ProjectLookupResponse) response.getData();
-		        	if (r.getProjects() == null || r.getProjects().length != 1) {
-		        		System.out.println("Couldn't read projects from lookup");
-		        	} else {
-		        		Project p = r.getProjects()[0];
-		    			if (p.getPermissions() == null) {
-		    				p.setPermissions(new HashMap<>());
-		    			}
-		    			p.getPermissions().put(permy.getUsername(), permy);
-		    			storage.setProject(p);
-		        	}
-		        }, new UIRequestErrorHandler("Couldn't send Project Lookup Request."));
-		        wsManager.sendAuthenticatedRequest(projectLookupRequest);
-			} else {
-				if (project.getPermissions() == null) {
-					project.setPermissions(new HashMap<>());
-				}
-				project.getPermissions().put(permy.getUsername(), permy);
-				storage.setProject(project);
-			}
+			ArrayList<Long> projects = new ArrayList<>();
+			projects.add(resId);
+			Request projectLookupRequest = new ProjectLookupRequest(projects).getRequest(response -> {
+	        	ProjectLookupResponse r = (ProjectLookupResponse) response.getData();
+	        	if (r.getProjects() == null || r.getProjects().length != 1) {
+	        		System.out.println("Couldn't read projects from lookup");
+	        	} else {
+	        		Project p = r.getProjects()[0];
+	    			storage.setProject(p);
+	        	}
+	        }, new UIRequestErrorHandler("Couldn't send Project Lookup Request."));
+	        wsManager.sendAuthenticatedRequest(projectLookupRequest);
 		});
 		// Project.RevokePermissions
 		wsManager.registerNotificationHandler("Project", "RevokePermissions", (notification) -> {
@@ -280,34 +252,12 @@ public class PluginManager {
 			if (meta != null) {
 				return;
 			}
-			meta = new FileMetadata();
-			meta.setFileID(n.file.getFileID());
-			meta.setFilename(n.file.getFilename());
-			meta.setRelativePath(n.file.getRelativePath());
-			meta.setVersion(n.file.getFileVersion());
-			meta.setCreator(n.file.getCreator());
-			meta.setCreationDate(n.file.getCreationDate());
 			
-			StringBuilder pathBuilder = new StringBuilder();
-			pathBuilder.append(mm.getProjectLocation(resId));
-			pathBuilder.append(n.file.getRelativePath());
-			pathBuilder.append(n.file.getFilename());
-			
-			File file = new File(pathBuilder.toString());
-			if (file.exists()) {
-				file.delete();
-			}
-			try {
-				file.createNewFile();
-				mm.putFileMetadata(pathBuilder.toString(), resId, meta);
-				Project p = dataManager.getSessionStorage().getProjectById(pmeta.getProjectID());
-				IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-				IProject eclipseProject = root.getProject(p.getName());
-				IProgressMonitor monitor = new NullProgressMonitor();
-				new ProjectManager().pullFileAndCreate(eclipseProject, p, n.file, monitor);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			Project p = dataManager.getSessionStorage().getProjectById(pmeta.getProjectID());
+			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+			IProject eclipseProject = root.getProject(p.getName());
+			IProgressMonitor monitor = new NullProgressMonitor();
+			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor);
 		});
 		// File.Rename
 		wsManager.registerNotificationHandler("File", "Rename", (notification) -> {
@@ -315,30 +265,31 @@ public class PluginManager {
 			MetadataManager mm = dataManager.getMetadataManager();
 			FileMetadata meta = mm.getFileMetadata(resId);
 			if (meta == null) {
-				System.out.println("Received File.Rename notification for unsubscribed project.");
+				System.out.println("Received File.Rename notification for unfound file project.");
 				return;
 			}
 			FileRenameNotification n = ((FileRenameNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
 			
-			StringBuilder pathBuilder = new StringBuilder();
-			pathBuilder.append(projectLocation);
-			pathBuilder.append(meta.getRelativePath());
-			pathBuilder.append(meta.getFilename());
-			
-			StringBuilder newPathBuilder = new StringBuilder();
-			newPathBuilder.append(projectLocation);
-			newPathBuilder.append(meta.getRelativePath());
-			newPathBuilder.append(n.newName);
-			
-			File file = new File(pathBuilder.toString());
-			if (file.exists()) {
-				file.renameTo(new File(newPathBuilder.toString()));
-				meta.setFilename(n.newName);
-			} else {
-				System.out.println("Tried to rename file that does not exist: " + pathBuilder.toString());
-				return;
-			}
+			// TODO: have gene look at the path building
+//			StringBuilder pathBuilder = new StringBuilder();
+//			pathBuilder.append(projectLocation);
+//			pathBuilder.append(meta.getRelativePath());
+//			pathBuilder.append(meta.getFilename());
+//			
+//			StringBuilder newPathBuilder = new StringBuilder();
+//			newPathBuilder.append(projectLocation);
+//			newPathBuilder.append(meta.getRelativePath());
+//			newPathBuilder.append(n.newName);
+//			
+//			File file = new File(pathBuilder.toString());
+//			if (file.exists()) {
+//				file.renameTo(new File(newPathBuilder.toString()));
+//				meta.setFilename(n.newName);
+//			} else {
+//				System.out.println("Tried to rename file that does not exist: " + pathBuilder.toString());
+//				return;
+//			}
 		});
 		// File.Move
 		wsManager.registerNotificationHandler("File", "Move", (notification) -> {
@@ -352,24 +303,25 @@ public class PluginManager {
 			FileMoveNotification n = ((FileMoveNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
 			
-			StringBuilder pathBuilder = new StringBuilder();
-			pathBuilder.append(projectLocation);
-			pathBuilder.append(meta.getRelativePath());
-			pathBuilder.append(meta.getFilename());
-			
-			StringBuilder newPathBuilder = new StringBuilder();
-			newPathBuilder.append(projectLocation);
-			newPathBuilder.append(n.newPath);
-			newPathBuilder.append(meta.getFilename());
-			
-			File file = new File(pathBuilder.toString());
-			if (file.exists()) {
-				file.renameTo(new File(newPathBuilder.toString()));
-				meta.setRelativePath(n.newPath);
-			} else {
-				System.out.println("Tried to move file that does not exist: " + pathBuilder.toString());
-				return;
-			}
+			// TODO: have gene look at the path building
+//			StringBuilder pathBuilder = new StringBuilder();
+//			pathBuilder.append(projectLocation);
+//			pathBuilder.append(meta.getRelativePath());
+//			pathBuilder.append(meta.getFilename());
+//			
+//			StringBuilder newPathBuilder = new StringBuilder();
+//			newPathBuilder.append(projectLocation);
+//			newPathBuilder.append(n.newPath);
+//			newPathBuilder.append(meta.getFilename());
+//			
+//			File file = new File(pathBuilder.toString());
+//			if (file.exists()) {
+//				file.renameTo(new File(newPathBuilder.toString()));
+//				meta.setRelativePath(n.newPath);
+//			} else {
+//				System.out.println("Tried to move file that does not exist: " + pathBuilder.toString());
+//				return;
+//			}
 		});
 		// File.Delete
 		wsManager.registerNotificationHandler("File", "Delete", (notification) -> {
@@ -382,19 +334,20 @@ public class PluginManager {
 			}
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
 			
-			StringBuilder pathBuilder = new StringBuilder();
-			pathBuilder.append(projectLocation);
-			pathBuilder.append(meta.getRelativePath());
-			pathBuilder.append(meta.getFilename());
-			
-			File file = new File(pathBuilder.toString());
-			if (file.exists()) {
-				file.delete();
-				mm.fileDeleted(resId);
-			} else {
-				System.out.println("Tried to delete file that does not exist: " + pathBuilder.toString());
-				return;
-			}
+			// TODO: have gene look at the path building
+//			StringBuilder pathBuilder = new StringBuilder();
+//			pathBuilder.append(projectLocation);
+//			pathBuilder.append(meta.getRelativePath());
+//			pathBuilder.append(meta.getFilename());
+//			
+//			File file = new File(pathBuilder.toString());
+//			if (file.exists()) {
+//				file.delete();
+//				mm.fileDeleted(resId);
+//			} else {
+//				System.out.println("Tried to delete file that does not exist: " + pathBuilder.toString());
+//				return;
+//			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",
@@ -408,12 +361,13 @@ public class PluginManager {
 			}
 			
 			if (event.getNewValue() != null) {
-				projectAutoSubscribe();
+				requestManager.fetchAndSubscribeAll(getSubscribedProjectIds());
 			}
 		});
 	}
 	
-	private void projectAutoSubscribe() {
+	public List<Long> getSubscribedProjectIds() {
+		List<Long> subscribedProjectIds = new ArrayList<>();
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 		String[] projectIDs;
@@ -423,15 +377,13 @@ public class PluginManager {
 				Preferences thisProjectPrefs = projectPrefs.node(projectIDs[i]);
 				boolean subscribed = thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
 				if (subscribed) {
-					Request req = (new ProjectSubscribeRequest(Long.parseLong(projectIDs[i]))).getRequest(
-							new UIResponseHandler("Project subscribe")
-							, new UIRequestErrorHandler("Could not send project subscribe request."));
-					wsManager.sendAuthenticatedRequest(req);
+					subscribedProjectIds.add(Long.parseLong(projectIDs[i]));
 				}
 			}
-		} catch (Exception e) {
-			MessageDialog.createDialog("Could not auto-subscribe to projects.").open();
+		} catch (BackingStoreException e) {
+			MessageDialog.createDialog("Could not read subscribed projects from preferences.").open();
 			e.printStackTrace();
 		}
+		return subscribedProjectIds;
 	}
 }

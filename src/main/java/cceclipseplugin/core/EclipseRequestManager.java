@@ -1,6 +1,7 @@
 package cceclipseplugin.core;
 
 import java.io.ByteArrayInputStream;
+
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
@@ -13,31 +14,44 @@ import org.eclipse.core.runtime.Path;
 
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import dataMgmt.DataManager;
+import dataMgmt.models.FileMetadata;
+import dataMgmt.models.ProjectMetadata;
+import requestMgmt.IInvalidResponseHandler;
+import requestMgmt.RequestManager;
+import websocket.IRequestSendErrorHandler;
+import websocket.WSManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.FilePullRequest;
 import websocket.models.responses.FilePullResponse;
 
-public class ProjectManager {
-	public void createEclipseProject(Project p, File[] files) throws CoreException {
-		IProgressMonitor progressMonitor = new NullProgressMonitor();
-		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-		IProject project = root.getProject(p.getName());
-		project.create(progressMonitor);
-		project.open(progressMonitor);
-		
-		for (int i = 0; i < files.length; i++) {
-			pullFileAndCreate(project, p, files[i], progressMonitor);
-		}
+public class EclipseRequestManager extends RequestManager {
+
+	public EclipseRequestManager(DataManager dataManager, WSManager wsManager,
+			IRequestSendErrorHandler requestSendErrorHandler, IInvalidResponseHandler invalidResponseHandler) {
+		super(dataManager, wsManager, requestSendErrorHandler, invalidResponseHandler);
 	}
 	
-	public void deleteEclipseProject(Project p) {
-		IProgressMonitor progressMonitor = new NullProgressMonitor();
+	@Override
+	public void finishSubscribeToProject(long id, File[] files) {
 		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-		IProject project = root.getProject(p.getName());
+		Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjectById(id);
+		IProject eclipseProject = root.getProject(p.getName());
+		ProjectMetadata meta =  new ProjectMetadata();
+		meta.setName(p.getName());
+		meta.setProjectID(id);
+		PluginManager.getInstance().getMetadataManager().putProjectMetadata(eclipseProject.getFullPath().toString(), meta);
 		try {
-			project.delete(true, true, progressMonitor);
+			if (eclipseProject.exists()) {
+				eclipseProject.delete(true, true, new NullProgressMonitor());
+			}
+			eclipseProject.create(new NullProgressMonitor());
+			eclipseProject.open(new NullProgressMonitor());
+			for (File f : files) {
+				pullFileAndCreate(eclipseProject, p, f, new NullProgressMonitor());
+			}
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
@@ -47,7 +61,6 @@ public class ProjectManager {
 	
 	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor) {
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
-				System.out.println("Got some stuff");
 				if (response.getStatus() == 200) {
 					fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
 					
@@ -85,6 +98,12 @@ public class ProjectManager {
 						} else {
 							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
 						}
+						FileMetadata meta = new FileMetadata();
+						meta.setFileID(file.getFileID());
+						meta.setFilename(file.getFilename());
+						meta.setRelativePath(file.getRelativePath());
+						meta.setVersion(file.getFileVersion());
+						PluginManager.getInstance().getMetadataManager().putFileMetadata(path, ccp.getProjectID(), meta);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -94,5 +113,10 @@ public class ProjectManager {
 		}, new UIRequestErrorHandler("Couldn't send file pull request."));
 		
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+	}
+
+	@Override
+	public void finishCreateProject(Project project) {
+		
 	}
 }
