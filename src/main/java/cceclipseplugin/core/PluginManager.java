@@ -355,24 +355,23 @@ public class PluginManager {
 				(Notification n) -> documentManager.handleNotification(n));
 	}
 	
-	private void initPropertyListeners() {
+	private void initPropertyListeners() {		
 		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
-			if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
-				return;
-			}
-			SessionStorage storage = dataManager.getSessionStorage();
-			List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
-			Set<Long> subscribedIds = storage.getSubscribedIds();
-			for (Long id : subscribedIdsFromPrefs) {
-				Project p = storage.getProjectById(id);
-				if (p == null) {
-					removeProjectIdFromPrefs(id);
-				} else if (!subscribedIds.contains(id)) {
-					requestManager.subscribeToProject(id);
+			if (event.getPropertyName().equals(SessionStorage.USERNAME)) {
+				requestManager.fetchProjects();
+			} else if (event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
+				SessionStorage storage = dataManager.getSessionStorage();
+				List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
+				Set<Long> subscribedIds = storage.getSubscribedIds();
+				for (Long id : subscribedIdsFromPrefs) {
+					Project p = storage.getProjectById(id);
+					if (p == null) {
+						removeProjectIdFromPrefs(id);
+					} else if (!subscribedIds.contains(id)) {
+						requestManager.subscribeToProject(id);
+					}
 				}
-					
 			}
-			requestManager.fetchAndSubscribeAll(getSubscribedProjectIds());
 		});
 	}
 	
