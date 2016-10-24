@@ -2,6 +2,7 @@ package cceclipseplugin.ui.dialogs;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
@@ -13,6 +14,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Text;
 
+import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import websocket.models.Request;
@@ -160,6 +162,14 @@ public class RegisterDialog extends Dialog {
 		PluginManager.getInstance().getWSManager().sendRequest(registerReq);
 
 		super.okPressed();
+	}
+	
+	@Override
+	protected void cancelPressed() {
+		close();
+		IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
+		new WelcomeDialog(new Shell(), prefStore).open();
+		super.cancelPressed();
 	}
 
 	@Override
