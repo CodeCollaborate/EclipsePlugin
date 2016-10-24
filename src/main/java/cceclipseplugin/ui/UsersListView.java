@@ -56,7 +56,7 @@ public class UsersListView extends ListView {
 				if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
 					return;
 				}
-				if (event.getNewValue() != null) {
+				if (event.getNewValue() != null && !listView.isDisposed()) {
 					Display.getDefault().asyncExec(() -> {
 						int selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
 						if (selectedListIndex != -1) {

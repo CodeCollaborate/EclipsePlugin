@@ -169,10 +169,10 @@ public class PluginManager {
 			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
 			String username = prefStore.getString(PreferenceConstants.USERNAME);
 			String password = prefStore.getString(PreferenceConstants.PASSWORD);
-			if (username.equals(dataManager.getSessionStorage().getUsername())) {
-				System.out.println("Already logged in; skipping login");
-				return;
-			}
+//			if (username.equals(dataManager.getSessionStorage().getUsername())) {
+//				System.out.println("Already logged in; skipping login");
+//				return;
+//			}
 			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
 			if (showWelcomeDialog) {
 				Display.getDefault().asyncExec(() -> new WelcomeDialog(new Shell(), prefStore).open());
@@ -220,6 +220,7 @@ public class PluginManager {
 			long resId = notification.getResourceID();
 			ProjectRevokePermissionsNotification n = ((ProjectRevokePermissionsNotification) notification.getData());
 			Project project = storage.getProjectById(resId);
+			MessageDialog.createDialog("You have been removed from the " + project.getName() + " project").open();
 			if (project.getPermissions() == null) {
 				project.setPermissions(new HashMap<>());
 			}
