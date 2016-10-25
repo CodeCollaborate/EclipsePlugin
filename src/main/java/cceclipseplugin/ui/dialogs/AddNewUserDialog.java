@@ -1,6 +1,13 @@
 package cceclipseplugin.ui.dialogs;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
@@ -66,9 +73,12 @@ public class AddNewUserDialog extends Dialog {
 		permissionMap = PluginManager.getInstance().getDataManager().getSessionStorage().getPermissionConstants();
 		if (permissionMap == null || permissionMap.isEmpty())
 			permissionMap = PermissionMap.permissions;
-		
-		for (Map.Entry<String, Byte> e : permissionMap.entrySet()) {
-			combo.add(e.getValue() + " : " + e.getKey()); //$NON-NLS-1$
+		BiMap<Byte, String> inversePermissionMap = permissionMap.inverse();
+		@SuppressWarnings("unchecked")
+		List<Byte> permissionCodes = new ArrayList<>(permissionMap.values());
+		Collections.sort(permissionCodes);
+		for (Byte b : permissionCodes) {
+			combo.add(b + " : " + inversePermissionMap.get(b));
 		}
 		final boolean[] permissionSelected = {false};
 		final boolean[] usernameNotEmpty = {false};
@@ -107,7 +117,7 @@ public class AddNewUserDialog extends Dialog {
 
 		return container;
 	}
-
+	
 	/**
 	 * Create contents of the button bar.
 	 * 
