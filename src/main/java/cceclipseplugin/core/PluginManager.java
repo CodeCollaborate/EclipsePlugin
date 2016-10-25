@@ -147,6 +147,10 @@ public class PluginManager {
 		
 		requestManager.fetchPermissionConstants();
 	}
+	
+	public void onStop() {
+		wsManager.close();
+	}
 
 	public EclipseRequestManager getRequestManager() {
 		return requestManager;
