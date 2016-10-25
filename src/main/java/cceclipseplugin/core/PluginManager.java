@@ -13,6 +13,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
@@ -27,6 +28,7 @@ import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import cceclipseplugin.ui.dialogs.OkCancelDialog;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
@@ -70,6 +72,8 @@ public class PluginManager {
 	private final DataManager dataManager;
 	private final WSManager wsManager;
 	private final EclipseRequestManager requestManager;
+	
+	private boolean autoSubscribeForSession;
 
 	/**
 	 * Get the active instance of the PluginManager class.
@@ -169,10 +173,6 @@ public class PluginManager {
 			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
 			String username = prefStore.getString(PreferenceConstants.USERNAME);
 			String password = prefStore.getString(PreferenceConstants.PASSWORD);
-//			if (username.equals(dataManager.getSessionStorage().getUsername())) {
-//				System.out.println("Already logged in; skipping login");
-//				return;
-//			}
 			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
 			if (showWelcomeDialog) {
 				Display.getDefault().asyncExec(() -> new WelcomeDialog(new Shell(), prefStore).open());
@@ -360,16 +360,27 @@ public class PluginManager {
 		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
 			if (event.getPropertyName().equals(SessionStorage.USERNAME)) {
 				requestManager.fetchProjects();
+				if (!event.getOldValue().equals(event.getNewValue())) {
+					if (Window.OK == OkCancelDialog.createDialog("Do you want to auto-subscribe to subscribed projets from the last session? "
+							+ "This will overwrite any local changes made since the last online session.").open()) {
+						autoSubscribeForSession = true;
+					} else {
+						autoSubscribeForSession = false;
+						setAllSubscribedPrefs(false);
+					}
+				}
 			} else if (event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
 				SessionStorage storage = dataManager.getSessionStorage();
 				List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
 				Set<Long> subscribedIds = storage.getSubscribedIds();
-				for (Long id : subscribedIdsFromPrefs) {
-					Project p = storage.getProjectById(id);
-					if (p == null) {
-						removeProjectIdFromPrefs(id);
-					} else if (!subscribedIds.contains(id)) {
-						requestManager.subscribeToProject(id);
+				if (autoSubscribeForSession) {
+					for (Long id : subscribedIdsFromPrefs) {
+						Project p = storage.getProjectById(id);
+						if (p == null) {
+							removeProjectIdFromPrefs(id);
+						} else if (!subscribedIds.contains(id)) {
+							requestManager.subscribeToProject(id);
+						}
 					}
 				}
 			}
@@ -414,5 +425,21 @@ public class PluginManager {
 			e.printStackTrace();
 		}
 		return subscribedProjectIds;
+	}
+	
+	public void setAllSubscribedPrefs(boolean b) {
+		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
+		String[] projectIDs;
+		try {
+			projectIDs = projectPrefs.childrenNames();
+			for (int i = 0; i < projectIDs.length; i++) {
+				Preferences thisProjectPrefs = projectPrefs.node(projectIDs[i]);
+				thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, b);
+			}
+		} catch (BackingStoreException e) {
+			MessageDialog.createDialog("Could not write subscribe preferences.").open();
+			e.printStackTrace();
+		}
 	}
 }
