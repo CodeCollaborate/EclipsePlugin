@@ -20,6 +20,7 @@ public class OkCancelDialog extends Dialog {
 	
 	protected OkCancelDialog(Shell parentShell, String msg) {
 		super(parentShell);
+		message = msg;
 	}
 	
 	public static OkCancelDialog createDialog(String msg) {

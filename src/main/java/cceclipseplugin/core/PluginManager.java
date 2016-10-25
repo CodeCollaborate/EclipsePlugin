@@ -360,15 +360,17 @@ public class PluginManager {
 		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
 			if (event.getPropertyName().equals(SessionStorage.USERNAME)) {
 				requestManager.fetchProjects();
-				if (!event.getOldValue().equals(event.getNewValue())) {
-					if (Window.OK == OkCancelDialog.createDialog("Do you want to auto-subscribe to subscribed projets from the last session? "
-							+ "This will overwrite any local changes made since the last online session.").open()) {
-						autoSubscribeForSession = true;
-					} else {
-						autoSubscribeForSession = false;
-						setAllSubscribedPrefs(false);
+				Display.getDefault().asyncExec(() -> {
+					if (event.getOldValue() == null || !event.getOldValue().equals(event.getNewValue())) {
+						if (Window.OK == OkCancelDialog.createDialog("Do you want to auto-subscribe to subscribed projets from the last session?\n"
+								+ "This will overwrite any local changes made since the last online session.").open()) {
+							autoSubscribeForSession = true;
+						} else {
+							autoSubscribeForSession = false;
+							setAllSubscribedPrefs(false);
+						}
 					}
-				}
+				});
 			} else if (event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
 				SessionStorage storage = dataManager.getSessionStorage();
 				List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();

@@ -2,6 +2,7 @@ package cceclipseplugin.ui;
 
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
@@ -20,9 +21,11 @@ public class ProjectListMenuItemFactory {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				if (Window.OK == OkCancelDialog.createDialog("Subscribing will overwrite all local changes with those that are on the server.").open()) {
-					PluginManager.getInstance().getRequestManager().subscribeToProject(p.getProjectID());
-				}
+				Display.getDefault().asyncExec(() -> {
+					if (Window.OK == OkCancelDialog.createDialog("Subscribing will overwrite all local changes with those that are on the server.").open()) {
+						PluginManager.getInstance().getRequestManager().subscribeToProject(p.getProjectID());
+					}
+				});
 			}
 			
 		});
