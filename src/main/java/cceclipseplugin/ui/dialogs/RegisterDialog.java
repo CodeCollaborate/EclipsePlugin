@@ -38,7 +38,7 @@ public class RegisterDialog extends Dialog {
 	 */
 	public RegisterDialog(Shell parentShell) {
 		super(parentShell);
-		setShellStyle(SWT.DIALOG_TRIM);
+		setShellStyle(SWT.DIALOG_TRIM | SWT.ON_TOP | SWT.APPLICATION_MODAL);
 	}
 
 	/**
@@ -118,6 +118,8 @@ public class RegisterDialog extends Dialog {
 		emailBox.addModifyListener(listener);
 		passwordBox.addModifyListener(listener);
 		confirmPasswordBox.addModifyListener(listener);
+		
+		
 
 		return container;
 	}
