@@ -81,6 +81,9 @@ public class UsersListView extends ListView {
 				Display.getDefault().asyncExec(() -> {
 					Shell shell = Display.getDefault().getActiveShell();
 					List projectList = listView.getListWithButtons().getList();
+					if (projectList.getSelectionIndex() == -1) {
+						return;
+					}
 					Project p = PluginManager.getInstance().getDataManager().getSessionStorage()
 							.getSortedProjects().get(projectList.getSelectionIndex());
 					AddNewUserDialog addUserDialog = new AddNewUserDialog(shell, p);

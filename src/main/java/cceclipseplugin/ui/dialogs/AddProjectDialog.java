@@ -62,7 +62,9 @@ public class AddProjectDialog extends Dialog {
 			MessageDialog.createDialog(DialogStrings.AddProjectDialog_NoProjectsErr).open();
 			return;
 		}
-		
+		if (combo.getSelectionIndex() == -1) {
+			return;
+		}
 		IProject selectedProject = localProjects[combo.getSelectionIndex()];
 		
 		PluginManager.getInstance().getRequestManager().createProject(selectedProject.getName());
