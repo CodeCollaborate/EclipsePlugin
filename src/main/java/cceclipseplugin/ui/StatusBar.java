@@ -6,6 +6,12 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
+import cceclipseplugin.constants.StringConstants;
+import cceclipseplugin.core.PluginManager;
+import websocket.WSConnection;
+import websocket.WSManager;
+import websocket.WSConnection.State;
+
 public class StatusBar extends Composite {
 	
 	private Label label;
@@ -24,7 +30,6 @@ public class StatusBar extends Composite {
 		layout.marginRight = 0;
 		this.setLayout(layout);
 		label = new Label(this, SWT.NONE);
-		label.setText("Status: "+"Disconnected");
 	}
 	
 	public void setStatus(String status) {

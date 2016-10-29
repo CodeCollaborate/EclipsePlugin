@@ -128,6 +128,8 @@ public class UsersListView extends ListView {
 			if (!list.isDisposed()) {
 				list.removeAll();
 			}
+			getListWithButtons().getButtonBar().getPlusButton().setEnabled(false);
+			getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
 			if (project == null) {
 				return;
 			}
@@ -142,7 +144,7 @@ public class UsersListView extends ListView {
 					}
 				}
 			}
-			getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
+			getListWithButtons().getButtonBar().getPlusButton().setEnabled(true);
 		});
 	}
 	

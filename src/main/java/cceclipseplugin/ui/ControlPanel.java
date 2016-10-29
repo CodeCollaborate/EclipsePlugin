@@ -8,6 +8,9 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IMemento;
+import org.eclipse.ui.IViewSite;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.ViewPart;
 
 import cceclipseplugin.constants.StringConstants;
@@ -49,6 +52,7 @@ public class ControlPanel extends ViewPart {
 		statusBar.setLayoutData(statusData);
 		initializePropertyChangeListeners();
 		initializeNotificationHandlers();
+		initializeStatusBar();
 		
 		if (PluginManager.getInstance().getDataManager().getSessionStorage().getUsername() != null) {
 			setEnabled(true);
@@ -85,12 +89,20 @@ public class ControlPanel extends ViewPart {
 		wsManager.registerEventHandler(WSConnection.EventType.ON_ERROR, () -> {
 			statusBar.getDisplay().asyncExec(() -> statusBar.setStatus(StringConstants.ERROR_MESSAGE));
 		});
+	}
+	
+	private void initializeStatusBar() {
+		WSManager wsManager = PluginManager.getInstance().getWSManager();
 		State s = wsManager.getConnectionState();
+		System.out.println("STATE: "+s);
 		switch (s) {
 		case CLOSE:
 			statusBar.setStatus(StringConstants.CLOSE_MESSAGE);
 			break;
 		case CONNECT:
+			statusBar.setStatus(StringConstants.CONNECT_MESSAGE);
+			break;
+		case READY:
 			statusBar.setStatus(StringConstants.CONNECT_MESSAGE);
 			break;
 		case ERROR:
