@@ -32,6 +32,7 @@ public class WelcomeDialog extends Dialog {
 	public WelcomeDialog(Shell parentShell, IPreferenceStore prefStore) {
 		super(parentShell);
 		this.prefStore = prefStore;
+		setShellStyle(SWT.DIALOG_TRIM | SWT.ON_TOP | SWT.APPLICATION_MODAL);
 	}
 
 	/**
@@ -82,7 +83,7 @@ public class WelcomeDialog extends Dialog {
 		btnRegister.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				RegisterDialog dialog = new RegisterDialog(new Shell());
+				RegisterDialog dialog = new RegisterDialog(null);
 				close();
 				dialog.open();
 			}
