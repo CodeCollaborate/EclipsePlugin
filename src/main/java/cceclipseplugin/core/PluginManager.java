@@ -224,7 +224,6 @@ public class PluginManager {
 			long resId = notification.getResourceID();
 			ProjectRevokePermissionsNotification n = ((ProjectRevokePermissionsNotification) notification.getData());
 			Project project = storage.getProjectById(resId);
-			MessageDialog.createDialog("You have been removed from the " + project.getName() + " project").open();
 			if (project.getPermissions() == null) {
 				project.setPermissions(new HashMap<>());
 			}

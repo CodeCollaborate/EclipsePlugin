@@ -81,6 +81,9 @@ public class UsersListView extends ListView {
 				Display.getDefault().asyncExec(() -> {
 					Shell shell = Display.getDefault().getActiveShell();
 					List projectList = listView.getListWithButtons().getList();
+					if (projectList.getSelectionIndex() == -1) {
+						return;
+					}
 					Project p = PluginManager.getInstance().getDataManager().getSessionStorage()
 							.getSortedProjects().get(projectList.getSelectionIndex());
 					AddNewUserDialog addUserDialog = new AddNewUserDialog(shell, p);
@@ -125,6 +128,8 @@ public class UsersListView extends ListView {
 			if (!list.isDisposed()) {
 				list.removeAll();
 			}
+			getListWithButtons().getButtonBar().getPlusButton().setEnabled(false);
+			getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
 			if (project == null) {
 				return;
 			}
@@ -139,7 +144,7 @@ public class UsersListView extends ListView {
 					}
 				}
 			}
-			getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
+			getListWithButtons().getButtonBar().getPlusButton().setEnabled(true);
 		});
 	}
 	

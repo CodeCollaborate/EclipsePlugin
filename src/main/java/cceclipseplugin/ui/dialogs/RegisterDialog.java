@@ -65,6 +65,13 @@ public class RegisterDialog extends Dialog {
 
 		usernameBox = new Text(composite, SWT.BORDER);
 		usernameBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
+		
+		Label lblEmail = new Label(composite, SWT.NONE);
+		lblEmail.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
+		lblEmail.setText(DialogStrings.RegisterDialog_EmailLabel);
+
+		emailBox = new Text(composite, SWT.BORDER);
+		emailBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		Label lblFirstName = new Label(composite, SWT.NONE);
 		lblFirstName.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
@@ -79,13 +86,6 @@ public class RegisterDialog extends Dialog {
 
 		lastNameBox = new Text(composite, SWT.BORDER);
 		lastNameBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
-
-		Label lblEmail = new Label(composite, SWT.NONE);
-		lblEmail.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
-		lblEmail.setText(DialogStrings.RegisterDialog_EmailLabel);
-
-		emailBox = new Text(composite, SWT.BORDER);
-		emailBox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 1, 1));
 
 		Label lblPassword = new Label(composite, SWT.NONE);
 		lblPassword.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 1, 1));
