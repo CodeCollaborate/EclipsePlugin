@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,13 +56,14 @@ public class EclipseRequestManager extends RequestManager {
 		meta.setProjectID(id);
 		PluginManager.getInstance().getMetadataManager().putProjectMetadata(eclipseProject.getFullPath().toString(), meta);
 		try {
+			NullProgressMonitor progressMonitor = new NullProgressMonitor();
 			if (eclipseProject.exists()) {
-				eclipseProject.delete(true, true, new NullProgressMonitor());
+				eclipseProject.delete(true, true, progressMonitor);
 			}
-			eclipseProject.create(new NullProgressMonitor());
-			eclipseProject.open(new NullProgressMonitor());
+			eclipseProject.create(progressMonitor);
+			eclipseProject.open(progressMonitor);
 			for (File f : files) {
-				pullFileAndCreate(eclipseProject, p, f, new NullProgressMonitor());
+				pullFileAndCreate(eclipseProject, p, f, progressMonitor);
 			}
 		} catch (CoreException e) {
 			e.printStackTrace();
@@ -81,7 +83,7 @@ public class EclipseRequestManager extends RequestManager {
 						String currentFolder = "";
 						for (int i = 0; i < relPath.segmentCount(); i++) {
 							// iterate through path segments and create if they don't exist
-							currentFolder += "/" + relPath.segment(i);
+							currentFolder = Paths.get(currentFolder, relPath.segment(i)).toString();
 							Path currentPath = new Path(currentFolder);
 							System.out.println("Making folder " + currentPath.toString());
 							IFolder newFolder = p.getFolder(currentPath);

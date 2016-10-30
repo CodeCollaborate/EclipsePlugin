@@ -239,8 +239,8 @@ public class PluginManager {
 		// Project.Delete
 		wsManager.registerNotificationHandler("Project", "Delete", (notification) -> {
 			long resId = notification.getResourceID();
-			getMetadataManager().projectDeleted(resId);
 			storage.removeProjectById(resId);
+			getMetadataManager().projectDeleted(resId);
 		});
 		
 		// ~~~ file hooks ~~~
@@ -271,13 +271,13 @@ public class PluginManager {
 			MetadataManager mm = dataManager.getMetadataManager();
 			FileMetadata meta = mm.getFileMetadata(resId);
 			if (meta == null) {
-				System.out.println("Received File.Rename notification for unfound file project.");
+				System.out.println("Received File.Rename notification for non-existent file.");
 				return;
 			}
 			FileRenameNotification n = ((FileRenameNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
 			
-			// TODO: have gene look at the path building
+			// TODO (fahslaj): Finish these blocks of code in integration of editor
 //			StringBuilder pathBuilder = new StringBuilder();
 //			pathBuilder.append(projectLocation);
 //			pathBuilder.append(meta.getRelativePath());
@@ -309,7 +309,7 @@ public class PluginManager {
 			FileMoveNotification n = ((FileMoveNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
 			
-			// TODO: have gene look at the path building
+			// TODO (fahslaj): Finish these blocks of code in integration of editor
 //			StringBuilder pathBuilder = new StringBuilder();
 //			pathBuilder.append(projectLocation);
 //			pathBuilder.append(meta.getRelativePath());
@@ -340,7 +340,7 @@ public class PluginManager {
 			}
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
 			
-			// TODO: have gene look at the path building
+			// TODO (fahslaj): Finish these blocks of code in integration of editor
 //			StringBuilder pathBuilder = new StringBuilder();
 //			pathBuilder.append(projectLocation);
 //			pathBuilder.append(meta.getRelativePath());
@@ -393,6 +393,13 @@ public class PluginManager {
 		});
 	}
 	
+	/**
+	 * Removes the "auto-subscribe" preference associated with the given projectID.
+	 * Should be called when either the project is no longer on the server or the
+	 * user no longer has permissions for a project.
+	 * 
+	 * @param id
+	 */
 	public void removeProjectIdFromPrefs(long id) {
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
@@ -412,6 +419,12 @@ public class PluginManager {
 		
 	}
 	
+	/**
+	 * Returns a list of the project IDs that the user was subscribed to from their
+	 * last session.
+	 * 
+	 * @return
+	 */
 	public List<Long> getSubscribedProjectIds() {
 		List<Long> subscribedProjectIds = new ArrayList<>();
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
@@ -433,6 +446,11 @@ public class PluginManager {
 		return subscribedProjectIds;
 	}
 	
+	/**
+	 * Sets the "auto-subscribe" preference for every project to the given parameter.
+	 * 
+	 * @param b
+	 */
 	public void setAllSubscribedPrefs(boolean b) {
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);

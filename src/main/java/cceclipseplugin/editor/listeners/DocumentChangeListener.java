@@ -78,8 +78,6 @@ public class DocumentChangeListener implements IDocumentListener {
 			}
 		}
 
-		proj.getName();
-
 		// If no diffs left; abort
 		if (diffs.isEmpty()) {
 			return;

@@ -36,8 +36,6 @@ public class Activator extends AbstractUIPlugin {
 		plugin = this;
 		
 		PluginManager.getInstance();
-		
-
 	}
 
 	/*

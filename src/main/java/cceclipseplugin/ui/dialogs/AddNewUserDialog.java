@@ -23,7 +23,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.ui.PermissionMap;
 import websocket.models.Project;
 import org.eclipse.wb.swt.SWTResourceManager;
 
@@ -71,8 +70,6 @@ public class AddNewUserDialog extends Dialog {
 		combo.setLayoutData(gd_combo);
 		
 		permissionMap = PluginManager.getInstance().getDataManager().getSessionStorage().getPermissionConstants();
-		if (permissionMap == null || permissionMap.isEmpty())
-			permissionMap = PermissionMap.permissions;
 		BiMap<Byte, String> inversePermissionMap = permissionMap.inverse();
 		@SuppressWarnings("unchecked")
 		List<Byte> permissionCodes = new ArrayList<>(permissionMap.values());
