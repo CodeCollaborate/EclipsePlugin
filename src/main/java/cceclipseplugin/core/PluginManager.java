@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -23,6 +25,7 @@ import org.osgi.service.prefs.Preferences;
 import cceclipseplugin.Activator;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
+import cceclipseplugin.editor.listeners.ResourceChangeListener;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
@@ -67,8 +70,11 @@ public class PluginManager {
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
 
-	// PLUGIN MODULES
+	// LISTENERS
 	private EditorChangeListener editorChangeListener;
+	private ResourceChangeListener resourceChangeListener;
+	
+	// PLUGIN MODULES
 	private final DocumentManager documentManager;
 	private final DataManager dataManager;
 	private final WSManager wsManager;
@@ -135,8 +141,9 @@ public class PluginManager {
 		}
 		System.out.println("Enumerated all files");
 		
-		initPropertyListeners();
 		registerWSHooks();
+		registerResourceListeners();
+		initPropertyListeners();
 			
 		new Thread(() -> {
 			try {
@@ -151,6 +158,7 @@ public class PluginManager {
 	
 	public void onStop() {
 		writeSubscribedProjects();
+		deregisterResourceListeners();
 		wsManager.close();
 	}
 
@@ -361,7 +369,18 @@ public class PluginManager {
 				(Notification n) -> documentManager.handleNotification(n));
 	}
 	
-	private void initPropertyListeners() {		
+	private void registerResourceListeners() {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		resourceChangeListener = new ResourceChangeListener();
+		workspace.addResourceChangeListener(resourceChangeListener, IResourceChangeEvent.POST_CHANGE);
+	}
+	
+	private void deregisterResourceListeners() {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		workspace.removeResourceChangeListener(resourceChangeListener);
+	}
+	
+	private void initPropertyListeners() {
 		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
 			if (event.getPropertyName().equals(SessionStorage.USERNAME)) {
 				requestManager.fetchProjects();
