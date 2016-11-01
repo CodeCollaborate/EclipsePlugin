@@ -49,7 +49,7 @@ public class DocumentChangeListener implements IDocumentListener {
 		ITextEditor editor = docMgr.getEditor(docMgr.getCurrFile());
 		IFile file = editor.getEditorInput().getAdapter(IFile.class);
 		IProject proj = file.getProject();
-		
+		String location = file.getLocation().toString();
 		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
 		FileMetadata fileMeta = mm.getFileMetadata(file.getLocation().toString());
 		if (projMeta == null || fileMeta == null) {

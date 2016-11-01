@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -262,7 +263,9 @@ public class PluginManager {
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject eclipseProject = root.getProject(p.getName());
 			IProgressMonitor monitor = new NullProgressMonitor();
-			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor);
+			Semaphore waiter = new Semaphore(0);
+//			requestManager.pullFileAndCreate(eclipseProject, p, n.file, waiter, monitor);
+			// TODO: finish
 		});
 		// File.Rename
 		wsManager.registerNotificationHandler("File", "Rename", (notification) -> {
@@ -415,7 +418,6 @@ public class PluginManager {
 			MessageDialog.createDialog("Could not remove project from subscribe preferences.").open();
 			e.printStackTrace();
 		}
-		
 	}
 	
 	/**

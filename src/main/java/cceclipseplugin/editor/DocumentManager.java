@@ -143,7 +143,7 @@ public class DocumentManager {
 		
 		String projectRootPath = PluginManager.getInstance().getMetadataManager()
 				.getProjectLocation(projectID);
-		String filepath = Paths.get(workspaceRootPath, projectRootPath, fileMetaData.getFilePath()).toString();
+		String filepath = Paths.get(projectRootPath, fileMetaData.getFilePath().substring(2)).toString();
 
 		// TODO(wongb): FIND A WAY TO MAKE THIS MORE DETERMINISTIC
 		// Only apply patch if incoming fileVersion is greater than local fileVersion. 
