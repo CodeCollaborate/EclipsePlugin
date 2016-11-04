@@ -6,26 +6,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.core.commands.IExecutionListener;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.commands.ICommandService;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
 import cceclipseplugin.Activator;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
-import cceclipseplugin.editor.listeners.ResourceChangeListener;
+import cceclipseplugin.editor.listeners.PostChangeDirectoryListener;
+import cceclipseplugin.editor.listeners.PreChangeDirectoryListener;
+import cceclipseplugin.editor.listeners.SaveExecutionListener;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
@@ -72,7 +78,8 @@ public class PluginManager {
 
 	// LISTENERS
 	private EditorChangeListener editorChangeListener;
-	private ResourceChangeListener resourceChangeListener;
+	private PreChangeDirectoryListener preChangeDirListener;
+	private PostChangeDirectoryListener postChangeDirListener;
 	
 	// PLUGIN MODULES
 	private final DocumentManager documentManager;
@@ -369,15 +376,18 @@ public class PluginManager {
 				(Notification n) -> documentManager.handleNotification(n));
 	}
 	
-	private void registerResourceListeners() {
+	public void registerResourceListeners() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		resourceChangeListener = new ResourceChangeListener();
-		workspace.addResourceChangeListener(resourceChangeListener, IResourceChangeEvent.POST_CHANGE);
+		preChangeDirListener = new PreChangeDirectoryListener();
+		postChangeDirListener = new PostChangeDirectoryListener();
+		workspace.addResourceChangeListener(preChangeDirListener, IResourceChangeEvent.PRE_BUILD);
+		workspace.addResourceChangeListener(postChangeDirListener, IResourceChangeEvent.POST_BUILD);
 	}
 	
-	private void deregisterResourceListeners() {
+	public void deregisterResourceListeners() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		workspace.removeResourceChangeListener(resourceChangeListener);
+		workspace.removeResourceChangeListener(preChangeDirListener);
+		workspace.removeResourceChangeListener(postChangeDirListener);
 	}
 	
 	private void initPropertyListeners() {
