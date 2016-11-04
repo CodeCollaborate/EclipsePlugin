@@ -101,17 +101,18 @@ public class EclipseRequestManager extends RequestManager {
 					System.out.println("Making file " + path);
 					IFile newFile = p.getFile(new Path(path));
 					try {
-						if (newFile.exists()) {
-							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
-						} else {
-							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
-						}
 						FileMetadata meta = new FileMetadata();
 						meta.setFileID(file.getFileID());
 						meta.setFilename(file.getFilename());
 						meta.setRelativePath(file.getRelativePath());
 						meta.setVersion(file.getFileVersion());
-						PluginManager.getInstance().getMetadataManager().putFileMetadata(path, ccp.getProjectID(), meta);
+						PluginManager.getInstance().getMetadataManager().putFileMetadata(newFile.getFullPath().removeLastSegments(1).toString(), 
+								ccp.getProjectID(), meta);
+						if (newFile.exists()) {
+							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
+						} else {
+							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
+						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -187,7 +188,7 @@ public class EclipseRequestManager extends RequestManager {
 		return files;
 	}
 	
-	private byte[] inputStreamToByteArray(InputStream is) throws IOException {
+	public static byte[] inputStreamToByteArray(InputStream is) throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		
 		byte curr;
