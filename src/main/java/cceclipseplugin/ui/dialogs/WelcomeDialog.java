@@ -112,7 +112,8 @@ public class WelcomeDialog extends Dialog {
 		String username = usernameBox.getText();
 		String password = passwordBox.getText();
 		
-		PluginManager.getInstance().getRequestManager().login(username, password);
+		PluginManager pm = PluginManager.getInstance();
+		pm.getRequestManager().login(username, password);
 		
 		prefStore.setValue(PreferenceConstants.USERNAME, username);
 		prefStore.setValue(PreferenceConstants.PASSWORD, password);

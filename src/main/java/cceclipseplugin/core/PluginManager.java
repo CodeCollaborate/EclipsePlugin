@@ -2,14 +2,17 @@ package cceclipseplugin.core;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.InstanceScope;
@@ -225,10 +228,12 @@ public class PluginManager {
 			long resId = notification.getResourceID();
 			ProjectRevokePermissionsNotification n = ((ProjectRevokePermissionsNotification) notification.getData());
 			Project project = storage.getProjectById(resId);
-			if (project.getPermissions() == null) {
-				project.setPermissions(new HashMap<>());
+			if (project != null) {
+				if (project.getPermissions() == null) {
+					project.setPermissions(new HashMap<>());
+				}
+				project.getPermissions().remove(n.revokeUsername);
 			}
-			project.getPermissions().remove(n.revokeUsername);
 			if (storage.getUsername().equals(n.revokeUsername)) {
 				storage.removeProjectById(resId);
 				getMetadataManager().projectDeleted(resId);
@@ -240,7 +245,23 @@ public class PluginManager {
 		wsManager.registerNotificationHandler("Project", "Delete", (notification) -> {
 			long resId = notification.getResourceID();
 			storage.removeProjectById(resId);
+			// TODO: move out to metadata manager or request manager?
+			// TODO: investigate why this handler doesn't run for others deleting the project
+			ProjectMetadata meta = getMetadataManager().getProjectMetadata(resId);
+			if (meta == null) {
+				System.out.println("Received Project.Delete notification for non-existent project.");
+				return;
+			}
+			IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(getMetadataManager().getProjectMetadata(resId).getName());
+			IFile metaFile = iproject.getFile(CoreStringConstants.CONFIG_FILE_NAME);
 			getMetadataManager().projectDeleted(resId);
+			if (metaFile.exists()) {
+				try {
+					metaFile.delete(true, true, new NullProgressMonitor());
+				} catch (CoreException e) {
+					e.printStackTrace();
+				}
+			}
 		});
 		
 		// ~~~ file hooks ~~~
@@ -250,7 +271,7 @@ public class PluginManager {
 			long resId = notification.getResourceID();
 			ProjectMetadata pmeta = mm.getProjectMetadata(resId);
 			if (pmeta == null) {
-				System.out.println("Received File.Create notification for unsubscribed project.");
+				System.out.println("Received File.Create notification for project with no metadata.");
 				return;
 			}
 			FileCreateNotification n = ((FileCreateNotification) notification.getData());
@@ -263,9 +284,14 @@ public class PluginManager {
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject eclipseProject = root.getProject(p.getName());
 			IProgressMonitor monitor = new NullProgressMonitor();
-			Semaphore waiter = new Semaphore(0);
-//			requestManager.pullFileAndCreate(eclipseProject, p, n.file, waiter, monitor);
-			// TODO: finish
+			
+			meta = new FileMetadata(n.file);
+			List<FileMetadata> fmetas = new ArrayList<FileMetadata>(Arrays.asList(pmeta.getFiles()));
+			fmetas.add(meta);
+			pmeta.setFiles(fmetas.toArray(new FileMetadata[fmetas.size()]));
+			mm.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
+			mm.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
+			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor);
 		});
 		// File.Rename
 		wsManager.registerNotificationHandler("File", "Rename", (notification) -> {
@@ -279,7 +305,6 @@ public class PluginManager {
 			FileRenameNotification n = ((FileRenameNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
 			
-			// TODO (fahslaj): Finish these blocks of code in integration of editor
 //			StringBuilder pathBuilder = new StringBuilder();
 //			pathBuilder.append(projectLocation);
 //			pathBuilder.append(meta.getRelativePath());
@@ -381,6 +406,7 @@ public class PluginManager {
 				SessionStorage storage = dataManager.getSessionStorage();
 				List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
 				Set<Long> subscribedIds = storage.getSubscribedIds();
+				System.out.println("Subscribing to " + subscribedIdsFromPrefs.size() + " projects");
 				if (autoSubscribeForSession) {
 					for (Long id : subscribedIdsFromPrefs) {
 						Project p = storage.getProjectById(id);

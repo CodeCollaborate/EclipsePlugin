@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocumentListener;
 import org.eclipse.ui.texteditor.ITextEditor;
@@ -13,6 +14,7 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
 import constants.CoreStringConstants;
 import dataMgmt.MetadataManager;
+import dataMgmt.SessionStorage;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
@@ -43,16 +45,17 @@ public class DocumentChangeListener implements IDocumentListener {
 		List<Diff> diffs = new ArrayList<>();
 		String currDocument = event.getDocument().get();
 		
-		MetadataManager mm = PluginManager.getInstance().getDataManager().getMetadataManager();
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
 		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
+		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
 
 		ITextEditor editor = docMgr.getEditor(docMgr.getCurrFile());
 		IFile file = editor.getEditorInput().getAdapter(IFile.class);
 		IProject proj = file.getProject();
-		String location = file.getLocation().toString();
 		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
 		FileMetadata fileMeta = mm.getFileMetadata(file.getLocation().toString());
-		if (projMeta == null || fileMeta == null) {
+		if (projMeta == null || fileMeta == null || !ss.getSubscribedIds().contains(projMeta.getProjectID()) 
+				|| fileMeta.getFilename().contains(CoreStringConstants.CONFIG_FILE_NAME)) {
 			return;
 		}
 

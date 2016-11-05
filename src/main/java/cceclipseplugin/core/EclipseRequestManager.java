@@ -42,8 +42,10 @@ import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
+import websocket.models.requests.ProjectGetFilesRequest;
 import websocket.models.responses.FileCreateResponse;
 import websocket.models.responses.FilePullResponse;
+import websocket.models.responses.ProjectGetFilesResponse;
 
 public class EclipseRequestManager extends RequestManager {
 
@@ -138,43 +140,67 @@ public class EclipseRequestManager extends RequestManager {
 
 	@Override
 	public void finishCreateProject(Project project) {
-//		IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
-//		ProjectMetadata meta = new ProjectMetadata();
-//		meta.setName(project.getName());
-//		meta.setProjectID(project.getProjectID());
-////		PluginManager.getInstance().getMetadataManager().putProjectMetadata(iproject.getFullPath().toString(), meta);
-//		List<IFile> files = recursivelyGetFiles(iproject);
-//		for (IFile f : files) {
-//			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
-//			try {
-//				Request req = (new FileCreateRequest(f.getName(), 
-//						path, 
-//						project.getProjectID(),
-//						inputStreamToByteArray(f.getContents()))).getRequest(
-//								response -> {
-//									int fileCreateStatusCode = response.getStatus();
-//									if (fileCreateStatusCode == 200) {
-//										FileCreateResponse r = ((FileCreateResponse) response.getData());
-//										FileMetadata fmeta = new FileMetadata();
-//										fmeta.setFileID(r.getFileID());
-//										fmeta.setFilename(f.getName());
-//										fmeta.setRelativePath(path);
-//										// TODO: make file version be sent with file create request
-//										fmeta.setVersion(0);
-//										PluginManager.getInstance().getMetadataManager().putFileMetadata(f.getFullPath().removeLastSegments(1).toString(), project.getProjectID(), fmeta);
-//									} else {
-//										Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + ".").open()); //$NON-NLS-2$
-//										return;
-//									}
-//								}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));
-//				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-//			} catch (IOException | CoreException e) {
-//				Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
-//				e.printStackTrace();
-//				PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());
-//				return;
-//			}			
-//		}
+		IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+		ProjectMetadata meta = new ProjectMetadata();
+		meta.setName(project.getName());
+		meta.setProjectID(project.getProjectID());
+		List<IFile> ifiles = recursivelyGetFiles(iproject);
+		Semaphore waiter = new Semaphore(0);
+		for (IFile f : ifiles) {
+			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
+			try {
+				Request req = (new FileCreateRequest(f.getName(), 
+						path, 
+						project.getProjectID(),
+						inputStreamToByteArray(f.getContents()))).getRequest(
+								response -> {
+									int fileCreateStatusCode = response.getStatus();
+									if (fileCreateStatusCode == 200) {
+										waiter.release();
+									} else {
+										Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_FailedWithStatus + fileCreateStatusCode + ".").open()); //$NON-NLS-2$
+										return;
+									}
+								}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));
+				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+			} catch (IOException | CoreException e) {
+				Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
+				e.printStackTrace();
+				PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());
+				return;
+			}			
+		}
+		new Thread(() -> {
+			try {
+				waiter.tryAcquire(ifiles.size(), 20 * ifiles.size(), TimeUnit.SECONDS);
+				lookupProjectFilesAndPutMetadata(iproject.getLocation().toString(), meta);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}).start();
+	}
+	
+	private void lookupProjectFilesAndPutMetadata(String path, ProjectMetadata meta) {
+		Request requestForFiles = (new ProjectGetFilesRequest(meta.getProjectID())).getRequest(response -> {
+            int status = response.getStatus();
+            if (status == 200) {
+                ProjectGetFilesResponse r = (ProjectGetFilesResponse) response.getData();
+                if (r.files != null) {
+                    FileMetadata[] fmetas = new FileMetadata[r.files.length];
+                    for (int i = 0; i < r.files.length; i++) {
+                    	fmetas[i] = new FileMetadata(r.files[i]);
+                    }
+                    meta.setFiles(fmetas);
+                }
+                MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+                mm.putProjectMetadata(path, meta);
+                mm.writeProjectMetadataToFile(meta, path, CoreStringConstants.CONFIG_FILE_NAME);
+            } else {
+                Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Failed to retrieve project file objects after project creation"));
+                return;
+            }
+        }, new UIRequestErrorHandler("Failure sending request for project file objects after project creation"));
+        PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(requestForFiles);
 	}
 	
 	private List<IFile> recursivelyGetFiles(IContainer f) {

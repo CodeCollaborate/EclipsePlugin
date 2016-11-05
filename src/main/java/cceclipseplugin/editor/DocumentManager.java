@@ -134,7 +134,6 @@ public class DocumentManager {
 		// Get file path to write to.
 		FileMetadata fileMetaData = PluginManager.getInstance().getMetadataManager()
 				.getFileMetadata(n.getResourceID());
-		String workspaceRootPath = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
 		Long projectID = PluginManager.getInstance().getMetadataManager().getProjectIDForFileID(fileMetaData.getFileID());
 		if (projectID == null){
 			// Early out if no such projectID found.
@@ -143,7 +142,7 @@ public class DocumentManager {
 		
 		String projectRootPath = PluginManager.getInstance().getMetadataManager()
 				.getProjectLocation(projectID);
-		String filepath = Paths.get(projectRootPath, fileMetaData.getFilePath().substring(2)).toString();
+		String filepath = Paths.get(projectRootPath, fileMetaData.getFilePath()).normalize().toString();
 
 		// TODO(wongb): FIND A WAY TO MAKE THIS MORE DETERMINISTIC
 		// Only apply patch if incoming fileVersion is greater than local fileVersion. 
