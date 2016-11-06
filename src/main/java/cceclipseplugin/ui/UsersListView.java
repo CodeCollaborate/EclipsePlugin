@@ -15,6 +15,7 @@ import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.dialogs.AddNewUserDialog;
+import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.RemoveUserDialog;
 import dataMgmt.SessionStorage;
 import websocket.models.Permission;
@@ -35,6 +36,25 @@ public class UsersListView extends ListView {
 		}
 		return projects.get(index);
 	}
+	
+	private void refreshSelected(ProjectsListView listView) {
+		Display.getDefault().asyncExec(() -> {
+			int selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
+			Project proj = getProjectAt(selectedListIndex);
+			if (proj != null && PluginManager.getInstance().getDataManager().getSessionStorage()
+					.getSubscribedIds().contains(proj.getProjectID())) {
+				setProject(proj);
+				listView.getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
+			} else {
+				getListWithButtons().getList().removeAll();
+				String message = "You must be subscribed to " + 
+						proj.getName() + " to view users.";
+				getListWithButtons().getList().add(message);
+				getListWithButtons().getButtonBar().getPlusButton().setEnabled(false);
+				getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
+			}
+		});
+	}
 
 	PropertyChangeListener projectListListener;
 	
@@ -43,9 +63,7 @@ public class UsersListView extends ListView {
 		listView.initSelectionListener(new Listener() {
 			@Override
 			public void handleEvent(Event event) {
-				int selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
-				setProject(getProjectAt(selectedListIndex));
-				listView.getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
+				refreshSelected(listView);
 			}
 		});
 		
@@ -53,21 +71,22 @@ public class UsersListView extends ListView {
 		projectListListener = new PropertyChangeListener() {
 			@Override
 			public void propertyChange(PropertyChangeEvent event) {
-				if (!event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
-					return;
-				}
-				if (!listView.isDisposed()) {
-					Display.getDefault().asyncExec(() -> {
-						int selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
-						if (selectedListIndex != -1) {
-							SessionStorage storage = (SessionStorage) event.getSource();
-							java.util.List<Project> projects = storage.getSortedProjects();
-							Project project = projects.get(selectedListIndex);
-							setProject(project);
-						} else {
-							setProject(null);
-						}
-					});
+				if (event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
+					if (!listView.isDisposed()) {
+						Display.getDefault().asyncExec(() -> {
+							int selectedListIndex = listView.getListWithButtons().getList().getSelectionIndex();
+							if (selectedListIndex != -1) {
+								SessionStorage storage = (SessionStorage) event.getSource();
+								java.util.List<Project> projects = storage.getSortedProjects();
+								Project project = projects.get(selectedListIndex);
+								setProject(project);
+							} else {
+								setProject(null);
+							}
+						});
+					}
+				} else if (event.getPropertyName().equals(SessionStorage.SUBSCRIBED_PROJECTS)) {
+					refreshSelected(listView);
 				}
 			}
 		};
