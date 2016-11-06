@@ -135,8 +135,14 @@ public class DocumentManager {
 		FileMetadata fileMetaData = PluginManager.getInstance().getMetadataManager()
 				.getFileMetadata(n.getResourceID());
 		String workspaceRootPath = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
+		Long projectID = PluginManager.getInstance().getMetadataManager().getProjectIDForFileID(fileMetaData.getFileID());
+		if (projectID == null){
+			// Early out if no such projectID found.
+			return;
+		}
+		
 		String projectRootPath = PluginManager.getInstance().getMetadataManager()
-				.getProjectLocation(fileMetaData.getProjectId());
+				.getProjectLocation(projectID);
 		String filepath = Paths.get(workspaceRootPath, projectRootPath, fileMetaData.getFilePath()).toString();
 
 		// TODO(wongb): FIND A WAY TO MAKE THIS MORE DETERMINISTIC

@@ -1,14 +1,18 @@
 package cceclipseplugin.preferences;
 
+import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.StringFieldEditor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import cceclipseplugin.Activator;
-import cceclipseplugin.constants.StringConstants;
+import cceclipseplugin.core.PluginManager;
+import websocket.ConnectException;
 
 public class GeneralPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
@@ -24,23 +28,46 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 	 * editor knows how to save and restore itself.
 	 */
 	public void createFieldEditors() {
-
-		StringFieldEditor hostBox = new StringFieldEditor(StringConstants.PREFERENCES_HOSTNAME,
-				StringConstants.PREFERENCES_HOSTNAME, getFieldEditorParent());
-		StringFieldEditor userBox = new StringFieldEditor(StringConstants.PREFERENCES_USERNAME,
-				StringConstants.PREFERENCES_USERNAME, getFieldEditorParent());
-		StringFieldEditor pwBox = new StringFieldEditor(StringConstants.PREFERENCES_PASSWORD,
-				StringConstants.PREFERENCES_PASSWORD, getFieldEditorParent()) {
+		StringFieldEditor userBox = new StringFieldEditor(PreferenceConstants.USERNAME,
+				"Username:", getFieldEditorParent());
+		StringFieldEditor pwBox = new StringFieldEditor(PreferenceConstants.PASSWORD,
+				"Password:", getFieldEditorParent()) {
 			@Override
 			protected void doFillIntoGrid(Composite parent, int numColumns) {
 				super.doFillIntoGrid(parent, numColumns);
 				getTextControl().setEchoChar('*');
 			}
 		};
+		
+		BooleanFieldEditor autoConnect = new BooleanFieldEditor(PreferenceConstants.AUTO_CONNECT, "Auto-connect on startup",
+				getFieldEditorParent());
+		// TODO: change when implementing other ways to connect other than on startup
+		autoConnect.setEnabled(false, getFieldEditorParent());
 
-		addField(hostBox);
+		Button forgotPassword = new Button(getFieldEditorParent(), SWT.PUSH);
+		forgotPassword.setText("Forgot Password");
+		// TODO: change when forgot password is implemented
+		forgotPassword.setEnabled(false);
+		Button changePassword = new Button(getFieldEditorParent(), SWT.PUSH);
+		changePassword.setText("Change Password");
+		// TODO: change when change password is implemented
+		changePassword.setEnabled(false);
+		
+		Button reconnect = new Button(getFieldEditorParent(), SWT.PUSH);
+		reconnect.setText("Reconnect to Server");
+		reconnect.addListener(SWT.Selection, (event) -> {
+			 new Thread(() -> {
+				 try {
+					 PluginManager.getInstance().getWSManager().connect();
+				 } catch (ConnectException e) {
+					 e.printStackTrace();
+				 }
+			 }).start();
+		});
+
 		addField(userBox);
 		addField(pwBox);
+		addField(autoConnect);
 	}
 
 	@Override

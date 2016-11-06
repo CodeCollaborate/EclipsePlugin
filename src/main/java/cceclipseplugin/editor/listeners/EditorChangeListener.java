@@ -1,5 +1,6 @@
 package cceclipseplugin.editor.listeners;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IEditorPart;
@@ -63,9 +64,11 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	public void partClosed(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
-
-			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getRawLocation().toString();
-
+			IFile f = ((IFileEditorInput) editor.getEditorInput()).getFile();
+			if (!f.exists()) {
+				return;
+			}
+			String filePath = f.getRawLocation().toString();
 			this.documentMgr.closedDocument(filePath);
 			System.out.println("Closed document " + editor.getTitle());
 		}

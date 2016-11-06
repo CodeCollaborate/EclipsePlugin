@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
+	<extension
+		point="org.eclipse.ui.views">
+		<category
+			name="CodeCollaborate"
+			id="CodeCollaborateEclipse">
+		</category>
+		<view
+			name="CodeCollaborate"
+			category="CodeCollaborate"
+			class="cceclipseplugin.ui.ControlPanel"
+			id="CodeCollaborateEclipse.ControlPanel">
+		</view>
+	</extension>
    <extension
          point="org.eclipse.ui.startup">
 		<startup class="cceclipseplugin.startup.StartupHandler"/>
@@ -28,5 +41,7 @@
             class="cceclipseplugin.preferences.PreferenceInitializer">
       </initializer>
    </extension>
-
+   <extension
+         point="org.eclipse.ui.popupMenus">
+   </extension>
 </plugin>

@@ -4,13 +4,14 @@
 # Folders
 build/*
 target/*
-
+bin/*
 
 # Eclipse, IntelliJ project files
 *.iml
 .idea
 *.project
 *.settings
+*.classpath
 
 # Config files
 /config*

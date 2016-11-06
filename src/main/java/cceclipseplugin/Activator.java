@@ -1,13 +1,14 @@
 package cceclipseplugin;
 
-import org.eclipse.ui.PlatformUI;
+import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.editor.listeners.EditorChangeListener;
-import websocket.WSManager;
-import websocket.models.ConnectionConfig;
+import cceclipseplugin.preferences.PreferenceConstants;
+import cceclipseplugin.ui.dialogs.WelcomeDialog;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -34,7 +35,7 @@ public class Activator extends AbstractUIPlugin {
 		super.start(context);
 		plugin = this;
 		
-		PluginManager.getInstance();;		
+		PluginManager.getInstance();
 	}
 
 	/*
@@ -42,6 +43,7 @@ public class Activator extends AbstractUIPlugin {
 	 * @see org.eclipse.ui.plugin.AbstractUIPlugin#stop(org.osgi.framework.BundleContext)
 	 */
 	public void stop(BundleContext context) throws Exception {
+		PluginManager.getInstance().onStop();
 		plugin = null;
 		super.stop(context);
 	}
