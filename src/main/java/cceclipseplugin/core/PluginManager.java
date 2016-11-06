@@ -61,7 +61,8 @@ public class PluginManager {
 
 	private static PluginManager instance;
 
-	// PLUGIN SETTINGS (will be moved to preferences later)
+	// PLUGIN SETTINGS
+	// TODO: move to configuration file
 	final private String WS_ADDRESS = "ws://cody.csse.rose-hulman.edu:8000/ws/";
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
@@ -402,14 +403,11 @@ public class PluginManager {
 	public void removeProjectIdFromPrefs(long id) {
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-		String[] projectIDs;
 		try {
-			projectIDs = projectPrefs.childrenNames();
-			for (int i = 0; i < projectIDs.length; i++) {
-				if (id == Long.parseLong(projectIDs[i])) {
-					Preferences thisProjectPrefs = projectPrefs.node(projectIDs[i]);
-					thisProjectPrefs.removeNode();
-				}
+			String sid = Long.toString(id);
+			if (projectPrefs.nodeExists(sid)) {
+				Preferences thisProjectPrefs = projectPrefs.node(sid);
+				thisProjectPrefs.removeNode();
 			}
 		} catch (BackingStoreException e) {
 			MessageDialog.createDialog("Could not remove project from subscribe preferences.").open();
