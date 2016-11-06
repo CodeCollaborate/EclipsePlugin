@@ -8,6 +8,7 @@ import org.eclipse.core.runtime.CoreException;
 
 import cceclipseplugin.core.EclipseRequestManager;
 import cceclipseplugin.core.PluginManager;
+import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 
@@ -27,11 +28,15 @@ public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 	protected void handleFile(IResourceDelta delta) {
 //		System.out.println("///PreChange Handler///");
 		IFile f = (IFile) delta.getResource();
-		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
 		
+		// File was added
 		if (delta.getKind() == IResourceDelta.ADDED) {
+			
 			if (fileMeta == null && !f.getName().equals(".project")) {
-				ProjectMetadata pMeta = PluginManager.getInstance().getMetadataManager().getProjectMetadata(f.getProject().getFullPath().toString());
+				ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getFullPath().toString());
+				
 				byte[] fileBytes;
 				try {
 					fileBytes = EclipseRequestManager.inputStreamToByteArray(f.getContents());
@@ -40,10 +45,13 @@ public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 				} catch (IOException | CoreException e) {
 					e.printStackTrace();
 				}
+				
 				System.out.println("sent file create request: " + f.getName());
+				
 			} else {
 				System.out.println("metadata found for " + fileMeta.getFilename() + "; create request not sent");
 			}
+			
 		}
 	}
 

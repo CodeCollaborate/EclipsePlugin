@@ -1,13 +1,26 @@
 package cceclipseplugin.editor.listeners;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.eclipse.compare.contentmergeviewer.TokenComparator;
+import org.eclipse.compare.rangedifferencer.IRangeComparator;
+import org.eclipse.compare.rangedifferencer.RangeDifference;
+import org.eclipse.compare.rangedifferencer.RangeDifferencer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 
+import cceclipseplugin.core.EclipseRequestManager;
 import cceclipseplugin.core.PluginManager;
+import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
+import patching.Diff;
+import requestMgmt.RequestManager;
 
 public class PostChangeDirectoryListener extends AbstractDirectoryListener {
 
@@ -15,59 +28,97 @@ public class PostChangeDirectoryListener extends AbstractDirectoryListener {
 	 * Handles a resource delta in the case that the resource is and IProject.
 	 * 
 	 * @param delta
-	 * @return true if the recursion down the delta's children stops after this handler
+	 * @return 
+	 * 		true if the recursion down the delta's children stops after this handler
 	 */
 	@Override
 	protected boolean handleProject(IResourceDelta delta) {
 		IProject p = (IProject) delta.getResource();
 		ProjectMetadata projectMeta = PluginManager.getInstance().getMetadataManager().getProjectMetadata(p.getFullPath().toString());
+		RequestManager rm = PluginManager.getInstance().getRequestManager();
 		
 		if (delta.getKind() == IResourceDelta.REMOVED) {
 			System.out.println("flag: " + delta.getFlags());
+			
 			// Project was renamed
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
 				String newName = delta.getMovedToPath().lastSegment();
 				String newPath = delta.getMovedToPath().toString();
-				PluginManager.getInstance().getRequestManager().renameProject(projectMeta.getProjectID(), newName, 
-						newPath);
+				
+				rm.renameProject(projectMeta.getProjectID(), newName, newPath);
 				System.out.println("sent project rename request: renamed to \"" + newName + "\"; path changed to : " + newPath);
 				return false;
 			}
+			
 			// Project was deleted from disk
 			System.out.println("unsubscribed from project due to removal from disk");
 			PluginManager.getInstance().getRequestManager().unsubscribeFromProject(projectMeta.getProjectID());
 			return true;
+			
 		} else if (delta.getKind() == IResourceDelta.ADDED) {
 			return true;
 		}
+		
 		return false;
 	}
 	
 	@Override
 	protected void handleFile(IResourceDelta delta) {
 		IFile f = (IFile) delta.getResource();
-		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
 
 //		if (delta.getKind() == IResourceDelta.REMOVED || delta.getKind() == IResourceDelta.CHANGED) {
 //			System.out.println("flag: " + delta.getFlags());
 //			// File was renamed
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
+				
 				IPath relativeMovedToPath = delta.getMovedToPath().removeFirstSegments(1);
 				IPath fullMovedToPath = f.getProject().getFullPath().append(relativeMovedToPath);
+				
 				if (!relativeMovedToPath.toString().equals(f.getProjectRelativePath().toString())) {
+					
 					if (f.getName().equals(relativeMovedToPath.lastSegment())) {
-						PluginManager.getInstance().getRequestManager().moveFile(fileMeta.getFileID(), 
-								fullMovedToPath.removeLastSegments(1).toString(), relativeMovedToPath.removeLastSegments(1).toString());
-						System.out.println("sent file move request; moving from " +
-							f.getProjectRelativePath().toString() + " to " + relativeMovedToPath);
-						// TODO (loganga): process file changes and send as File.Change 
+						RequestManager rm = PluginManager.getInstance().getRequestManager();
+						
+						try {							
+							// process file changes
+							IFile movedFile = f.getProject().getFile(relativeMovedToPath);
+							
+							List<Diff> diffs = generateFileDiffs(f, movedFile);
+							// send File.Move request
+							rm.moveFile(fileMeta.getFileID(), 
+									fullMovedToPath.removeLastSegments(1).toString(), 
+									relativeMovedToPath.removeLastSegments(1).toString());
+							System.out.println("sent file move request; moving from " +
+								f.getProjectRelativePath().toString() + " to " + relativeMovedToPath);
+							// send File.Change request
+							
+						} catch (IOException | CoreException e1) {
+							System.out.println("Could not generate diffs. Move request and refactored changes were not sent.");
+							e1.printStackTrace();
+						}
+						
 					} else {
+						
+						// send File.Rename request
 						String newName = relativeMovedToPath.lastSegment();
 						PluginManager.getInstance().getRequestManager().renameFile(fileMeta.getFileID(), newName);
 						System.out.println("sent file rename request; changing to " + newName);
+						
 						// TODO (loganga): process file changes and send as File.Change 
+						IFile movedFile = f.getProject().getFile(relativeMovedToPath);
+						try {
+							List<Diff> diffs = generateFileDiffs(f, movedFile);
+						} catch (IOException | CoreException e1) {
+							System.out.println("Could not generate diffs.");
+							e1.printStackTrace();
+						}
+						
 					}
+					
 				}
+				
 			} else if (delta.getKind() == IResourceDelta.REMOVED) {
 				// File was deleted from disk
 				if (fileMeta != null) {
@@ -87,4 +138,40 @@ public class PostChangeDirectoryListener extends AbstractDirectoryListener {
 //		}
 	}
 
+	private List<Diff> generateFileDiffs(IFile oldFile, IFile newFile) throws IOException, CoreException {
+		String oldContents = new String(EclipseRequestManager.inputStreamToByteArray(oldFile.getContents()));
+		String newContents = new String(EclipseRequestManager.inputStreamToByteArray(newFile.getContents()));
+
+		return generateStringDiffs(oldContents, newContents);
+	}
+	
+	private List<Diff> generateStringDiffs(String oldContents, String newContents) {
+		IRangeComparator oldFile = new TokenComparator(oldContents);
+		IRangeComparator newFile = new TokenComparator(newContents);
+		RangeDifference[] rangeDiffs = RangeDifferencer.findDifferences(oldFile, newFile);
+		
+		List<Diff> ccDiffs = new ArrayList<>();
+		
+		for (RangeDifference r : rangeDiffs) {
+			Diff d = null;
+			
+			// insertion
+			if (r.kind() == RangeDifference.RIGHT) {
+				d = new Diff(true, r.rightStart(), 
+						newContents.substring(r.rightStart(), r.rightStart() + r.rightLength()));
+			} 
+			// deletion
+			else if (r.kind() == RangeDifference.LEFT) {
+				d = new Diff(false, r.leftStart(),
+						oldContents.substring(r.leftStart(), r.rightStart() + r.rightLength()));
+			}
+			
+			if (d != null) {
+				ccDiffs.add(d);
+			}
+		}
+		
+		return ccDiffs;
+	}
+	
 }
