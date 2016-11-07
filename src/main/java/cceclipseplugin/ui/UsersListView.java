@@ -47,8 +47,9 @@ public class UsersListView extends ListView {
 				listView.getListWithButtons().getButtonBar().getMinusButton().setEnabled(true);
 			} else {
 				getListWithButtons().getList().removeAll();
+				String projName = proj == null ? "a project" : proj.getName();
 				String message = "You must be subscribed to " + 
-						proj.getName() + " to view users.";
+						projName + " to view users.";
 				getListWithButtons().getList().add(message);
 				getListWithButtons().getButtonBar().getPlusButton().setEnabled(false);
 				getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
