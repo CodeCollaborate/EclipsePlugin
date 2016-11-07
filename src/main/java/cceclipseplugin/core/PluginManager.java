@@ -135,8 +135,8 @@ public class PluginManager {
 		}
 		System.out.println("Enumerated all files");
 		
-		registerWSHooks();
 		initPropertyListeners();
+		registerWSHooks();
 			
 		new Thread(() -> {
 			try {
@@ -150,6 +150,7 @@ public class PluginManager {
 	}
 	
 	public void onStop() {
+		writeSubscribedProjects();
 		wsManager.close();
 	}
 
@@ -369,28 +370,35 @@ public class PluginManager {
 						if (Window.OK == OkCancelDialog.createDialog("Do you want to auto-subscribe to subscribed projets from the last session?\n"
 								+ "This will overwrite any local changes made since the last online session.").open()) {
 							autoSubscribeForSession = true;
+							autoSubscribe();
 						} else {
 							autoSubscribeForSession = false;
 							setAllSubscribedPrefs(false);
 						}
+						System.out.println("Auto-subscribe for session set to " + autoSubscribeForSession);
 					}
 				});
 			} else if (event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
-				SessionStorage storage = dataManager.getSessionStorage();
-				List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
-				Set<Long> subscribedIds = storage.getSubscribedIds();
 				if (autoSubscribeForSession) {
-					for (Long id : subscribedIdsFromPrefs) {
-						Project p = storage.getProjectById(id);
-						if (p == null) {
-							removeProjectIdFromPrefs(id);
-						} else if (!subscribedIds.contains(id)) {
-							requestManager.subscribeToProject(id);
-						}
-					}
+					autoSubscribe();
 				}
 			}
 		});
+	}
+	
+	public void autoSubscribe() {
+		SessionStorage storage = dataManager.getSessionStorage();
+		List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
+		Set<Long> subscribedIds = storage.getSubscribedIds();
+		
+		for (Long id : subscribedIdsFromPrefs) {
+			Project p = storage.getProjectById(id);
+			if (p == null) {
+				removeProjectIdFromPrefs(id);
+			} else if (!subscribedIds.contains(id)) {
+				requestManager.subscribeToProject(id);
+			}
+		}
 	}
 	
 	/**
@@ -401,6 +409,7 @@ public class PluginManager {
 	 * @param id
 	 */
 	public void removeProjectIdFromPrefs(long id) {
+		System.out.println("Removing project " + id + "from auto-subscribe prefs");
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 		try {
@@ -432,6 +441,7 @@ public class PluginManager {
 			for (int i = 0; i < projectIDs.length; i++) {
 				Preferences thisProjectPrefs = projectPrefs.node(projectIDs[i]);
 				boolean subscribed = thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
+				System.out.println("Read pref for project " + projectIDs[i] + " : " + subscribed);
 				if (subscribed) {
 					subscribedProjectIds.add(Long.parseLong(projectIDs[i]));
 				}
@@ -460,6 +470,32 @@ public class PluginManager {
 			}
 		} catch (BackingStoreException e) {
 			MessageDialog.createDialog("Could not write subscribe preferences.").open();
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Goes through all of the projects in session storage, determines if the user is currently
+	 * subscribed, and then writes that boolean to the "auto-subscribe" preferences.
+	 */
+	public void writeSubscribedProjects() {
+		System.out.println("Writing subscribed projects to auto-subscribe preferences...");
+		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
+		Set<Long> subscribedIDs = ss.getSubscribedIds();
+		List<Project> projects = ss.getProjects();
+		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
+		
+		for (Project p : projects) {
+			boolean subscribed = subscribedIDs.contains(p.getProjectID());
+			Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
+			thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, subscribed);
+			System.out.println("Wrote pref for project " + p.getProjectID() + " : " + subscribed);
+		}
+		try {
+			pluginPrefs.flush();
+		} catch (BackingStoreException e) {
+			System.out.println("Could not write subscribe preferences.");
 			e.printStackTrace();
 		}
 	}
