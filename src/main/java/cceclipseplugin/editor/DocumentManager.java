@@ -13,7 +13,6 @@ import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
 import constants.CoreStringConstants;
 import dataMgmt.models.FileMetadata;
