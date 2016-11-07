@@ -92,29 +92,33 @@ public class EclipseRequestManager extends RequestManager {
 				if (response.getStatus() == 200) {
 					byte[] fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
 					
-					String path = file.getRelativePath();
-					Path relPath = new Path(path);
-					if (!path.equals("") && !path.equals(".")) {
-						String currentFolder = "";
+					Path relPath = new Path(file.getRelativePath());
+					System.out.println("Processing path " + relPath.toString());
+					if (!relPath.toString().equals("") && !relPath.toString().equals(".")) {
+						
+						Path currentFolder = Path.EMPTY;
 						for (int i = 0; i < relPath.segmentCount(); i++) {
 							// iterate through path segments and create if they don't exist
-							currentFolder = Paths.get(currentFolder, relPath.segment(i)).toString();
-							Path currentPath = new Path(currentFolder);
-							System.out.println("Making folder " + currentPath.toString());
-							IFolder newFolder = p.getFolder(currentPath);
+							currentFolder = (Path) currentFolder.append(relPath.segment(i));
+							System.out.println("Making folder " + currentFolder.toString());
+							
+							IFolder newFolder = p.getFolder(currentFolder);
 							try {
 								if (!newFolder.exists()) {
 									newFolder.create(true, true, progressMonitor);
 								}
 							} catch (Exception e1) {
-								System.out.println("Could not create folder for " + currentPath.toString());
+								System.out.println("Could not create folder for " + currentFolder.toString());
 								e1.printStackTrace();
 							}
+							
 						}
+						
 					}
-					path += "/" + file.getFilename();
-					System.out.println("Making file " + path);
-					IFile newFile = p.getFile(new Path(path));
+					
+					relPath = (Path) relPath.append(file.getFilename());
+					System.out.println("Making file " + relPath.toString());
+					IFile newFile = p.getFile(relPath);
 					try {
 						String fileContents = new String(fileBytes);
 						List<Patch> patches = new ArrayList<>();
