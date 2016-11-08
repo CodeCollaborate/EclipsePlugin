@@ -373,7 +373,7 @@ public class PluginManager {
 							autoSubscribe();
 						} else {
 							autoSubscribeForSession = false;
-							setAllSubscribedPrefs(false);
+							removeAllSubscribedPrefs(false);
 						}
 						System.out.println("Auto-subscribe for session set to " + autoSubscribeForSession);
 					}
@@ -386,7 +386,7 @@ public class PluginManager {
 		});
 	}
 	
-	public void autoSubscribe() {
+	private void autoSubscribe() {
 		SessionStorage storage = dataManager.getSessionStorage();
 		List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
 		Set<Long> subscribedIds = storage.getSubscribedIds();
@@ -417,6 +417,7 @@ public class PluginManager {
 			if (projectPrefs.nodeExists(sid)) {
 				Preferences thisProjectPrefs = projectPrefs.node(sid);
 				thisProjectPrefs.removeNode();
+				System.out.println("Node removed for " + sid);
 			}
 		} catch (BackingStoreException e) {
 			MessageDialog.createDialog("Could not remove project from subscribe preferences.").open();
@@ -438,13 +439,10 @@ public class PluginManager {
 		String[] projectIDs;
 		try {
 			projectIDs = projectPrefs.childrenNames();
+			System.out.println("Found " + projectIDs.length + " auto-subscribe preferences");
 			for (int i = 0; i < projectIDs.length; i++) {
-				Preferences thisProjectPrefs = projectPrefs.node(projectIDs[i]);
-				boolean subscribed = thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, false);
-				System.out.println("Read pref for project " + projectIDs[i] + " : " + subscribed);
-				if (subscribed) {
-					subscribedProjectIds.add(Long.parseLong(projectIDs[i]));
-				}
+				System.out.println("Read subscribe pref for project " + projectIDs[i]);
+				subscribedProjectIds.add(Long.parseLong(projectIDs[i]));
 			}
 		} catch (BackingStoreException e) {
 			MessageDialog.createDialog("Could not read subscribed projects from preferences.").open();
@@ -454,11 +452,11 @@ public class PluginManager {
 	}
 	
 	/**
-	 * Sets the "auto-subscribe" preference for every project to the given parameter.
+	 * Removes all project ID nodes from the subscribe preferences.
 	 * 
 	 * @param b
 	 */
-	public void setAllSubscribedPrefs(boolean b) {
+	public void removeAllSubscribedPrefs(boolean b) {
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 		String[] projectIDs;
@@ -466,8 +464,9 @@ public class PluginManager {
 			projectIDs = projectPrefs.childrenNames();
 			for (int i = 0; i < projectIDs.length; i++) {
 				Preferences thisProjectPrefs = projectPrefs.node(projectIDs[i]);
-				thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, b);
+				thisProjectPrefs.removeNode();
 			}
+			pluginPrefs.flush();
 		} catch (BackingStoreException e) {
 			MessageDialog.createDialog("Could not write subscribe preferences.").open();
 			e.printStackTrace();
@@ -476,7 +475,8 @@ public class PluginManager {
 	
 	/**
 	 * Goes through all of the projects in session storage, determines if the user is currently
-	 * subscribed, and then writes that boolean to the "auto-subscribe" preferences.
+	 * subscribed, and then creates a node for that project in the subscribe preferences. If a
+	 * node is found and the user is not subscribed, it is removed.
 	 */
 	public void writeSubscribedProjects() {
 		System.out.println("Writing subscribed projects to auto-subscribe preferences...");
@@ -488,9 +488,25 @@ public class PluginManager {
 		
 		for (Project p : projects) {
 			boolean subscribed = subscribedIDs.contains(p.getProjectID());
-			Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
-			thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, subscribed);
-			System.out.println("Wrote pref for project " + p.getProjectID() + " : " + subscribed);
+			
+			if (!subscribed) {
+				// remove it from nodes if not subscribed
+				try {
+					if (projectPrefs.nodeExists(p.getProjectID() + "")) {
+						Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
+						thisProjectPrefs.removeNode();
+						System.out.println("Node removed for " + p.getProjectID());
+					}
+				} catch (BackingStoreException e) {
+					e.printStackTrace();
+				}
+			} else {
+				// otherwise, make node
+				Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
+				// have to put something in it, otherwise the node will be dumped
+				thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
+				System.out.println("Wrote subscribed pref for project " + p.getProjectID());
+			}
 		}
 		try {
 			pluginPrefs.flush();
