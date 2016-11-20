@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 
 import cceclipseplugin.core.EclipseRequestManager;
 import cceclipseplugin.core.PluginManager;
@@ -14,6 +15,8 @@ import dataMgmt.models.ProjectMetadata;
 
 public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 
+	private byte[] oldFileBytes;
+	
 	@Override
 	protected boolean handleProject(IResourceDelta delta) {
 		
@@ -27,13 +30,14 @@ public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 	@Override
 	protected void handleFile(IResourceDelta delta) {
 //		System.out.println("///PreChange Handler///");
+		System.out.println("File flag: " + delta.getFlags());
 		IFile f = (IFile) delta.getResource();
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
 		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
 		
 		// File was added
 		if (delta.getKind() == IResourceDelta.ADDED) {
-			
+			System.out.println("PRE-CHANGE: file added - " + f.getName());
 			if (fileMeta == null && !f.getName().equals(".project")) {
 				ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getFullPath().toString());
 				
@@ -53,6 +57,24 @@ public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 			}
 			
 		}
+		if ((delta.getFlags() & IResourceDelta.MOVED_FROM) != 0 && (delta.getFlags() & IResourceDelta.CONTENT) != 0) {
+			
+			System.out.println("PRE-CHANGE: file moved or renamed - " + f.getName());
+//			IPath relativeMovedFromPath = delta.getMovedFromPath().removeFirstSegments(1);
+			IFile oldFile = f.getProject().getFile(f.getProjectRelativePath().toString());
+			
+			try {
+				this.oldFileBytes = EclipseRequestManager.inputStreamToByteArray(oldFile.getContents());
+			} catch (IOException | CoreException e) {
+				System.out.println("Failed to store old file bytes.");
+				e.printStackTrace();
+			}
+			
+		}
+	}
+	
+	public byte[] getOldFileBytes() {
+		return this.oldFileBytes;
 	}
 
 }

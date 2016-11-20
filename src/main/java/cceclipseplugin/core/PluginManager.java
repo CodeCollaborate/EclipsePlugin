@@ -379,7 +379,7 @@ public class PluginManager {
 	public void registerResourceListeners() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		preChangeDirListener = new PreChangeDirectoryListener();
-		postChangeDirListener = new PostChangeDirectoryListener();
+		postChangeDirListener = new PostChangeDirectoryListener(preChangeDirListener);
 		workspace.addResourceChangeListener(preChangeDirListener, IResourceChangeEvent.PRE_BUILD);
 		workspace.addResourceChangeListener(postChangeDirListener, IResourceChangeEvent.POST_BUILD);
 	}
