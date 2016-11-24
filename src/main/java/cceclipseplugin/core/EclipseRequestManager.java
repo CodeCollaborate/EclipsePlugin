@@ -76,10 +76,10 @@ public class EclipseRequestManager extends RequestManager {
 		pmeta.setProjectID(id);
 		List<FileMetadata> fileMetadatas = new ArrayList<>();
 		for (File f : files) {
-			pullFileAndCreate(eclipseProject, p, f, progressMonitor);
 			fileMetadatas.add(new FileMetadata(f));
+			pullFileAndCreate(eclipseProject, p, f, progressMonitor);
 		}
-		pmeta.setFiles(fileMetadatas.toArray(new FileMetadata[fileMetadatas.size()]));
+		pmeta.setFiles(fileMetadatas);
 		metaMgr.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
 		metaMgr.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
 	}
@@ -187,9 +187,9 @@ public class EclipseRequestManager extends RequestManager {
             if (status == 200) {
                 ProjectGetFilesResponse r = (ProjectGetFilesResponse) response.getData();
                 if (r.files != null) {
-                    FileMetadata[] fmetas = new FileMetadata[r.files.length];
+                    List<FileMetadata> fmetas = new ArrayList<>();
                     for (int i = 0; i < r.files.length; i++) {
-                    	fmetas[i] = new FileMetadata(r.files[i]);
+                    	fmetas.add(new FileMetadata(r.files[i]));
                     }
                     meta.setFiles(fmetas);
                 }
@@ -239,5 +239,18 @@ public class EclipseRequestManager extends RequestManager {
 		}
 		
 		return out.toByteArray();
+	}
+	
+	@Override
+	public void finishDeleteProject(Project project) {
+		IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+		IFile metaFile = iproject.getFile(CoreStringConstants.CONFIG_FILE_NAME);
+		if (metaFile.exists()) {
+			try {
+				metaFile.delete(true, true, new NullProgressMonitor());
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

@@ -229,16 +229,16 @@ public class PluginManager {
 			long resId = notification.getResourceID();
 			ProjectRevokePermissionsNotification n = ((ProjectRevokePermissionsNotification) notification.getData());
 			Project project = storage.getProjectById(resId);
-			if (project != null) {
-				if (project.getPermissions() == null) {
-					project.setPermissions(new HashMap<>());
-				}
-				project.getPermissions().remove(n.revokeUsername);
-			}
 			if (storage.getUsername().equals(n.revokeUsername)) {
 				storage.removeProjectById(resId);
 				getMetadataManager().projectDeleted(resId);
 			} else {
+				if (project != null) {
+					if (project.getPermissions() == null) {
+						project.setPermissions(new HashMap<>());
+					}
+					project.getPermissions().remove(n.revokeUsername);
+				}
 				storage.setProject(project);
 			}
 		});
@@ -246,8 +246,6 @@ public class PluginManager {
 		wsManager.registerNotificationHandler("Project", "Delete", (notification) -> {
 			long resId = notification.getResourceID();
 			storage.removeProjectById(resId);
-			// TODO: move out to metadata manager or request manager?
-			// TODO: investigate why this handler doesn't run for others deleting the project
 			ProjectMetadata meta = getMetadataManager().getProjectMetadata(resId);
 			if (meta == null) {
 				System.out.println("Received Project.Delete notification for non-existent project.");
@@ -287,9 +285,9 @@ public class PluginManager {
 			IProgressMonitor monitor = new NullProgressMonitor();
 			
 			meta = new FileMetadata(n.file);
-			List<FileMetadata> fmetas = new ArrayList<FileMetadata>(Arrays.asList(pmeta.getFiles()));
+			List<FileMetadata> fmetas = pmeta.getFiles();
 			fmetas.add(meta);
-			pmeta.setFiles(fmetas.toArray(new FileMetadata[fmetas.size()]));
+			pmeta.setFiles(fmetas);
 			mm.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
 			mm.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
 			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor);

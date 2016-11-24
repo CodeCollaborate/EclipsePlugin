@@ -113,7 +113,7 @@ public class DocumentChangeListener implements IDocumentListener {
 	private Request getFileChangeRequest(FileMetadata fileMeta, String[] changes, IResponseHandler respHandler,
 			IRequestSendErrorHandler sendErrHandler, int retryCount) {
 
-		return new FileChangeRequest(fileMeta.getFileID(), changes).getRequest(response -> {
+		return new FileChangeRequest(fileMeta.getFileID(), changes, fileMeta.getVersion()).getRequest(response -> {
 
 			// If we failed the first time around, update the fileVersion and
 			// retry.

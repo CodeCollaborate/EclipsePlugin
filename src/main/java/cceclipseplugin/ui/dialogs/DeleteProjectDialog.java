@@ -73,18 +73,7 @@ public class DeleteProjectDialog extends Dialog {
 	
 	@Override
 	protected void okPressed() {
-		PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());
-		// TODO: move out to metadata manager or request manager?
-		IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
-		IFile metaFile = iproject.getFile(CoreStringConstants.CONFIG_FILE_NAME);
-		if (metaFile.exists()) {
-			try {
-				metaFile.delete(true, true, new NullProgressMonitor());
-			} catch (CoreException e) {
-				e.printStackTrace();
-			}
-		}
-		
+		PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());		
 		super.okPressed();
 	}
 
