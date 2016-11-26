@@ -66,7 +66,7 @@ public class RecoverPasswordDialog extends Dialog {
 	
 	@Override 
 	protected void okPressed() {		
-//		PluginManager.getInstance().getRequestManager().sendRecoveryEmail(usernameBox.getText());
+		PluginManager.getInstance().getRequestManager().sendRecoveryEmail(usernameBox.getText());
 		MessageDialog.createDialog(DialogStrings.RecoverPasswordDialog_ThankYou, SWT.COLOR_BLACK).open();
 		super.okPressed();
 	}
