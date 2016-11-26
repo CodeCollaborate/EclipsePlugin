@@ -89,6 +89,11 @@ public class DialogStrings extends NLS {
 	public static String WelcomeDialog_TryAgainMsg;
 	public static String WelcomeDialog_UserLoginErr;
 	public static String WelcomeDialog_UsernameLabel;
+	
+	public static String RecoverPasswordDialog_Title;
+	public static String RecoverPasswordDialog_Message;
+	public static String RecoverPasswordDialog_SendRequest;
+	public static String RecoverPasswordDialog_ThankYou;
 
 	static {
 		// initialize resource bundle

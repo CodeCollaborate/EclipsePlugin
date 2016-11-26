@@ -19,7 +19,8 @@ import org.eclipse.wb.swt.SWTResourceManager;
  */
 public class MessageDialog extends Dialog {
 
-	private String errorMessage;
+	private String displayMessage;
+	private int textColor = SWT.NONE;
 	
 	/**
 	 * Create the dialog with a non-initialized error message. should only be
@@ -30,7 +31,7 @@ public class MessageDialog extends Dialog {
 	 */
 	public MessageDialog(Shell parentShell) {
 		super(parentShell);
-		errorMessage = StringConstants.NOT_INITIALIZED;
+		displayMessage = StringConstants.NOT_INITIALIZED;
 	}
 
 	/**
@@ -41,11 +42,20 @@ public class MessageDialog extends Dialog {
 	 */
 	private MessageDialog(Shell parentShell, String message) {
 		super(parentShell);
-		this.errorMessage = message;
+		this.displayMessage = message;
+	}
+	
+	private MessageDialog(Shell parentShell, String message, int color) {
+		this(parentShell, message);
+		this.textColor = color;
 	}
 	
 	public static MessageDialog createDialog(String message) {
 		return new MessageDialog(new Shell(), message);
+	}
+	
+	public static MessageDialog createDialog(String message, int textColor) {
+		return new MessageDialog(new Shell(), message, textColor);
 	}
 
 	/**
@@ -59,10 +69,16 @@ public class MessageDialog extends Dialog {
 		container.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
 
 		Label label = new Label(container, SWT.WRAP | SWT.CENTER);
-		label.setForeground(SWTResourceManager.getColor(SWT.COLOR_RED));
+		int color;
+		if (textColor != SWT.NONE) {
+			color = textColor;
+		} else {
+			color = SWT.COLOR_RED;
+		}
+		label.setForeground(SWTResourceManager.getColor(color));
 		GridData gd_label = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
 		label.setLayoutData(gd_label);
-		label.setText(errorMessage);
+		label.setText(displayMessage);
 
 		return container;
 	}
