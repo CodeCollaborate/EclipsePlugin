@@ -17,6 +17,9 @@ import org.eclipse.swt.widgets.Button;
 
 public class RecoverPasswordDialog extends Dialog {
 	
+	private static int RECOVERY_EMAILS_SENT = 0;
+	private static final int RECOVERY_EMAIL_CAP = 10;
+	
 	private Text usernameBox;
 	private Button okButton;
 	
@@ -65,9 +68,14 @@ public class RecoverPasswordDialog extends Dialog {
 	}
 	
 	@Override 
-	protected void okPressed() {		
-		PluginManager.getInstance().getRequestManager().sendRecoveryEmail(usernameBox.getText());
-		MessageDialog.createDialog(DialogStrings.RecoverPasswordDialog_ThankYou, SWT.COLOR_BLACK).open();
+	protected void okPressed() {
+		if (RECOVERY_EMAILS_SENT < RECOVERY_EMAIL_CAP) {
+			PluginManager.getInstance().getRequestManager().sendRecoveryEmail(usernameBox.getText());
+			RECOVERY_EMAILS_SENT++;
+			MessageDialog.createDialog(DialogStrings.RecoverPasswordDialog_ThankYou, SWT.COLOR_BLACK).open();
+		} else {
+			MessageDialog.createDialog(DialogStrings.RecoverPasswordDialog_TooManyAttempts).open();
+		}
 		super.okPressed();
 	}
 
