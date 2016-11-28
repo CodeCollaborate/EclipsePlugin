@@ -129,13 +129,6 @@ public class ProjectsListView extends ListView {
 		list.addListener(SWT.Selection, listener);
 	}
 	
-	private boolean getSubscribedVarFromPrefs(Project p) {
-		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
-		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-		Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
-		return thisProjectPrefs.getBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
-	}
-	
 	@Override
 	public void dispose() {
 		removePropertyListeners();
