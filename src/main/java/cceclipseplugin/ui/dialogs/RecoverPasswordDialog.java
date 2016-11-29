@@ -1,27 +1,24 @@
 package cceclipseplugin.ui.dialogs;
 
+import java.io.IOException;
+import java.util.Locale;
+
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Text;
 
-import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.util.OSUtil;
 
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.program.Program;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.widgets.Button;
 
 public class RecoverPasswordDialog extends Dialog {
-	
-	private static int RECOVERY_EMAILS_SENT = 0;
-	private static final int RECOVERY_EMAIL_CAP = 10;
-	
-	private Text usernameBox;
-	private Button okButton;
 	
 	/**
 	 * Create the dialog.
@@ -45,38 +42,24 @@ public class RecoverPasswordDialog extends Dialog {
 		gd_recoveryMessage.widthHint = 500;
 		recoveryMessage.setLayoutData(gd_recoveryMessage);
 		recoveryMessage.setText(DialogStrings.RecoverPasswordDialog_Message);
-
-		usernameBox = new Text(container, SWT.BORDER);
-		GridData gd_text = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1);
-		gd_text.widthHint = 100;
-		usernameBox.setLayoutData(gd_text);
-		final boolean[] usernameNotEmpty = {false};
-		usernameBox.addModifyListener((event) -> {
-			if (usernameBox.getText() != "") {
-				usernameNotEmpty[0] = true;
-			} else {
-				usernameNotEmpty[0] = false;
-			}
-			if (usernameNotEmpty[0]) {
-				okButton.setEnabled(true);
-			} else {
-				okButton.setEnabled(false);
-			}
+		
+		String mailTo = "mailto:codecollaboratesup@gmail.com?subject=CodeCollaborate Password Recovery Request";
+		Link link = new Link(container, SWT.NONE);
+		link.setText("<a href=\"" + mailTo + "\">codecollaboratesup@gmail.com</a>");
+		link.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
+		link.addListener(SWT.Selection, (event) -> {
+			if (OSUtil.isWindows()) {
+				Program.launch(mailTo);
+			} else if (OSUtil.isLinux()) {
+				try {
+					Runtime.getRuntime().exec("xdg-open " + mailTo);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			} // TODO: add one-click mailto launching for Mac once we can test it
 		});
 		
 		return container;
-	}
-	
-	@Override 
-	protected void okPressed() {
-		if (RECOVERY_EMAILS_SENT < RECOVERY_EMAIL_CAP) {
-			PluginManager.getInstance().getRequestManager().sendRecoveryEmail(usernameBox.getText());
-			RECOVERY_EMAILS_SENT++;
-			MessageDialog.createDialog(DialogStrings.RecoverPasswordDialog_ThankYou, SWT.COLOR_BLACK).open();
-		} else {
-			MessageDialog.createDialog(DialogStrings.RecoverPasswordDialog_TooManyAttempts).open();
-		}
-		super.okPressed();
 	}
 
 	/**
@@ -85,10 +68,7 @@ public class RecoverPasswordDialog extends Dialog {
 	 */
 	@Override
 	protected void createButtonsForButtonBar(Composite parent) {
-		okButton = createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);
-		okButton.setText(DialogStrings.RecoverPasswordDialog_SendRequest);
-		okButton.setEnabled(false);
-		createButton(parent, IDialogConstants.CANCEL_ID, IDialogConstants.CANCEL_LABEL, false);
+		createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, false);
 	}
 	
 	@Override
@@ -96,5 +76,4 @@ public class RecoverPasswordDialog extends Dialog {
 	      super.configureShell(shell);
 	      shell.setText(DialogStrings.RecoverPasswordDialog_Title);
 	}
-
 }
