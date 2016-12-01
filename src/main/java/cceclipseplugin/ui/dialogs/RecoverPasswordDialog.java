@@ -1,8 +1,5 @@
 package cceclipseplugin.ui.dialogs;
 
-import java.io.IOException;
-import java.util.Locale;
-
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
