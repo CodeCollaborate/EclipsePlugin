@@ -48,15 +48,15 @@ public class RecoverPasswordDialog extends Dialog {
 		link.setText("<a href=\"" + mailTo + "\">codecollaboratesup@gmail.com</a>");
 		link.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, false));
 		link.addListener(SWT.Selection, (event) -> {
-			if (OSUtil.isWindows()) {
-				Program.launch(mailTo);
-			} else if (OSUtil.isLinux()) {
-				try {
+			try {
+				if (OSUtil.isWindows()) {
+					Program.launch(mailTo);
+				} else if (OSUtil.isLinux()) {
 					Runtime.getRuntime().exec("xdg-open " + mailTo);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} // TODO: add one-click mailto launching for Mac once we can test it
+				} // TODO: add one-click mailto launching for Mac once we can test it
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		});
 		
 		return container;
