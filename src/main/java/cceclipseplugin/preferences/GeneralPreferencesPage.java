@@ -7,11 +7,13 @@ import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.dialogs.RecoverPasswordDialog;
 import websocket.ConnectException;
 
 public class GeneralPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
@@ -43,15 +45,6 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 				getFieldEditorParent());
 		// TODO: change when implementing other ways to connect other than on startup
 		autoConnect.setEnabled(false, getFieldEditorParent());
-
-		Button forgotPassword = new Button(getFieldEditorParent(), SWT.PUSH);
-		forgotPassword.setText("Forgot Password");
-		// TODO: change when forgot password is implemented
-		forgotPassword.setEnabled(false);
-		Button changePassword = new Button(getFieldEditorParent(), SWT.PUSH);
-		changePassword.setText("Change Password");
-		// TODO: change when change password is implemented
-		changePassword.setEnabled(false);
 		
 		Button reconnect = new Button(getFieldEditorParent(), SWT.PUSH);
 		reconnect.setText("Reconnect to Server");
@@ -64,6 +57,19 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 				 }
 			 }).start();
 		});
+
+		Button forgotPassword = new Button(getFieldEditorParent(), SWT.PUSH);
+		forgotPassword.setText("Forgotten Password?");
+		forgotPassword.addListener(SWT.Selection, (event) -> {
+			new Thread(() -> {
+				Display.getDefault().asyncExec(() -> new RecoverPasswordDialog(getShell()).open());
+			}).start();
+		});
+		
+//		Button changePassword = new Button(getFieldEditorParent(), SWT.PUSH);
+//		changePassword.setText("Change Password");
+//		// TODO: change when change password is implemented
+//		changePassword.setEnabled(false);
 
 		addField(userBox);
 		addField(pwBox);
