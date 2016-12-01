@@ -1,5 +1,7 @@
 package cceclipseplugin.core;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -353,21 +355,15 @@ public class PluginManager {
 				return;
 			}
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			
-			// TODO (fahslaj): Finish these blocks of code in integration of editor
-//			StringBuilder pathBuilder = new StringBuilder();
-//			pathBuilder.append(projectLocation);
-//			pathBuilder.append(meta.getRelativePath());
-//			pathBuilder.append(meta.getFilename());
-//			
-//			File file = new File(pathBuilder.toString());
-//			if (file.exists()) {
-//				file.delete();
-//				mm.fileDeleted(resId);
-//			} else {
-//				System.out.println("Tried to delete file that does not exist: " + pathBuilder.toString());
-//				return;
-//			}
+			Path pathToFile = Paths.get(projectLocation, meta.getFilePath()).normalize();
+			File file = new File(pathToFile.toString());
+			// TODO: alert the directory watching system that a file is about to be deleted
+			if (file.exists()) {
+				file.delete();
+				mm.fileDeleted(resId);
+			} else {
+				System.out.println("Tried to delete file that does not exist: " + pathToFile.toString());
+			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",
