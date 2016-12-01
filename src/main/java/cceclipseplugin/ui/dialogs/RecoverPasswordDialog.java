@@ -50,7 +50,7 @@ public class RecoverPasswordDialog extends Dialog {
 					Program.launch(mailTo);
 				} else if (OSUtil.isLinux()) {
 					Runtime.getRuntime().exec("xdg-open " + mailTo);
-				} // TODO: add one-click mailto launching for Mac once we can test it
+				} // TODO: add one-click mailto launching for Mac (and other versions of Linux launchers)
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
