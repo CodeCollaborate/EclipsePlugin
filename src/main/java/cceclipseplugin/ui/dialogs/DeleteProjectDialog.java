@@ -1,5 +1,10 @@
 package cceclipseplugin.ui.dialogs;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
@@ -12,6 +17,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.wb.swt.SWTResourceManager;
 
 import cceclipseplugin.core.PluginManager;
+import constants.CoreStringConstants;
 import websocket.models.Project;
 
 public class DeleteProjectDialog extends Dialog {
@@ -67,8 +73,7 @@ public class DeleteProjectDialog extends Dialog {
 	
 	@Override
 	protected void okPressed() {
-		PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());
-		
+		PluginManager.getInstance().getRequestManager().deleteProject(project.getProjectID());		
 		super.okPressed();
 	}
 
