@@ -3,6 +3,7 @@ package cceclipseplugin.ui.dialogs;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,6 +24,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
+import websocket.models.Permission;
 import websocket.models.Project;
 import org.eclipse.wb.swt.SWTResourceManager;
 
@@ -71,11 +73,14 @@ public class AddNewUserDialog extends Dialog {
 		
 		permissionMap = PluginManager.getInstance().getDataManager().getSessionStorage().getPermissionConstants();
 		BiMap<Byte, String> inversePermissionMap = permissionMap.inverse();
-		@SuppressWarnings("unchecked")
 		List<Byte> permissionCodes = new ArrayList<>(permissionMap.values());
+		HashMap<String, Permission> userPermissions = selectedProject.getPermissions();
+		int userLevel = userPermissions.get(PluginManager.getInstance().getDataManager().getSessionStorage().getUsername()).getPermissionLevel();
 		Collections.sort(permissionCodes);
 		for (Byte b : permissionCodes) {
-			combo.add(b + " : " + inversePermissionMap.get(b));
+			if (userLevel > b) {
+				combo.add(b + " : " + inversePermissionMap.get(b));
+			}
 		}
 		final boolean[] permissionSelected = {false};
 		final boolean[] usernameNotEmpty = {false};
