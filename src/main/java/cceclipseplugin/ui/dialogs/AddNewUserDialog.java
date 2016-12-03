@@ -24,6 +24,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
 import cceclipseplugin.core.PluginManager;
+import dataMgmt.SessionStorage;
 import websocket.models.Permission;
 import websocket.models.Project;
 import org.eclipse.wb.swt.SWTResourceManager;
@@ -71,11 +72,12 @@ public class AddNewUserDialog extends Dialog {
 		GridData gd_combo = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
 		combo.setLayoutData(gd_combo);
 		
-		permissionMap = PluginManager.getInstance().getDataManager().getSessionStorage().getPermissionConstants();
+		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
+		permissionMap = ss.getPermissionConstants();
 		BiMap<Byte, String> inversePermissionMap = permissionMap.inverse();
 		List<Byte> permissionCodes = new ArrayList<>(permissionMap.values());
 		HashMap<String, Permission> userPermissions = selectedProject.getPermissions();
-		int userLevel = userPermissions.get(PluginManager.getInstance().getDataManager().getSessionStorage().getUsername()).getPermissionLevel();
+		int userLevel = userPermissions.get(ss.getUsername()).getPermissionLevel();
 		Collections.sort(permissionCodes);
 		for (Byte b : permissionCodes) {
 			if (userLevel > b) {
