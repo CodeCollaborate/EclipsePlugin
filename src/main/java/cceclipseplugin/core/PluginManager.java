@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.eclipse.core.commands.IExecutionListener;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IWorkspace;
@@ -290,17 +291,19 @@ public class PluginManager {
 				return;
 			}
 			FileRenameNotification n = ((FileRenameNotification) notification.getData());
-			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			Path pathToFile = Paths.get(projectLocation, meta.getFilePath(), meta.getFilename()).normalize();
-			File file = new File(pathToFile.toString());
-			Path newPathToFile = Paths.get(projectLocation, meta.getFilePath(), n.newName).normalize();
-			// TODO: alert the directory watching system that a file is about to be renamed
-			if (file.exists()) {
-				file.renameTo(new File(newPathToFile.toString()));
+			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
+			
+			// old file
+			Path pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize();
+			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+			IFile file = p.getFile(pathToFile.toString());
+			
+			// new file
+			Path newPathToFile = Paths.get(meta.getFilePath(), n.newName).normalize();
+			IFile newFile = p.getFile(newPathToFile.toString());
+			
+			if (renameFile(file, newFile)) {
 				meta.setFilename(n.newName);
-			} else {
-				System.out.println("Tried to rename file that does not exist: " + pathToFile.toString());
-				return;
 			}
 		});
 		// File.Move
@@ -313,17 +316,19 @@ public class PluginManager {
 				return;
 			}
 			FileMoveNotification n = ((FileMoveNotification) notification.getData());
-			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			Path pathToFile = Paths.get(projectLocation, meta.getFilePath(), meta.getFilename()).normalize();
-			File file = new File(pathToFile.toString());
-			Path newPathToFile = Paths.get(projectLocation, n.newPath, meta.getFilename()).normalize();
-			// TODO: alert the directory watching system that a file is about to be renamed
-			if (file.exists()) {
-				file.renameTo(new File(newPathToFile.toString()));
+			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
+			
+			// old file
+			Path pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize();
+			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+			IFile file = p.getFile(pathToFile.toString());
+			
+			// new file
+			Path newPathToFile = Paths.get(n.newPath, meta.getFilename()).normalize();
+			IFile newFile = p.getFile(newPathToFile.toString());
+
+			if (renameFile(file, newFile)) {
 				meta.setRelativePath(n.newPath);
-			} else {
-				System.out.println("Tried to move file that does not exist: " + pathToFile.toString());
-				return;
 			}
 		});
 		// File.Delete
@@ -349,6 +354,28 @@ public class PluginManager {
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",
 				(Notification n) -> documentManager.handleNotification(n));
+	}
+	
+	private boolean renameFile(IFile file, IFile newFile) {
+		if (file.exists()) {
+			if (newFile.exists()) {
+				// do what? error?
+			} else {
+				try {
+					NullProgressMonitor monitor = new NullProgressMonitor();
+					// TODO: alert the directory watching system that a file is about to be created
+					newFile.create(file.getContents(), true, monitor);
+					// TODO: alert the directory watching system that a file is about to be deleted
+					file.delete(true, monitor);
+					return true;
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		} else {
+			System.out.println("Tried to rename file that does not exist: " + file.getFullPath().toString());
+		}
+		return false;
 	}
 	
 	public void registerResourceListeners() {
