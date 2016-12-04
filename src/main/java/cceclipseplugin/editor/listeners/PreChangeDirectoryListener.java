@@ -5,6 +5,7 @@ import java.io.InputStream;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.runtime.CoreException;
+
 import cceclipseplugin.core.EclipseRequestManager;
 import cceclipseplugin.core.PluginManager;
 import dataMgmt.MetadataManager;
@@ -80,7 +81,7 @@ public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 		//
 		// }
 	}
-
+	
 	public byte[] getOldFileBytes() {
 		return this.oldFileBytes;
 	}

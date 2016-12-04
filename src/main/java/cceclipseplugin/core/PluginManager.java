@@ -1,24 +1,30 @@
 package cceclipseplugin.core;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.core.commands.IExecutionListener;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.commands.ICommandService;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
@@ -269,7 +275,6 @@ public class PluginManager {
 			if (meta != null) {
 				return;
 			}
-			
 			Project p = dataManager.getSessionStorage().getProjectById(pmeta.getProjectID());
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject eclipseProject = root.getProject(p.getName());
@@ -287,26 +292,17 @@ public class PluginManager {
 			}
 			FileRenameNotification n = ((FileRenameNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			
-			// TODO (fahslaj): Finish these blocks of code in integration of editor
-//			StringBuilder pathBuilder = new StringBuilder();
-//			pathBuilder.append(projectLocation);
-//			pathBuilder.append(meta.getRelativePath());
-//			pathBuilder.append(meta.getFilename());
-//			
-//			StringBuilder newPathBuilder = new StringBuilder();
-//			newPathBuilder.append(projectLocation);
-//			newPathBuilder.append(meta.getRelativePath());
-//			newPathBuilder.append(n.newName);
-//			
-//			File file = new File(pathBuilder.toString());
-//			if (file.exists()) {
-//				file.renameTo(new File(newPathBuilder.toString()));
-//				meta.setFilename(n.newName);
-//			} else {
-//				System.out.println("Tried to rename file that does not exist: " + pathBuilder.toString());
-//				return;
-//			}
+			Path pathToFile = Paths.get(projectLocation, meta.getFilePath(), meta.getFilename()).normalize();
+			File file = new File(pathToFile.toString());
+			Path newPathToFile = Paths.get(projectLocation, meta.getFilePath(), n.newName).normalize();
+			// TODO: alert the directory watching system that a file is about to be renamed
+			if (file.exists()) {
+				file.renameTo(new File(newPathToFile.toString()));
+				meta.setFilename(n.newName);
+			} else {
+				System.out.println("Tried to rename file that does not exist: " + pathToFile.toString());
+				return;
+			}
 		});
 		// File.Move
 		wsManager.registerNotificationHandler("File", "Move", (notification) -> {
@@ -319,26 +315,17 @@ public class PluginManager {
 			}
 			FileMoveNotification n = ((FileMoveNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			
-			// TODO (fahslaj): Finish these blocks of code in integration of editor
-//			StringBuilder pathBuilder = new StringBuilder();
-//			pathBuilder.append(projectLocation);
-//			pathBuilder.append(meta.getRelativePath());
-//			pathBuilder.append(meta.getFilename());
-//			
-//			StringBuilder newPathBuilder = new StringBuilder();
-//			newPathBuilder.append(projectLocation);
-//			newPathBuilder.append(n.newPath);
-//			newPathBuilder.append(meta.getFilename());
-//			
-//			File file = new File(pathBuilder.toString());
-//			if (file.exists()) {
-//				file.renameTo(new File(newPathBuilder.toString()));
-//				meta.setRelativePath(n.newPath);
-//			} else {
-//				System.out.println("Tried to move file that does not exist: " + pathBuilder.toString());
-//				return;
-//			}
+			Path pathToFile = Paths.get(projectLocation, meta.getFilePath(), meta.getFilename()).normalize();
+			File file = new File(pathToFile.toString());
+			Path newPathToFile = Paths.get(projectLocation, n.newPath, meta.getFilename()).normalize();
+			// TODO: alert the directory watching system that a file is about to be renamed
+			if (file.exists()) {
+				file.renameTo(new File(newPathToFile.toString()));
+				meta.setRelativePath(n.newPath);
+			} else {
+				System.out.println("Tried to move file that does not exist: " + pathToFile.toString());
+				return;
+			}
 		});
 		// File.Delete
 		wsManager.registerNotificationHandler("File", "Delete", (notification) -> {
@@ -350,21 +337,15 @@ public class PluginManager {
 				return;
 			}
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			
-			// TODO (fahslaj): Finish these blocks of code in integration of editor
-//			StringBuilder pathBuilder = new StringBuilder();
-//			pathBuilder.append(projectLocation);
-//			pathBuilder.append(meta.getRelativePath());
-//			pathBuilder.append(meta.getFilename());
-//			
-//			File file = new File(pathBuilder.toString());
-//			if (file.exists()) {
-//				file.delete();
-//				mm.fileDeleted(resId);
-//			} else {
-//				System.out.println("Tried to delete file that does not exist: " + pathBuilder.toString());
-//				return;
-//			}
+			Path pathToFile = Paths.get(projectLocation, meta.getFilePath(), meta.getFilename()).normalize();
+			File file = new File(pathToFile.toString());
+			// TODO: alert the directory watching system that a file is about to be deleted
+			if (file.exists()) {
+				file.delete();
+				mm.fileDeleted(resId);
+			} else {
+				System.out.println("Tried to delete file that does not exist: " + pathToFile.toString());
+			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",

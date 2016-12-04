@@ -96,7 +96,6 @@ public class PostChangeDirectoryListener extends AbstractDirectoryListener {
 					System.out.println("sent file rename request; changing to " + newName);
 					
 					
-					
 //					// process file changes and send as File.Change 
 //					IFile movedFile = f.getProject().getFile(relativeMovedToPath);
 //					try {
