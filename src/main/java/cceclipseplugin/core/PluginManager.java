@@ -6,23 +6,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
-import org.eclipse.core.commands.IExecutionListener;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
-import org.eclipse.core.runtime.Plugin;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.commands.ICommandService;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
@@ -31,7 +27,6 @@ import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
 import cceclipseplugin.editor.listeners.PostChangeDirectoryListener;
 import cceclipseplugin.editor.listeners.PreChangeDirectoryListener;
-import cceclipseplugin.editor.listeners.SaveExecutionListener;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
@@ -379,7 +374,7 @@ public class PluginManager {
 	public void registerResourceListeners() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		preChangeDirListener = new PreChangeDirectoryListener();
-		postChangeDirListener = new PostChangeDirectoryListener(preChangeDirListener);
+		postChangeDirListener = new PostChangeDirectoryListener();
 		workspace.addResourceChangeListener(preChangeDirListener, IResourceChangeEvent.PRE_BUILD);
 		workspace.addResourceChangeListener(postChangeDirListener, IResourceChangeEvent.POST_BUILD);
 	}

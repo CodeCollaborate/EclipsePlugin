@@ -22,4 +22,5 @@ Require-Bundle: org.eclipse.ui,
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .,
- lib/ClientCore.jar
+ lib/ClientCore.jar,
+ lib/diff-match-patch-1.1.jar
