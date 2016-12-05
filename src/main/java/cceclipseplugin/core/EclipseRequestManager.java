@@ -4,10 +4,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -16,6 +16,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
@@ -25,8 +26,11 @@ import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.DialogStrings;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import dataMgmt.DataManager;
+import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
+import patching.Diff;
+import patching.Patch;
 import requestMgmt.IInvalidResponseHandler;
 import requestMgmt.RequestManager;
 import websocket.IRequestSendErrorHandler;
@@ -70,40 +74,44 @@ public class EclipseRequestManager extends RequestManager {
 		}
 	}
 	
-	private byte[] fileBytes;
+//	private byte[] fileBytes;
 	
 	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor, boolean unsubscribeOnFailure) {
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 				if (response.getStatus() == 200) {
-					fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
+					byte[] fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
 					
-					String path = file.getRelativePath();
-					Path relPath = new Path(path);
-					if (!path.equals("") && !path.equals(".")) {
-						String currentFolder = "";
+					Path relPath = new Path(file.getRelativePath());
+					System.out.println("Processing path " + relPath.toString());
+					if (!relPath.toString().equals("") && !relPath.toString().equals(".")) {
+						
+						Path currentFolder = Path.EMPTY;
 						for (int i = 0; i < relPath.segmentCount(); i++) {
 							// iterate through path segments and create if they don't exist
-							currentFolder = Paths.get(currentFolder, relPath.segment(i)).toString();
-							Path currentPath = new Path(currentFolder);
-							System.out.println("Making folder " + currentPath.toString());
-							IFolder newFolder = p.getFolder(currentPath);
+							currentFolder = (Path) currentFolder.append(relPath.segment(i));
+							System.out.println("Making folder " + currentFolder.toString());
+							
+							IFolder newFolder = p.getFolder(currentFolder);
 							try {
 								if (!newFolder.exists()) {
 									newFolder.create(true, true, progressMonitor);
 								}
 							} catch (Exception e1) {
-								System.out.println("Could not create folder for " + currentPath.toString());
+								System.out.println("Could not create folder for " + currentFolder.toString());
 								e1.printStackTrace();
 								if (unsubscribeOnFailure) {
 									showErrorAndUnsubscribe(ccp.getProjectID());
 								}
 								return;
 							}
+							
 						}
+						
 					}
-					path += "/" + file.getFilename();
-					System.out.println("Making file " + path);
-					IFile newFile = p.getFile(new Path(path));
+					
+					relPath = (Path) relPath.append(file.getFilename());
+					System.out.println("Making file " + relPath.toString());
+					IFile newFile = p.getFile(relPath);
 					try {
 						if (newFile.exists()) {
 							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
@@ -117,6 +125,15 @@ public class EclipseRequestManager extends RequestManager {
 						meta.setVersion(file.getFileVersion());
 						PluginManager.getInstance().getMetadataManager().putFileMetadata(newFile.getFullPath().removeLastSegments(1).toString(), 
 								ccp.getProjectID(), meta);
+						if (newFile.exists()) {
+							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
+							newFile.setContents(in, true, false, progressMonitor);
+							in.close();
+						} else {
+							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
+							newFile.create(in, true, progressMonitor);
+							in.close();
+						}
 					} catch (Exception e) {
 						e.printStackTrace();
 						if (unsubscribeOnFailure) {
@@ -138,6 +155,108 @@ public class EclipseRequestManager extends RequestManager {
 			}
 		});
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+	}
+	
+//	private byte[] fileContents;
+//	
+//	public byte[] pullFile(FileMetadata file) {
+//		fileContents = null;
+//		Semaphore waiter = new Semaphore(1);
+//		
+//		Request req = new FilePullRequest(file.getFileID()).getRequest(response -> {
+//			if (response.getStatus() == 200) {
+//				fileContents = ((FilePullResponse) response.getData()).getFileBytes();
+//			}
+//			waiter.release();
+//		}, new UIRequestErrorHandler("Couldn't send file pull request."));
+//		
+//		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+//		
+//		try {
+//			waiter.acquire();
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		return fileContents;
+//	}
+	
+	@Override
+	public void finishRenameFile(FileMetadata fMeta) {
+		pullDiffSendChanges(fMeta);
+	}
+	
+	@Override
+	public void finishMoveFile(FileMetadata fMeta) {
+		pullDiffSendChanges(fMeta);
+	}
+	
+	private void pullDiffSendChanges(FileMetadata fMeta) {
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+		
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		ProjectMetadata pMeta = mm.getProjectMetadata(mm.getProjectIDForFileID(fMeta.getFileID()));
+		IPath filePath = new Path(pMeta.getName());
+		filePath = filePath.append(fMeta.getFilePath());
+		IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(filePath);
+		
+		Request req = new FilePullRequest(fMeta.getFileID()).getRequest(response -> {
+			if (response.getStatus() == 200) {
+				try {
+					byte[] oldContents = ((FilePullResponse) response.getData()).getFileBytes();
+					InputStream in = file.getContents();
+					byte[] newContents = inputStreamToByteArray(in);
+					in.close();
+					
+					List<Diff> diffs = generateStringDiffs(new String(oldContents), new String(newContents));
+					
+					if (diffs != null && !diffs.isEmpty()) {
+						this.sendFileChanges(fMeta.getFileID(), new String[] { new Patch(0, diffs).toString() }, 0);
+					} else {
+						System.out.println("File either failed to pull or no diffs were found.");
+					}
+					
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}, new UIRequestErrorHandler("Couldn't send file pull request"));
+		
+		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+	}
+	
+	public List<Diff> generateStringDiffs(String oldContents, String newContents) {
+		DiffMatchPatch dmp = new DiffMatchPatch();
+		List<org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch.Patch> patches = dmp.patchMake(oldContents, newContents);
+		List<Diff> ccDiffs = new ArrayList<>();
+
+		for (org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch.Patch p : patches) {
+			int index = p.start1;
+			
+			for (org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch.Diff d : p.diffs) {
+				Diff ccDiff = null;
+				
+				if (d.operation == DiffMatchPatch.Operation.INSERT) {
+					ccDiff = new Diff(true, index, d.text);
+					index += d.text.length();
+				} else if (d.operation == DiffMatchPatch.Operation.DELETE) {
+					ccDiff = new Diff(false, index, d.text);
+				} else if (d.operation == DiffMatchPatch.Operation.EQUAL) {
+					index += d.text.length();
+				}
+				
+				if (ccDiff != null) {
+					ccDiffs.add(ccDiff);
+				}
+			}
+			
+		}
+		
+		return ccDiffs;
 	}
 
 	@Override
@@ -223,7 +342,8 @@ public class EclipseRequestManager extends RequestManager {
 				break;
 			out.write(curr);
 		}
-		
-		return out.toByteArray();
+		byte[] result = out.toByteArray();
+		out.close();
+		return result;
 	}
 }
