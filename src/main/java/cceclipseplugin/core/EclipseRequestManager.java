@@ -63,7 +63,7 @@ public class EclipseRequestManager extends RequestManager {
 			eclipseProject.create(progressMonitor);
 			eclipseProject.open(progressMonitor);
 			for (File f : files) {
-				pullFileAndCreate(eclipseProject, p, f, progressMonitor);
+				pullFileAndCreate(eclipseProject, p, f, progressMonitor, false);
 			}
 		} catch (CoreException e) {
 			e.printStackTrace();
@@ -72,7 +72,7 @@ public class EclipseRequestManager extends RequestManager {
 	
 	private byte[] fileBytes;
 	
-	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor) {
+	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor, boolean unsubscribeOnFailure) {
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 				if (response.getStatus() == 200) {
 					fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
@@ -94,6 +94,10 @@ public class EclipseRequestManager extends RequestManager {
 							} catch (Exception e1) {
 								System.out.println("Could not create folder for " + currentPath.toString());
 								e1.printStackTrace();
+								if (unsubscribeOnFailure) {
+									showErrorAndUnsubscribe(ccp.getProjectID());
+								}
+								return;
 							}
 						}
 					}
@@ -101,6 +105,11 @@ public class EclipseRequestManager extends RequestManager {
 					System.out.println("Making file " + path);
 					IFile newFile = p.getFile(new Path(path));
 					try {
+						if (newFile.exists()) {
+							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
+						} else {
+							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
+						}
 						FileMetadata meta = new FileMetadata();
 						meta.setFileID(file.getFileID());
 						meta.setFilename(file.getFilename());
@@ -108,19 +117,26 @@ public class EclipseRequestManager extends RequestManager {
 						meta.setVersion(file.getFileVersion());
 						PluginManager.getInstance().getMetadataManager().putFileMetadata(newFile.getFullPath().removeLastSegments(1).toString(), 
 								ccp.getProjectID(), meta);
-						if (newFile.exists()) {
-							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
-						} else {
-							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
-						}
 					} catch (Exception e) {
 						e.printStackTrace();
+						if (unsubscribeOnFailure) {
+							showErrorAndUnsubscribe(ccp.getProjectID());
+						}
+						return;
 					}
 				} else {
 					MessageDialog.createDialog("Failed to pull file" + file.getFilename() + " with status code " + response.getStatus()).open();
+					if (unsubscribeOnFailure) {
+						showErrorAndUnsubscribe(ccp.getProjectID());
+					}
 				}
-		}, new UIRequestErrorHandler("Couldn't send file pull request."));
-		
+		}, () -> {
+			if (unsubscribeOnFailure) {
+				showErrorAndUnsubscribe(ccp.getProjectID());
+			} else {
+				new UIRequestErrorHandler("Couldn't send file pull request.").handleRequestSendError();
+			}
+		});
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 	}
 
@@ -186,6 +202,15 @@ public class EclipseRequestManager extends RequestManager {
 			files.addAll(recursivelyGetFiles(folder));
 		}
 		return files;
+	}
+	
+	private void showErrorAndUnsubscribe(long projectId) {
+		Display.getDefault().asyncExec(() -> {
+			PluginManager pm = PluginManager.getInstance();
+			String projName = pm.getDataManager().getSessionStorage().getProjectById(projectId).getName();
+			unsubscribeFromProject(projectId);
+			MessageDialog.createDialog("An error occured. Please re-subscribe to the project " + projName).open();
+		});
 	}
 	
 	public static byte[] inputStreamToByteArray(InputStream is) throws IOException {
