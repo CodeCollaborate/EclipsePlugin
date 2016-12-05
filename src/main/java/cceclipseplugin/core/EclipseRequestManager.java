@@ -114,18 +114,6 @@ public class EclipseRequestManager extends RequestManager {
 					IFile newFile = p.getFile(relPath);
 					try {
 						if (newFile.exists()) {
-							newFile.setContents(new ByteArrayInputStream(fileBytes), true, false, progressMonitor);
-						} else {
-							newFile.create(new ByteArrayInputStream(fileBytes), true, progressMonitor);
-						}
-						FileMetadata meta = new FileMetadata();
-						meta.setFileID(file.getFileID());
-						meta.setFilename(file.getFilename());
-						meta.setRelativePath(file.getRelativePath());
-						meta.setVersion(file.getFileVersion());
-						PluginManager.getInstance().getMetadataManager().putFileMetadata(newFile.getFullPath().removeLastSegments(1).toString(), 
-								ccp.getProjectID(), meta);
-						if (newFile.exists()) {
 							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
 							newFile.setContents(in, true, false, progressMonitor);
 							in.close();
@@ -134,6 +122,13 @@ public class EclipseRequestManager extends RequestManager {
 							newFile.create(in, true, progressMonitor);
 							in.close();
 						}
+						FileMetadata meta = new FileMetadata();
+						meta.setFileID(file.getFileID());
+						meta.setFilename(file.getFilename());
+						meta.setRelativePath(file.getRelativePath());
+						meta.setVersion(file.getFileVersion());
+						PluginManager.getInstance().getMetadataManager().putFileMetadata(newFile.getFullPath().removeLastSegments(1).toString(), 
+								ccp.getProjectID(), meta);
 					} catch (Exception e) {
 						e.printStackTrace();
 						if (unsubscribeOnFailure) {
