@@ -74,8 +74,6 @@ public class EclipseRequestManager extends RequestManager {
 		}
 	}
 	
-//	private byte[] fileBytes;
-	
 	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor, boolean unsubscribeOnFailure) {
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 				if (response.getStatus() == 200) {
@@ -151,31 +149,7 @@ public class EclipseRequestManager extends RequestManager {
 		});
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 	}
-	
-//	private byte[] fileContents;
-//	
-//	public byte[] pullFile(FileMetadata file) {
-//		fileContents = null;
-//		Semaphore waiter = new Semaphore(1);
-//		
-//		Request req = new FilePullRequest(file.getFileID()).getRequest(response -> {
-//			if (response.getStatus() == 200) {
-//				fileContents = ((FilePullResponse) response.getData()).getFileBytes();
-//			}
-//			waiter.release();
-//		}, new UIRequestErrorHandler("Couldn't send file pull request."));
-//		
-//		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
-//		
-//		try {
-//			waiter.acquire();
-//		} catch (InterruptedException e) {
-//			e.printStackTrace();
-//		}
-//		
-//		return fileContents;
-//	}
-	
+
 	@Override
 	public void finishRenameFile(FileMetadata fMeta) {
 		pullDiffSendChanges(fMeta);
@@ -186,7 +160,7 @@ public class EclipseRequestManager extends RequestManager {
 		pullDiffSendChanges(fMeta);
 	}
 	
-	private void pullDiffSendChanges(FileMetadata fMeta) {
+	public void pullDiffSendChanges(FileMetadata fMeta) {
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e1) {

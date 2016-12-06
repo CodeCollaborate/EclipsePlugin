@@ -1,11 +1,9 @@
 package cceclipseplugin.core;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -16,6 +14,8 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.InstanceScope;
@@ -55,6 +55,7 @@ import websocket.models.Notification;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.notifications.FileCreateNotification;
+import websocket.models.notifications.FileDeleteNotification;
 import websocket.models.notifications.FileMoveNotification;
 import websocket.models.notifications.FileRenameNotification;
 import websocket.models.notifications.ProjectRenameNotification;
@@ -85,8 +86,9 @@ public class PluginManager {
 	private PreChangeDirectoryListener preChangeDirListener;
 	private PostChangeDirectoryListener postChangeDirListener;
 	
-	private HashSet<Long> fileDirectoryWatchWarnList = new HashSet<>();
-	private HashSet<Long> projectDirectoryWatchWarnList = new HashSet<>();
+	// may have to switch to using a queue if we run into issues with the order notifications are received
+	private HashMap<String, List<Class<?>>> fileDirectoryWatchWarnList = new HashMap<>();
+	private HashMap<String, List<Class<?>>> projectDirectoryWatchWarnList = new HashMap<>();
 	
 	// PLUGIN MODULES
 	private final DocumentManager documentManager;
@@ -285,7 +287,8 @@ public class PluginManager {
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject eclipseProject = root.getProject(p.getName());
 			IProgressMonitor monitor = new NullProgressMonitor();
-			fileDirectoryWatchWarnList.add(meta.getFileID());
+			String path = Paths.get(n.file.getRelativePath(), n.file.getFilename()).toString();
+			putFileInWarnList(path, n.getClass());
 			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor, true);
 		});
 		// File.Rename
@@ -301,15 +304,14 @@ public class PluginManager {
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
 			
 			// old file
-			Path pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize();
+			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
 			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
-			IFile file = p.getFile(pathToFile.toString());
+			IFile file = p.getFile(pathToFile);
 			
 			// new file
-			Path newPathToFile = Paths.get(meta.getFilePath(), n.newName).normalize();
-			IFile newFile = p.getFile(newPathToFile.toString());
+			String newPathToFile = Paths.get(meta.getFilePath(), n.newName).normalize().toString();
 			
-			if (renameFile(file, newFile, project.getProjectID())) {
+			if (renameFile(file, new Path(newPathToFile), project.getProjectID())) {
 				meta.setFilename(n.newName);
 			}
 		});
@@ -326,15 +328,14 @@ public class PluginManager {
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
 			
 			// old file
-			Path pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize();
+			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
 			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
-			IFile file = p.getFile(pathToFile.toString());
+			IFile file = p.getFile(pathToFile);
 			
 			// new file
-			Path newPathToFile = Paths.get(n.newPath, meta.getFilename()).normalize();
-			IFile newFile = p.getFile(newPathToFile.toString());
+			String newPathToFile = Paths.get(n.newPath, meta.getFilename()).normalize().toString();
 			
-			if (renameFile(file, newFile, project.getProjectID())) {
+			if (renameFile(file, new Path(newPathToFile), project.getProjectID())) {
 				meta.setRelativePath(n.newPath);
 			}
 		});
@@ -348,13 +349,12 @@ public class PluginManager {
 				return;
 			}
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
-			Path pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize();
+			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
 			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
-			IFile file = p.getFile(pathToFile.toString());
+			IFile file = p.getFile(pathToFile);
 			
-			// TODO: alert the directory watching system that a file is about to be deleted
 			if (file.exists()) {
-				if (documentManager.getEditor(pathToFile.toString()) != null) {
+				if (documentManager.getEditor(pathToFile) != null) {
 					Display.getDefault().asyncExec(() -> {
 						String message = String.format(DialogStrings.DeleteWarningDialog_Message, file.getName());
 						OkCancelDialog dialog = OkCancelDialog.createDialog(message,
@@ -367,14 +367,16 @@ public class PluginManager {
 					return;
 				}
 				try {
+					putFileInWarnList(pathToFile, FileDeleteNotification.class);
 					file.delete(true, new NullProgressMonitor());
 					mm.fileDeleted(resId);
 				} catch (CoreException e) {
 					e.printStackTrace();
+					removeFileFromWarnList(pathToFile, FileDeleteNotification.class);
 					showErrorAndUnsubscribe(project.getProjectID());
 				}
 			} else {
-				System.out.println("Tried to delete file that does not exist: " + pathToFile.toString());
+				System.out.println("Tried to delete file that does not exist: " + pathToFile);
 			}
 		});
 		// File.Change
@@ -382,22 +384,17 @@ public class PluginManager {
 				(Notification n) -> documentManager.handleNotification(n));
 	}
 		
-	private boolean renameFile(IFile file, IFile newFile, long projId) {
+	private boolean renameFile(IFile file, IPath newPath, long projId) {
 		if (file.exists()) {
-			if (newFile.exists()) {
-				// do what? error?
-			} else {
-				try {
-					NullProgressMonitor monitor = new NullProgressMonitor();
-					// TODO: alert the directory watching system that a file is about to be created
-					newFile.create(file.getContents(), true, monitor);
-					// TODO: alert the directory watching system that a file is about to be deleted
-					file.delete(true, monitor);
-					return true;
-				} catch (Exception e) {
-					e.printStackTrace();
-					showErrorAndUnsubscribe(projId);
-				}
+			try {
+				NullProgressMonitor monitor = new NullProgressMonitor();
+				putFileInWarnList(newPath.toString(), FileRenameNotification.class);
+				file.move(newPath, true, monitor);
+				return true;
+			} catch (Exception e) {
+				e.printStackTrace();
+				removeFileFromWarnList(newPath.toString(), FileRenameNotification.class);
+				showErrorAndUnsubscribe(projId);
 			}
 		} else {
 			System.out.println("Tried to rename file that does not exist: " + file.getFullPath().toString());
@@ -616,19 +613,54 @@ public class PluginManager {
 		}
 	}
 	
-	public boolean isFileInWarnList(long fileID) {
-		return fileDirectoryWatchWarnList.contains(fileID);
+	
+	public boolean isFileInWarnList(String fullFilePath, Class<?> notificationType) {
+		if (fileDirectoryWatchWarnList.containsKey(fullFilePath)) {
+			return fileDirectoryWatchWarnList.get(fullFilePath).contains(notificationType);
+		}
+		return false;
 	}
 	
-	public void removeFileFromWarnList(long fileID) {
-		fileDirectoryWatchWarnList.remove(fileID);
+	private void putFileInWarnList(String fullFilePath, Class<?> notificationType) {
+		if (fileDirectoryWatchWarnList.containsKey(fullFilePath)) {
+			List<Class<?>> notificationTypes = fileDirectoryWatchWarnList.get(fullFilePath);
+			notificationTypes.add(notificationType);
+			fileDirectoryWatchWarnList.put(fullFilePath, notificationTypes);
+		} else {
+			List<Class<?>> notificationTypes = new ArrayList<>();
+			notificationTypes.add(notificationType);
+			fileDirectoryWatchWarnList.put(fullFilePath, notificationTypes);
+		} 
 	}
 	
-	public boolean isProjectInWarnList(long projectID) {
-		return projectDirectoryWatchWarnList.contains(projectID);
+	public void removeFileFromWarnList(String fullFilePath, Class<?> notificationType) {
+		if (fileDirectoryWatchWarnList.containsKey(fullFilePath)) {
+			fileDirectoryWatchWarnList.get(fullFilePath).remove(notificationType);
+		}
 	}
 	
-	public void removeProjectFromWarnList(long projectID) {
-		projectDirectoryWatchWarnList.remove(projectID);
+	public boolean isProjectInWarnList(String projectName, Class<?> notificationType) {
+		if (projectDirectoryWatchWarnList.containsKey(projectName)) {
+			return projectDirectoryWatchWarnList.get(projectName).contains(notificationType);
+		}
+		return false;
+	}
+	
+	public void putProjectInWarnList(String projectName, Class<?> notificationType) {
+		if (projectDirectoryWatchWarnList.containsKey(projectName)) {
+			List<Class<?>> notificationTypes = projectDirectoryWatchWarnList.get(projectName);
+			notificationTypes.add(notificationType);
+			projectDirectoryWatchWarnList.put(projectName, notificationTypes);
+		} else {
+			List<Class<?>> notificationTypes = new ArrayList<>();
+			notificationTypes.add(notificationType);
+			projectDirectoryWatchWarnList.put(projectName, notificationTypes);
+		}
+	}
+	
+	public void removeProjectFromWarnList(String projectName, Class<?> notificationType) {
+		if (projectDirectoryWatchWarnList.containsKey(projectName)) {
+			projectDirectoryWatchWarnList.get(projectName).remove(notificationType);
+		}
 	}
 }
