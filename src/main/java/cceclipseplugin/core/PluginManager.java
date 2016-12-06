@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -81,6 +82,9 @@ public class PluginManager {
 	private EditorChangeListener editorChangeListener;
 	private PreChangeDirectoryListener preChangeDirListener;
 	private PostChangeDirectoryListener postChangeDirListener;
+	
+	private HashSet<Long> fileDirectoryWatchWarnList = new HashSet<>();
+	private HashSet<Long> projectDirectoryWatchWarnList = new HashSet<>();
 	
 	// PLUGIN MODULES
 	private final DocumentManager documentManager;
@@ -279,6 +283,7 @@ public class PluginManager {
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject eclipseProject = root.getProject(p.getName());
 			IProgressMonitor monitor = new NullProgressMonitor();
+			fileDirectoryWatchWarnList.add(meta.getFileID());
 			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor);
 		});
 		// File.Rename
@@ -519,5 +524,21 @@ public class PluginManager {
 			System.out.println("Could not write subscribe preferences.");
 			e.printStackTrace();
 		}
+	}
+	
+	public boolean isFileInWarnList(long fileID) {
+		return fileDirectoryWatchWarnList.contains(fileID);
+	}
+	
+	public void removeFileFromWarnList(long fileID) {
+		fileDirectoryWatchWarnList.remove(fileID);
+	}
+	
+	public boolean isProjectInWarnList(long projectID) {
+		return projectDirectoryWatchWarnList.contains(projectID);
+	}
+	
+	public void removeProjectFromWarnList(long projectID) {
+		projectDirectoryWatchWarnList.remove(projectID);
 	}
 }
