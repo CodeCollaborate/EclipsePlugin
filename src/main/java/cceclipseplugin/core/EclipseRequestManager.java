@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -235,6 +236,9 @@ public class EclipseRequestManager extends RequestManager {
 		meta.setName(project.getName());
 		meta.setProjectID(project.getProjectID());
 		PluginManager.getInstance().getMetadataManager().putProjectMetadata(iproject.getFullPath().toString(), meta);
+		
+		createCCIgnoreFile(iproject);
+		
 		List<IFile> files = recursivelyGetFiles(iproject);
 		for (IFile f : files) {
 			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
@@ -290,6 +294,22 @@ public class EclipseRequestManager extends RequestManager {
 			files.addAll(recursivelyGetFiles(folder));
 		}
 		return files;
+	}
+	
+	
+	public void createCCIgnoreFile(IProject p) {
+		IFile file = p.getFile(new Path(Paths.get(".ccignore").normalize().toString()));
+		
+		if (!file.exists()) {
+			InputStream in = new ByteArrayInputStream("CodeCollaborateConfig.json\n".getBytes());
+			
+			try {
+				file.create(in, true, new NullProgressMonitor());
+			} catch (CoreException e) {
+				MessageDialog.createDialog("Failed to generate .ccignore file.").open();
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	private void showErrorAndUnsubscribe(long projectId) {
