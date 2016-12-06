@@ -4,6 +4,7 @@ import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
@@ -13,6 +14,9 @@ import org.eclipse.wb.swt.SWTResourceManager;
 public class OkCancelDialog extends Dialog {
 
 	private String message;
+	private String okText = IDialogConstants.OK_LABEL;
+	private String cancelText = IDialogConstants.CANCEL_LABEL;
+	private boolean swapDefaults = false;
 	
 	protected OkCancelDialog(Shell parentShell) {
 		super(parentShell);
@@ -23,8 +27,26 @@ public class OkCancelDialog extends Dialog {
 		message = msg;
 	}
 	
+	protected OkCancelDialog(Shell parentShell, String msg, String okText, String cancelText, boolean swapDefaults) {
+		super(parentShell);
+		message = msg;
+		this.okText = okText;
+		this.cancelText = cancelText;
+		this.swapDefaults = swapDefaults;
+	}
+	
 	public static OkCancelDialog createDialog(String msg) {
 		return new OkCancelDialog(new Shell(), msg);
+	}
+	
+	public static OkCancelDialog createDialog(String msg, String okText, String cancelText, boolean swapDefaults) {
+		return new OkCancelDialog(new Shell(), msg, okText, cancelText, swapDefaults);
+	}
+	
+	@Override
+	protected void createButtonsForButtonBar(Composite parent) {
+		createButton(parent, IDialogConstants.OK_ID, okText, !swapDefaults);
+		createButton(parent, IDialogConstants.CANCEL_ID, cancelText, swapDefaults);
 	}
 	
 	/**
