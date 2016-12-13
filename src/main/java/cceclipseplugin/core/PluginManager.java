@@ -621,7 +621,7 @@ public class PluginManager {
 		return false;
 	}
 	
-	private void putFileInWarnList(String fullFilePath, Class<?> notificationType) {
+	public void putFileInWarnList(String fullFilePath, Class<?> notificationType) {
 		if (fileDirectoryWatchWarnList.containsKey(fullFilePath)) {
 			List<Class<?>> notificationTypes = fileDirectoryWatchWarnList.get(fullFilePath);
 			notificationTypes.add(notificationType);

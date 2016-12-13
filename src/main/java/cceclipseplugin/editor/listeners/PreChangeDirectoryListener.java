@@ -14,6 +14,7 @@ import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import websocket.models.notifications.FileCreateNotification;
+import websocket.models.responses.FileCreateResponse;
 
 public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 
@@ -33,9 +34,8 @@ public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 		System.out.println("PRE-CHANGE; Filename: " + f.getName() + " File flag: " + delta.getFlags());
 		PluginManager pm = PluginManager.getInstance();
 		MetadataManager mm = pm.getMetadataManager();
-		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
-		String path = Paths.get(fileMeta.getRelativePath(), fileMeta.getFilename()).toString();
-		
+//		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
+		String path = f.getFullPath().toString();			
 		// File was added
 		if (delta.getKind() == IResourceDelta.ADDED) {
 			System.out.println("file added - " + f.getName());
@@ -46,6 +46,8 @@ public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 				try {
 					if (pm.isFileInWarnList(path, FileCreateNotification.class)) {
 						pm.removeFileFromWarnList(path, FileCreateNotification.class);
+					} else if (pm.isFileInWarnList(path, FileCreateResponse.class)) {
+						pm.removeFileFromWarnList(path, FileCreateResponse.class);
 					} else {
 						InputStream in = f.getContents();
 						fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
@@ -62,7 +64,7 @@ public class PreChangeDirectoryListener extends AbstractDirectoryListener {
 
 				System.out.println("sent file create request: " + f.getName());
 			} else {
-				System.out.println("metadata found for " + fileMeta.getFilename() + "; create request not sent");
+				System.out.println("metadata found for " + f.getName() + "; create request not sent");
 			}
 
 		}

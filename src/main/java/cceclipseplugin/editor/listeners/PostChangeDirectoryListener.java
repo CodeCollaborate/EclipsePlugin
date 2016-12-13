@@ -63,7 +63,7 @@ public class PostChangeDirectoryListener extends AbstractDirectoryListener {
 		PluginManager pm = PluginManager.getInstance();
 		MetadataManager mm = pm.getMetadataManager();
 		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
-		String path = Paths.get(fileMeta.getRelativePath(), fileMeta.getFilename()).toString();
+		String path = f.getProjectRelativePath().toString();
 		
 		if (delta.getKind() == IResourceDelta.CHANGED) {
 			

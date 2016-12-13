@@ -39,8 +39,10 @@ import websocket.WSManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
+import websocket.models.notifications.FileCreateNotification;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
+import websocket.models.responses.FileChangeResponse;
 import websocket.models.responses.FileCreateResponse;
 import websocket.models.responses.FilePullResponse;
 
@@ -117,6 +119,8 @@ public class EclipseRequestManager extends RequestManager {
 							newFile.setContents(in, true, false, progressMonitor);
 							in.close();
 						} else {
+							// warn directory watching before creating the file
+							PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
 							newFile.create(in, true, progressMonitor);
 							in.close();
@@ -150,7 +154,7 @@ public class EclipseRequestManager extends RequestManager {
 		});
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 	}
-
+	
 	@Override
 	public void finishRenameFile(FileMetadata fMeta) {
 		pullDiffSendChanges(fMeta);
@@ -296,7 +300,6 @@ public class EclipseRequestManager extends RequestManager {
 		return files;
 	}
 	
-	
 	public void createCCIgnoreFile(IProject p) {
 		IFile file = p.getFile(new Path(Paths.get(".ccignore").normalize().toString()));
 		
@@ -304,9 +307,15 @@ public class EclipseRequestManager extends RequestManager {
 			InputStream in = new ByteArrayInputStream("CodeCollaborateConfig.json\n".getBytes());
 			
 			try {
+				PluginManager.getInstance().putFileInWarnList(file.getFullPath().toString(), FileCreateResponse.class);
+				
 				file.create(in, true, new NullProgressMonitor());
+				in.close();
 			} catch (CoreException e) {
 				MessageDialog.createDialog("Failed to generate .ccignore file.").open();
+				e.printStackTrace();
+			} catch (IOException e) {
+				System.err.println("Failed to close input stream.");
 				e.printStackTrace();
 			}
 		}
