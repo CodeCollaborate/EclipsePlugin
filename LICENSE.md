@@ -14,6 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 This product includes software developed at
-Google-diff-match-patch (https://code.google.com/p/google-diff-match-patch/)
+Google diff-match-patch (https://code.google.com/p/google-diff-match-patch/)
 
 ```
