@@ -46,7 +46,7 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 				while ((line = reader.readLine()) != null) {
 					ignoredFiles.add(line);
 				}
-				in.close();
+				reader.close();
 			} catch (CoreException | IOException e) {
 				e.printStackTrace();
 			}

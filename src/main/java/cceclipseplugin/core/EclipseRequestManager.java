@@ -116,13 +116,14 @@ public class EclipseRequestManager extends RequestManager {
 					try {
 						if (newFile.exists()) {
 							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
-							newFile.setContents(in, true, false, progressMonitor);
+							newFile.setContents(in, false, false, progressMonitor);
+							
 							in.close();
 						} else {
 							// warn directory watching before creating the file
 							PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
-							newFile.create(in, true, progressMonitor);
+							newFile.create(in, false, progressMonitor);
 							in.close();
 						}
 						FileMetadata meta = new FileMetadata();
@@ -247,10 +248,11 @@ public class EclipseRequestManager extends RequestManager {
 		for (IFile f : files) {
 			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
 			try {
+				InputStream in = f.getContents();
 				Request req = (new FileCreateRequest(f.getName(), 
 						path, 
 						project.getProjectID(),
-						inputStreamToByteArray(f.getContents()))).getRequest(
+						inputStreamToByteArray(in))).getRequest(
 								response -> {
 									int fileCreateStatusCode = response.getStatus();
 									if (fileCreateStatusCode == 200) {
@@ -267,6 +269,7 @@ public class EclipseRequestManager extends RequestManager {
 										return;
 									}
 								}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));
+				in.close();
 				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 			} catch (IOException | CoreException e) {
 				Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
