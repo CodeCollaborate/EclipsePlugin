@@ -119,6 +119,7 @@ public class ProjectsListView extends ListView {
 				
 				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects();
 				Project selectedProject = projects.get(list.getSelectionIndex());
+
 				Shell shell = Display.getDefault().getActiveShell();
 				DeleteProjectDialog delete = new DeleteProjectDialog(shell, selectedProject);
 				delete.open();

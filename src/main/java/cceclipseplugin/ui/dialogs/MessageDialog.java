@@ -52,13 +52,21 @@ public class MessageDialog extends Dialog {
 	}
 	
 	public static MessageDialog createDialog(String message) {
-		Shell shell = Display.getDefault().getActiveShell();
-		return new MessageDialog(shell, message);
+        final MessageDialog[] dialog = new MessageDialog[1];
+        Display.getDefault().syncExec(() -> {
+            Shell shell = Display.getDefault().getActiveShell();
+            dialog[0] =  new MessageDialog(shell, message);
+        });
+		return dialog[0];
 	}
 	
 	public static MessageDialog createDialog(String message, int textColor) {
-		Shell shell = Display.getDefault().getActiveShell();
-		return new MessageDialog(shell, message, textColor);
+        final MessageDialog[] dialog = new MessageDialog[1];
+        Display.getDefault().syncExec(() -> {
+            Shell shell = Display.getDefault().getActiveShell();
+            dialog[0] = new MessageDialog(shell, message, textColor);
+        });
+        return dialog[0];
 	}
 
 	/**

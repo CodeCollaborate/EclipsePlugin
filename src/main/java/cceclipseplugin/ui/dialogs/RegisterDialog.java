@@ -38,7 +38,7 @@ public class RegisterDialog extends Dialog {
 	 */
 	public RegisterDialog(Shell parentShell) {
 		super(parentShell);
-		setShellStyle(SWT.DIALOG_TRIM | SWT.ON_TOP | SWT.APPLICATION_MODAL);
+        setShellStyle(SWT.SHELL_TRIM);
 	}
 
 	/**

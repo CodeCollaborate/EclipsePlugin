@@ -16,8 +16,12 @@ public class ConfirmSubscribeDialog extends OkCancelDialog {
 	}
 	
 	public static ConfirmSubscribeDialog createDialog(String msg) {
-        Shell shell = Display.getDefault().getActiveShell();
-		return new ConfirmSubscribeDialog(shell, msg);
+        final ConfirmSubscribeDialog[] dialog = new ConfirmSubscribeDialog[1];
+        Display.getDefault().syncExec(() -> {
+            Shell shell = Display.getDefault().getActiveShell();
+            dialog[0] = new ConfirmSubscribeDialog(shell, msg);
+        });
+        return dialog[0];
 	}
 	
 	@Override

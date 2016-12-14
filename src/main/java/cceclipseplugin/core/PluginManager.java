@@ -184,8 +184,10 @@ public class PluginManager {
 			String password = prefStore.getString(PreferenceConstants.PASSWORD);
 			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
 			if (showWelcomeDialog) {
-                Shell shell = Display.getDefault().getActiveShell();
-				Display.getDefault().asyncExec(() -> new WelcomeDialog(shell, prefStore).open());
+				Display.getDefault().asyncExec(() -> {
+                    Shell shell = Display.getDefault().getActiveShell();
+				    new WelcomeDialog(shell, prefStore).open();
+                });
 			} else {
 				if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
 					new Thread(() -> {
