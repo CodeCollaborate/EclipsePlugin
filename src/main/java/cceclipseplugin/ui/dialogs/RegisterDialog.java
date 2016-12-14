@@ -170,7 +170,8 @@ public class RegisterDialog extends Dialog {
 	protected void cancelPressed() {
 		close();
 		IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-		new WelcomeDialog(new Shell(), prefStore).open();
+		Shell shell = Display.getDefault().getActiveShell();
+		new WelcomeDialog(shell, prefStore).open();
 		super.cancelPressed();
 	}
 

@@ -1,5 +1,6 @@
 package cceclipseplugin.ui.dialogs;
 
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
@@ -15,7 +16,8 @@ public class ConfirmSubscribeDialog extends OkCancelDialog {
 	}
 	
 	public static ConfirmSubscribeDialog createDialog(String msg) {
-		return new ConfirmSubscribeDialog(new Shell(), msg);
+        Shell shell = Display.getDefault().getActiveShell();
+		return new ConfirmSubscribeDialog(shell, msg);
 	}
 	
 	@Override

@@ -120,7 +120,8 @@ public class UsersListView extends ListView {
 					return;
 				}
 				List list = getListWithButtons().getList();
-				Dialog removeUserDialog = new RemoveUserDialog(new Shell(), list.getItem(list.getSelectionIndex()),
+				Shell shell = Display.getDefault().getActiveShell();
+				Dialog removeUserDialog = new RemoveUserDialog(shell, list.getItem(list.getSelectionIndex()),
 						currentProject.getName(), currentProject.getProjectID());
 				removeUserDialog.open();
 			}

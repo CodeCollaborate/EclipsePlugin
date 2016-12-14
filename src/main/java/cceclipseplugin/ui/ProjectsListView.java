@@ -103,7 +103,8 @@ public class ProjectsListView extends ListView {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				AddProjectDialog dialog = new AddProjectDialog(new Shell());
+                Shell shell = Display.getDefault().getActiveShell();
+				AddProjectDialog dialog = new AddProjectDialog(shell);
 				getShell().getDisplay().asyncExec(()-> dialog.open());
 			}
 		});
@@ -118,7 +119,8 @@ public class ProjectsListView extends ListView {
 				
 				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects();
 				Project selectedProject = projects.get(list.getSelectionIndex());
-				DeleteProjectDialog delete = new DeleteProjectDialog(new Shell(), selectedProject);
+				Shell shell = Display.getDefault().getActiveShell();
+				DeleteProjectDialog delete = new DeleteProjectDialog(shell, selectedProject);
 				delete.open();
 			}
 		});
