@@ -1,5 +1,6 @@
 package cceclipseplugin.editor;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,6 +55,10 @@ public class DocumentManager {
 	 *            File path of active file
 	 */
 	public void setCurrFile(String filePath) {
+		if(filePath == null){
+			this.currFile = null;
+			return;
+		}
 		this.currFile = Paths.get(filePath).toString();
 	}
 
@@ -211,6 +216,7 @@ public class DocumentManager {
 							// list to ignore.
 							if (currFile.equals(filePath)) {
 								appliedDiffs.add(diff);
+								System.out.println("Diff added to list:" + diff.toString());
 							}
 
 							try {
