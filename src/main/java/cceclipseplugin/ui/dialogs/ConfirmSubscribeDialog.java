@@ -11,6 +11,9 @@ public class ConfirmSubscribeDialog extends OkCancelDialog {
 		super(parentShell);
 	}
 	
+	/**
+	 * @wbp.parser.constructor
+	 */
 	protected ConfirmSubscribeDialog(Shell parentShell, String message) {
 		super(parentShell, message);
 	}
