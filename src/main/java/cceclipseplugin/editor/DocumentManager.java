@@ -216,7 +216,6 @@ public class DocumentManager {
 							// list to ignore.
 							if (currFile.equals(filePath)) {
 								appliedDiffs.add(diff);
-								System.out.println("Diff added to list:" + diff.toString());
 							}
 
 							try {
