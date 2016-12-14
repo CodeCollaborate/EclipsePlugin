@@ -132,7 +132,7 @@ public class EclipseRequestManager extends RequestManager {
 						e.printStackTrace();
 					}
 				} else {
-					MessageDialog.createDialog("Failed to pull file" + file.getFilename() + " with status code " + response.getStatus()).open();
+					Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Failed to pull file" + file.getFilename() + " with status code " + response.getStatus()).open());
 				}
 		}, new UIRequestErrorHandler("Couldn't send file pull request."));
 		

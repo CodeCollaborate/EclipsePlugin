@@ -105,10 +105,8 @@ public class ControlPanel extends ViewPart {
 		case READY:
 			statusBar.setStatus(StringConstants.CONNECT_MESSAGE);
 			break;
-		case ERROR:
-			statusBar.setStatus(StringConstants.ERROR_MESSAGE);
-			break;
 		default:
+			statusBar.setStatus(StringConstants.ERROR_MESSAGE);
 			break;
 		}
 	}
