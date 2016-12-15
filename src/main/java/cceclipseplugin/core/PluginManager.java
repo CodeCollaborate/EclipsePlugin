@@ -56,7 +56,7 @@ import websocket.models.responses.ProjectLookupResponse;
 
 /**
  * Manager for the entire plugin. Should only be instantiated once.
- * 
+ *
  * @author Benedict
  *
  */
@@ -76,12 +76,12 @@ public class PluginManager {
 	private final DataManager dataManager;
 	private final WSManager wsManager;
 	private final EclipseRequestManager requestManager;
-	
+
 	private boolean autoSubscribeForSession;
 
 	/**
 	 * Get the active instance of the PluginManager class.
-	 * 
+	 *
 	 * @return the instance of the PluginManager class
 	 */
 	public static PluginManager getInstance() {
@@ -137,10 +137,10 @@ public class PluginManager {
 			}
 		}
 		System.out.println("Enumerated all files");
-		
+
 		initPropertyListeners();
 		registerWSHooks();
-			
+
 		new Thread(() -> {
 			try {
 				wsManager.connect();
@@ -148,10 +148,10 @@ public class PluginManager {
 				e.printStackTrace();
 			}
 		}).start();
-		
+
 		requestManager.fetchPermissionConstants();
 	}
-	
+
 	public void onStop() {
 		writeSubscribedProjects();
 		wsManager.close();
@@ -160,7 +160,7 @@ public class PluginManager {
 	public EclipseRequestManager getRequestManager() {
 		return requestManager;
 	}
-	
+
 	public WSManager getWSManager() {
 		return wsManager;
 	}
@@ -176,7 +176,7 @@ public class PluginManager {
 	public DataManager getDataManager() {
 		return dataManager;
 	}
-	
+
 	private void registerWSHooks() {
 		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
 			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
@@ -185,9 +185,9 @@ public class PluginManager {
 			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
 			if (showWelcomeDialog) {
 				Display.getDefault().asyncExec(() -> {
-                    Shell shell = Display.getDefault().getActiveShell();
-				    new WelcomeDialog(shell, prefStore).open();
-                });
+					Shell shell = Display.getDefault().getActiveShell();
+					new WelcomeDialog(shell, prefStore).open();
+				});
 			} else {
 				if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
 					new Thread(() -> {
@@ -197,7 +197,7 @@ public class PluginManager {
 			}
 		 });
 	}
-	
+
 	private void registerNotificationHooks() {
 		SessionStorage storage = dataManager.getSessionStorage();
 		// ~~~ project hooks ~~~
@@ -217,15 +217,15 @@ public class PluginManager {
 			ArrayList<Long> projects = new ArrayList<>();
 			projects.add(resId);
 			Request projectLookupRequest = new ProjectLookupRequest(projects).getRequest(response -> {
-	        	ProjectLookupResponse r = (ProjectLookupResponse) response.getData();
-	        	if (r.getProjects() == null || r.getProjects().length != 1) {
-	        		System.out.println("Couldn't read projects from lookup");
-	        	} else {
-	        		Project p = r.getProjects()[0];
-	    			storage.setProject(p);
-	        	}
-	        }, new UIRequestErrorHandler("Couldn't send Project Lookup Request."));
-	        wsManager.sendAuthenticatedRequest(projectLookupRequest);
+				ProjectLookupResponse r = (ProjectLookupResponse) response.getData();
+				if (r.getProjects() == null || r.getProjects().length != 1) {
+					System.out.println("Couldn't read projects from lookup");
+				} else {
+					Project p = r.getProjects()[0];
+					storage.setProject(p);
+				}
+			}, new UIRequestErrorHandler("Couldn't send Project Lookup Request."));
+			wsManager.sendAuthenticatedRequest(projectLookupRequest);
 		});
 		// Project.RevokePermissions
 		wsManager.registerNotificationHandler("Project", "RevokePermissions", (notification) -> {
@@ -265,7 +265,7 @@ public class PluginManager {
 				}
 			}
 		});
-		
+
 		// ~~~ file hooks ~~~
 		// File.Create
 		wsManager.registerNotificationHandler("File", "Create", (notification) -> {
@@ -281,12 +281,12 @@ public class PluginManager {
 			if (meta != null) {
 				return;
 			}
-			
+
 			Project p = dataManager.getSessionStorage().getProjectById(pmeta.getProjectID());
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject eclipseProject = root.getProject(p.getName());
 			IProgressMonitor monitor = new NullProgressMonitor();
-			
+
 			meta = new FileMetadata(n.file);
 			List<FileMetadata> fmetas = pmeta.getFiles();
 			fmetas.add(meta);
@@ -306,17 +306,17 @@ public class PluginManager {
 			}
 			FileRenameNotification n = ((FileRenameNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			
+
 //			StringBuilder pathBuilder = new StringBuilder();
 //			pathBuilder.append(projectLocation);
 //			pathBuilder.append(meta.getRelativePath());
 //			pathBuilder.append(meta.getFilename());
-//			
+//
 //			StringBuilder newPathBuilder = new StringBuilder();
 //			newPathBuilder.append(projectLocation);
 //			newPathBuilder.append(meta.getRelativePath());
 //			newPathBuilder.append(n.newName);
-//			
+//
 //			File file = new File(pathBuilder.toString());
 //			if (file.exists()) {
 //				file.renameTo(new File(newPathBuilder.toString()));
@@ -337,18 +337,18 @@ public class PluginManager {
 			}
 			FileMoveNotification n = ((FileMoveNotification) notification.getData());
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			
+
 			// TODO (fahslaj): Finish these blocks of code in integration of editor
 //			StringBuilder pathBuilder = new StringBuilder();
 //			pathBuilder.append(projectLocation);
 //			pathBuilder.append(meta.getRelativePath());
 //			pathBuilder.append(meta.getFilename());
-//			
+//
 //			StringBuilder newPathBuilder = new StringBuilder();
 //			newPathBuilder.append(projectLocation);
 //			newPathBuilder.append(n.newPath);
 //			newPathBuilder.append(meta.getFilename());
-//			
+//
 //			File file = new File(pathBuilder.toString());
 //			if (file.exists()) {
 //				file.renameTo(new File(newPathBuilder.toString()));
@@ -368,13 +368,13 @@ public class PluginManager {
 				return;
 			}
 			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-			
+
 			// TODO (fahslaj): Finish these blocks of code in integration of editor
 //			StringBuilder pathBuilder = new StringBuilder();
 //			pathBuilder.append(projectLocation);
 //			pathBuilder.append(meta.getRelativePath());
 //			pathBuilder.append(meta.getFilename());
-//			
+//
 //			File file = new File(pathBuilder.toString());
 //			if (file.exists()) {
 //				file.delete();
@@ -388,8 +388,8 @@ public class PluginManager {
 		wsManager.registerNotificationHandler("File", "Change",
 				(Notification n) -> documentManager.handleNotification(n));
 	}
-	
-	private void initPropertyListeners() {		
+
+	private void initPropertyListeners() {
 		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
 			if (event.getPropertyName().equals(SessionStorage.USERNAME)) {
 				requestManager.fetchProjects();
@@ -413,12 +413,12 @@ public class PluginManager {
 			}
 		});
 	}
-	
+
 	private void autoSubscribe() {
 		SessionStorage storage = dataManager.getSessionStorage();
 		List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
 		Set<Long> subscribedIds = storage.getSubscribedIds();
-		
+
 		for (Long id : subscribedIdsFromPrefs) {
 			Project p = storage.getProjectById(id);
 			if (p == null) {
@@ -428,12 +428,12 @@ public class PluginManager {
 			}
 		}
 	}
-	
+
 	/**
 	 * Removes the "auto-subscribe" preference associated with the given projectID.
 	 * Should be called when either the project is no longer on the server or the
 	 * user no longer has permissions for a project.
-	 * 
+	 *
 	 * @param id
 	 */
 	public void removeProjectIdFromPrefs(long id) {
@@ -452,11 +452,11 @@ public class PluginManager {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Returns a list of the project IDs that the user was subscribed to from their
 	 * last session.
-	 * 
+	 *
 	 * @return
 	 */
 	public List<Long> getSubscribedProjectIds() {
@@ -477,10 +477,10 @@ public class PluginManager {
 		}
 		return subscribedProjectIds;
 	}
-	
+
 	/**
 	 * Removes all project ID nodes from the subscribe preferences.
-	 * 
+	 *
 	 * @param b
 	 */
 	public void removeAllSubscribedPrefs(boolean b) {
@@ -499,7 +499,7 @@ public class PluginManager {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Goes through all of the projects in session storage, determines if the user is currently
 	 * subscribed, and then creates a node for that project in the subscribe preferences. If a
@@ -512,10 +512,10 @@ public class PluginManager {
 		List<Project> projects = ss.getProjects();
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-		
+
 		for (Project p : projects) {
 			boolean subscribed = subscribedIDs.contains(p.getProjectID());
-			
+
 			if (!subscribed) {
 				// remove it from nodes if not subscribed
 				try {
