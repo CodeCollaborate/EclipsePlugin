@@ -32,7 +32,7 @@ public class WelcomeDialog extends Dialog {
 	public WelcomeDialog(Shell parentShell, IPreferenceStore prefStore) {
 		super(parentShell);
 		this.prefStore = prefStore;
-		setShellStyle(SWT.DIALOG_TRIM | SWT.ON_TOP | SWT.APPLICATION_MODAL);
+		setShellStyle(SWT.SHELL_TRIM);
 	}
 
 	/**

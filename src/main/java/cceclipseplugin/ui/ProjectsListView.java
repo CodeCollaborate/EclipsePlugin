@@ -28,14 +28,14 @@ import dataMgmt.SessionStorage;
 import websocket.models.Project;
 
 public class ProjectsListView extends ListView {
-		
+
 	public ProjectsListView(Composite parent, int style) {
 		super(parent, style, "Projects");
 		this.initializeData();
 		this.initContextMenu();
 		this.initButtonListeners();
 	}
-	
+
 	private void initContextMenu() {
 		List list = this.getListWithButtons().getList();
 		Menu menu = new Menu(list);
@@ -43,15 +43,15 @@ public class ProjectsListView extends ListView {
 		menu.addMenuListener(new MenuAdapter() {
 			public void menuShown(MenuEvent e) {
 				int selected = list.getSelectionIndex();
-				
+
 				for (MenuItem item : menu.getItems()) {
 					item.dispose();
 				}
-				
+
 				if (selected < 0 || selected > list.getItemCount()) {
 					return;
 				}
-								
+
 				Project selectedProj = null;
 				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects();
 				selectedProj = projects.get(selected);
@@ -66,9 +66,9 @@ public class ProjectsListView extends ListView {
 			}
 		});
 	}
-	
+
 	PropertyChangeListener projectListListener;
-	private void initializeData() {	
+	private void initializeData() {
 		// register handler for projects
 		List list = getListWithButtons().getList();
 		projectListListener = new PropertyChangeListener() {
@@ -86,16 +86,16 @@ public class ProjectsListView extends ListView {
 							list.add(p.getName());
 						}
 					}
-				}); 
+				});
 			}
 		};
 		PluginManager.getInstance().getDataManager().getSessionStorage().addPropertyChangeListener(projectListListener);
 	}
-	
+
 	private void removePropertyListeners() {
 		PluginManager.getInstance().getDataManager().getSessionStorage().removePropertyChangeListener(projectListListener);
 	}
-	
+
 	private void initButtonListeners() {
 		List list = getListWithButtons().getList();
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
@@ -103,7 +103,8 @@ public class ProjectsListView extends ListView {
 
 			@Override
 			public void handleEvent(Event arg0) {
-				AddProjectDialog dialog = new AddProjectDialog(new Shell());
+				Shell shell = Display.getDefault().getActiveShell();
+				AddProjectDialog dialog = new AddProjectDialog(shell);
 				getShell().getDisplay().asyncExec(()-> dialog.open());
 			}
 		});
@@ -115,20 +116,22 @@ public class ProjectsListView extends ListView {
 					MessageDialog.createDialog("No project is selected.").open();
 					return;
 				}
-				
+
 				java.util.List<Project> projects = PluginManager.getInstance().getDataManager().getSessionStorage().getSortedProjects();
 				Project selectedProject = projects.get(list.getSelectionIndex());
-				DeleteProjectDialog delete = new DeleteProjectDialog(new Shell(), selectedProject);
+
+				Shell shell = Display.getDefault().getActiveShell();
+				DeleteProjectDialog delete = new DeleteProjectDialog(shell, selectedProject);
 				delete.open();
 			}
 		});
 	}
-	
+
 	public void initSelectionListener(Listener listener) {
 		List list = this.getListWithButtons().getList();
 		list.addListener(SWT.Selection, listener);
 	}
-	
+
 	@Override
 	public void dispose() {
 		removePropertyListeners();
