@@ -31,8 +31,7 @@ import org.osgi.service.prefs.Preferences;
 import cceclipseplugin.Activator;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
-import cceclipseplugin.editor.listeners.PostChangeDirectoryListener;
-import cceclipseplugin.editor.listeners.PreChangeDirectoryListener;
+import cceclipseplugin.editor.listeners.DirectoryListener;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
@@ -83,8 +82,7 @@ public class PluginManager {
 
 	// LISTENERS
 	private EditorChangeListener editorChangeListener;
-	private PreChangeDirectoryListener preChangeDirListener;
-	private PostChangeDirectoryListener postChangeDirListener;
+	private DirectoryListener postChangeDirListener;
 	
 	// may have to switch to using a queue if we run into issues with the order notifications are received
 	private HashMap<String, List<Class<?>>> fileDirectoryWatchWarnList = new HashMap<>();
@@ -446,15 +444,12 @@ public class PluginManager {
 	
 	public void registerResourceListeners() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		preChangeDirListener = new PreChangeDirectoryListener();
-		postChangeDirListener = new PostChangeDirectoryListener();
-		workspace.addResourceChangeListener(preChangeDirListener, IResourceChangeEvent.PRE_BUILD);
+		postChangeDirListener = new DirectoryListener();
 		workspace.addResourceChangeListener(postChangeDirListener, IResourceChangeEvent.POST_BUILD);
 	}
 	
 	public void deregisterResourceListeners() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		workspace.removeResourceChangeListener(preChangeDirListener);
 		workspace.removeResourceChangeListener(postChangeDirListener);
 	}
 	

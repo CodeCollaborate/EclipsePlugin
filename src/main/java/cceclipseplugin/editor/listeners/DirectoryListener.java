@@ -1,10 +1,11 @@
 package cceclipseplugin.editor.listeners;
 
-import java.nio.file.Paths;
-
+import java.io.IOException;
+import java.io.InputStream;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 
 import cceclipseplugin.core.EclipseRequestManager;
@@ -13,11 +14,13 @@ import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import requestMgmt.RequestManager;
+import websocket.models.notifications.FileCreateNotification;
 import websocket.models.notifications.FileDeleteNotification;
 import websocket.models.notifications.FileMoveNotification;
 import websocket.models.notifications.FileRenameNotification;
+import websocket.models.responses.FileCreateResponse;
 
-public class PostChangeDirectoryListener extends AbstractDirectoryListener {
+public class DirectoryListener extends AbstractDirectoryListener {
 	
 	/**
 	 * Handles a resource delta in the case that the resource is and IProject.
@@ -65,6 +68,8 @@ public class PostChangeDirectoryListener extends AbstractDirectoryListener {
 		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
 		String path = f.getProjectRelativePath().toString();
 		
+		System.out.println( "	Filename: " + f.getName() + "	File flag: " + delta.getFlags());
+		
 		if (delta.getKind() == IResourceDelta.CHANGED) {
 			
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
@@ -103,19 +108,87 @@ public class PostChangeDirectoryListener extends AbstractDirectoryListener {
 			} else if ((delta.getFlags() & IResourceDelta.CONTENT) != 0) {
 				
 				EclipseRequestManager rm = pm.getRequestManager();
-				
-				rm.pullDiffSendChanges(fileMeta);
+				if (fileMeta != null) {
+					rm.pullDiffSendChanges(fileMeta);
+				}
 				
 			}
 			
 		} else if (delta.getKind() == IResourceDelta.REMOVED) {
-			// File was deleted from disk
-			if (pm.isFileInWarnList(path, FileDeleteNotification.class)) {
-				pm.removeFileFromWarnList(path, FileDeleteNotification.class);
-			} else {
-				pm.getRequestManager().deleteFile(fileMeta.getFileID());
-				System.out.println("sent file delete request");
+			if ((delta.getFlags() & IResourceDelta.MOVED_TO) == 0) {
+				// File was deleted from disk
+				if (pm.isFileInWarnList(path, FileDeleteNotification.class)) {
+					pm.removeFileFromWarnList(path, FileDeleteNotification.class);
+				} else {
+					pm.getRequestManager().deleteFile(fileMeta.getFileID());
+					System.out.println("sent file delete request");
+				}
 			}
+			
+		} else if (delta.getKind() == IResourceDelta.ADDED) {
+			if ((delta.getFlags() & IResourceDelta.MOVED_FROM) != 0) {
+				// do same as rename stuff
+				IPath relativeMovedFromPath = delta.getMovedFromPath().removeFirstSegments(1);
+				IPath fullMovedFromPath = f.getProject().getFullPath().append(relativeMovedFromPath);
+				
+				if (!relativeMovedFromPath.toString().equals(f.getProjectRelativePath().toString())) {
+					
+					RequestManager rm = pm.getRequestManager();
+					
+					if (f.getName().equals(relativeMovedFromPath.lastSegment())) {
+						// send File.Move request
+						if (pm.isFileInWarnList(path, FileMoveNotification.class)) {
+							pm.removeFileFromWarnList(path, FileMoveNotification.class);
+						} else {
+							rm.moveFile(fileMeta.getFileID(), 
+									f.getFullPath().removeLastSegments(1).toString(), 
+									f.getProjectRelativePath().removeLastSegments(1).toString());
+						}
+						System.out.println("sent file move request; moving from " +
+							f.getProjectRelativePath().toString() + " to " + relativeMovedFromPath);						
+					} else {
+						// send File.Rename request
+						String newName = f.getProjectRelativePath().lastSegment();
+						if (pm.isFileInWarnList(path, FileRenameNotification.class)) {
+							pm.removeFileFromWarnList(path, FileRenameNotification.class);
+						} else {
+							rm.renameFile(fileMeta.getFileID(), newName);
+						}
+						System.out.println("sent file rename request; changing to " + newName);
+					}
+					
+				}
+			} else {
+				System.out.println("file added - " + f.getName());
+				if (!f.getName().equals(".project")) {
+					ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getFullPath().toString());
+	
+					byte[] fileBytes;
+					try {
+						if (pm.isFileInWarnList(path, FileCreateNotification.class)) {
+							pm.removeFileFromWarnList(path, FileCreateNotification.class);
+						} else if (pm.isFileInWarnList(path, FileCreateResponse.class)) {
+							pm.removeFileFromWarnList(path, FileCreateResponse.class);
+						} else {
+							InputStream in = f.getContents();
+							fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
+							in.close();
+	
+							EclipseRequestManager rm = pm.getRequestManager();
+							
+							rm.createFile(f.getName(), f.getFullPath().removeLastSegments(1).toString(),
+									f.getProjectRelativePath().removeLastSegments(1).toString(), pMeta.getProjectID(), fileBytes);						
+							System.out.println("sent file create request: " + f.getName());
+						}
+					} catch (IOException | CoreException e) {
+						e.printStackTrace();
+					}
+	
+				} else {
+					System.out.println("metadata found for " + f.getName() + "; create request not sent");
+				}
+			}
+
 		}
 	}
 	

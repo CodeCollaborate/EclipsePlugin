@@ -1,28 +1,19 @@
 package cceclipseplugin.editor.listeners;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
-import org.eclipse.core.runtime.CoreException;
-
-import cceclipseplugin.core.EclipseRequestManager;
+import cceclipseplugin.core.CCIgnore;
 import cceclipseplugin.core.PluginManager;
 import dataMgmt.MetadataManager;
 
 public abstract class AbstractDirectoryListener implements IResourceChangeListener {
-
-	protected Set<String> ignoredFiles = new HashSet<>();
+	
+	protected CCIgnore ignoreFile;
 	
 	@Override
 	public void resourceChanged(IResourceChangeEvent event) {
@@ -31,29 +22,9 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 			return;
 		}
 		
+		ignoreFile = new CCIgnore();
 		System.out.println("resource change detected for " + rootDelta.getResource().getName());
 		recursivelyHandleChange(rootDelta);
-	}
-	
-	public void loadCCIgnore(IProject p) {
-		IFile f = p.getFile(Paths.get(".ccignore").normalize().toString());
-		if (f.exists()) {
-			try {
-				ignoredFiles.clear();
-				InputStream in = f.getContents();
-				BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-				String line;
-				while ((line = reader.readLine()) != null) {
-					ignoredFiles.add(line);
-				}
-				reader.close();
-			} catch (CoreException | IOException e) {
-				e.printStackTrace();
-			}
-		} else {
-			EclipseRequestManager rm = PluginManager.getInstance().getRequestManager();
-			rm.createCCIgnoreFile(p);
-		}
 	}
 	
 	/**
@@ -65,14 +36,7 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 	private void recursivelyHandleChange(IResourceDelta delta) {
 		IResource res = delta.getResource();
 		
-		if (res instanceof IFile) {
-			System.out.println("type: file; kind: " + delta.getKind());
-			if (ignoredFiles.contains(res.getName())) {
-				System.out.println(String.format("File %s was ignored", res.getName()));
-			} else {
-				handleFile(delta);				
-			}
-		} else if (res instanceof IProject) {
+		if (res instanceof IProject) {
 			// stop handling if the project doesn't have CodeCollaborate metadata
 			System.out.println("type: project; kind: " + delta.getKind());
 			MetadataManager meta = PluginManager.getInstance().getMetadataManager();
@@ -82,15 +46,29 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 				return;
 			}
 			
-			loadCCIgnore((IProject) res);
-			
+			ignoreFile.loadCCIgnore((IProject) res);
 			
 			boolean stopRecursion = handleProject(delta);
 			
 			if (stopRecursion) {
 				return;
 			}
-		}
+		} else if (res instanceof IFolder) {
+			String path = res.getProjectRelativePath().toString();
+			if (ignoreFile.containsEntry(path)) {
+				System.out.println(String.format("Folder %s was ignored", path));
+				return;
+			}
+		} if(res instanceof IFile) {
+			String path = res.getProjectRelativePath().toString();
+			if (ignoreFile.containsEntry(path)) {
+				System.out.println(String.format("File %s was ignored", path));
+				return;
+			}
+			System.out.println("type: file; kind: " + delta.getKind());
+			handleFile(delta);
+			
+		} 
 		
 		for (IResourceDelta childDelta : delta.getAffectedChildren()) {
 			recursivelyHandleChange(childDelta);
@@ -100,5 +78,4 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 	protected abstract void handleFile(IResourceDelta delta);
 
 	protected abstract boolean handleProject(IResourceDelta delta);
-	
 }

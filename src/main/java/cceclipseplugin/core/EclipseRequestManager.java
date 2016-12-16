@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +38,6 @@ import websocket.WSManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
-import websocket.models.notifications.FileCreateNotification;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
 import websocket.models.responses.FileChangeResponse;
@@ -167,11 +165,6 @@ public class EclipseRequestManager extends RequestManager {
 	}
 	
 	public void pullDiffSendChanges(FileMetadata fMeta) {
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-		}
 		
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
 		ProjectMetadata pMeta = mm.getProjectMetadata(mm.getProjectIDForFileID(fMeta.getFileID()));
@@ -242,9 +235,9 @@ public class EclipseRequestManager extends RequestManager {
 		meta.setProjectID(project.getProjectID());
 		PluginManager.getInstance().getMetadataManager().putProjectMetadata(iproject.getFullPath().toString(), meta);
 		
-		createCCIgnoreFile(iproject);
+		CCIgnore ignoreFile = CCIgnore.createForProject(iproject);
 		
-		List<IFile> files = recursivelyGetFiles(iproject);
+		List<IFile> files = recursivelyGetFiles(iproject, ignoreFile);
 		for (IFile f : files) {
 			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
 			try {
@@ -280,48 +273,40 @@ public class EclipseRequestManager extends RequestManager {
 		}
 	}
 	
-	private List<IFile> recursivelyGetFiles(IContainer f) {
+	private List<IFile> recursivelyGetFiles(IContainer f, CCIgnore ignoreFile) {
 		ArrayList<IFile> files = new ArrayList<>();
 		ArrayList<IFolder> folders = new ArrayList<>();
 		IResource[] members = null;
+		
 		try {
 			members = f.members();
 		} catch (CoreException e1) {
 			e1.printStackTrace();
 		}
+		
 		for(IResource m : members) {
+			
 			if (m instanceof IFile) {
-				files.add((IFile) m);
+				String path = ((IFile) m).getProjectRelativePath().toString();
+				if (ignoreFile.containsEntry(path)) {
+					System.out.println(String.format("File %s was ignored when scanning for files.", path));
+				} else {
+					files.add((IFile) m);
+				}
 			} else if (m instanceof IFolder) {
-				folders.add((IFolder) m);
+				String path = ((IFolder) m).getProjectRelativePath().toString();
+				if (ignoreFile.containsEntry(path)) {
+					System.out.println(String.format("Folder %s was ignored when scanning for files.", path));
+				} else {
+					folders.add((IFolder) m);
+				}
 			}
 		}
 		
 		for (IFolder folder : folders) {
-			files.addAll(recursivelyGetFiles(folder));
+			files.addAll(recursivelyGetFiles(folder, ignoreFile));
 		}
 		return files;
-	}
-	
-	public void createCCIgnoreFile(IProject p) {
-		IFile file = p.getFile(new Path(Paths.get(".ccignore").normalize().toString()));
-		
-		if (!file.exists()) {
-			InputStream in = new ByteArrayInputStream("CodeCollaborateConfig.json\n".getBytes());
-			
-			try {
-				PluginManager.getInstance().putFileInWarnList(file.getFullPath().toString(), FileCreateResponse.class);
-				
-				file.create(in, true, new NullProgressMonitor());
-				in.close();
-			} catch (CoreException e) {
-				MessageDialog.createDialog("Failed to generate .ccignore file.").open();
-				e.printStackTrace();
-			} catch (IOException e) {
-				System.err.println("Failed to close input stream.");
-				e.printStackTrace();
-			}
-		}
 	}
 	
 	private void showErrorAndUnsubscribe(long projectId) {
