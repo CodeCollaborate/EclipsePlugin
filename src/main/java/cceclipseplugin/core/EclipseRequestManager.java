@@ -350,7 +350,7 @@ public class EclipseRequestManager extends RequestManager {
 				}
 			}
 		}
-		
+
 		return files;
 	}
 	
