@@ -8,6 +8,7 @@ import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 
+import cceclipseplugin.core.CCIgnore;
 import cceclipseplugin.core.EclipseRequestManager;
 import cceclipseplugin.core.PluginManager;
 import dataMgmt.MetadataManager;
@@ -106,12 +107,10 @@ public class DirectoryListener extends AbstractDirectoryListener {
 				}
 				
 			} else if ((delta.getFlags() & IResourceDelta.CONTENT) != 0) {
-				
 				EclipseRequestManager rm = pm.getRequestManager();
 				if (fileMeta != null) {
 					rm.pullDiffSendChanges(fileMeta);
 				}
-				
 			}
 			
 		} else if (delta.getKind() == IResourceDelta.REMOVED) {
@@ -129,7 +128,6 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			if ((delta.getFlags() & IResourceDelta.MOVED_FROM) != 0) {
 				// do same as rename stuff
 				IPath relativeMovedFromPath = delta.getMovedFromPath().removeFirstSegments(1);
-				IPath fullMovedFromPath = f.getProject().getFullPath().append(relativeMovedFromPath);
 				
 				if (!relativeMovedFromPath.toString().equals(f.getProjectRelativePath().toString())) {
 					

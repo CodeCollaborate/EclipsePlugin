@@ -332,4 +332,10 @@ public class EclipseRequestManager extends RequestManager {
 		out.close();
 		return result;
 	}
+
+	@Override
+	public void finishDeleteProject(Project arg0) {
+		// TODO Replace this with one from test/origin
+		
+	}
 }

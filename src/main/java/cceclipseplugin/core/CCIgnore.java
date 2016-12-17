@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
@@ -16,6 +17,8 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 
 import cceclipseplugin.ui.dialogs.MessageDialog;
+import dataMgmt.MetadataManager;
+import dataMgmt.models.FileMetadata;
 import websocket.models.responses.FileCreateResponse;
 
 public class CCIgnore {
@@ -79,11 +82,39 @@ public class CCIgnore {
 					ignoredFiles.add(path);
 				}
 				reader.close();
+				System.out.println(ignoredFiles);
+				(new Thread(() -> serverCleanUp(p))).start();
 			} catch (CoreException | IOException e) {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	/**
+	 * Iterates through the file metadata for the given project and sends 
+	 * delete requests if the file is included in the ignore file.
+	 * 
+	 * @param p
+	 * 
+	 */
+	private void serverCleanUp(IProject p) {
+		System.out.println("Cleaning up ignored files from server...");
+		EclipseRequestManager rm = PluginManager.getInstance().getRequestManager();
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		List<FileMetadata> fileMetas = mm.getProjectMetadata(p.getFullPath().toString()).getFiles();
 		
+		if (fileMetas == null) {
+			return;
+		}
+		for (FileMetadata fm : fileMetas) {
+			System.out.println(String.format(">>>>> Checking file %s for cleanup", fm.getRelativePath()));
+			for (String path : ignoredFiles) {
+				if (fm.getRelativePath().startsWith(path) || fm.getRelativePath().equals(path)) {
+					// send delete request for fileID
+					rm.deleteFile(fm.getFileID());
+				}
+			}
+		}
 	}
 	
 	/**
@@ -98,4 +129,5 @@ public class CCIgnore {
 		System.out.println(">>> Checking .ccignore for path " + path);
 		return ignoredFiles.contains(path);
 	}
+
 }
