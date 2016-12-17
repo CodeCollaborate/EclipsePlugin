@@ -37,9 +37,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		ProjectMetadata projectMeta = PluginManager.getInstance().getMetadataManager().getProjectMetadata(p.getFullPath().toString());
 		RequestManager rm = PluginManager.getInstance().getRequestManager();
 		
-		if (delta.getKind() == IResourceDelta.REMOVED) {
-			System.out.println("flag: " + delta.getFlags());
-			
+		if (delta.getKind() == IResourceDelta.REMOVED) {			
 			// Project was renamed
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
 				String newName = delta.getMovedToPath().lastSegment();
