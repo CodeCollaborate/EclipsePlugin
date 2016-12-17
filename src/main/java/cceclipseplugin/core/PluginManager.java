@@ -192,8 +192,8 @@ public class PluginManager {
 				e.printStackTrace();
 			}
 			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-			boolean showWelcomeDialog = (username[0] == null || username[0].equals("") || password[0] == null || password[0].equals(""));
-			if (showWelcomeDialog) {
+			
+			if (username[0] == null || username[0].equals("") || password[0] == null || password[0].equals("")) {
 				Display.getDefault().asyncExec(() -> {
 					Shell shell = Display.getDefault().getActiveShell();
 					new WelcomeDialog(shell, secureStore).open();
