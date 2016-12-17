@@ -41,8 +41,8 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 			System.out.println("type: project; kind: " + delta.getKind());
 			MetadataManager meta = PluginManager.getInstance().getMetadataManager();
 			
-			if (meta.getProjectMetadata(res.getFullPath().toString()) == null) {
-				System.out.println("no project metadata found for project path \"" + res.getFullPath().toString() + "\"");
+			if (meta.getProjectMetadata(res.getLocation().toString()) == null) {
+				System.out.println("no project metadata found for project path \"" + res.getLocation().toString() + "\"");
 				return;
 			}
 			

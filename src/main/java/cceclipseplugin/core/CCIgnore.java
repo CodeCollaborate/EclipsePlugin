@@ -98,7 +98,6 @@ public class CCIgnore {
 	 * 
 	 */
 	private void serverCleanUp(IProject p) {
-		System.out.println("Cleaning up ignored files from server...");
 		EclipseRequestManager rm = PluginManager.getInstance().getRequestManager();
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
 		List<FileMetadata> fileMetas = mm.getProjectMetadata(p.getFullPath().toString()).getFiles();
@@ -107,10 +106,11 @@ public class CCIgnore {
 			return;
 		}
 		for (FileMetadata fm : fileMetas) {
-			System.out.println(String.format(">>>>> Checking file %s for cleanup", fm.getRelativePath()));
-			for (String path : ignoredFiles) {
-				if (fm.getRelativePath().startsWith(path) || fm.getRelativePath().equals(path)) {
+			String path =  Paths.get(fm.getRelativePath(), fm.getFilename()).normalize().toString();
+			for (String ignored : ignoredFiles) {
+				if (path.startsWith(ignored) || path.equals(ignored)) {
 					// send delete request for fileID
+					System.out.println(String.format("Cleaning up %s from server", path));
 					rm.deleteFile(fm.getFileID());
 				}
 			}
@@ -126,7 +126,6 @@ public class CCIgnore {
 	 */
 	public boolean containsEntry(String e) {
 		String path = Paths.get(e).normalize().toString();
-		System.out.println(">>> Checking .ccignore for path " + path);
 		return ignoredFiles.contains(path);
 	}
 

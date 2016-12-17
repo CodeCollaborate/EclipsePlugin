@@ -2,13 +2,14 @@ package cceclipseplugin.editor.listeners;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
+
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 
-import cceclipseplugin.core.CCIgnore;
 import cceclipseplugin.core.EclipseRequestManager;
 import cceclipseplugin.core.PluginManager;
 import dataMgmt.MetadataManager;
@@ -66,7 +67,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		IFile f = (IFile) delta.getResource();
 		PluginManager pm = PluginManager.getInstance();
 		MetadataManager mm = pm.getMetadataManager();
-		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().removeLastSegments(1).toString());
+		FileMetadata fileMeta = mm.getFileMetadata(f.getLocation().removeLastSegments(1).toString());
 		String path = f.getProjectRelativePath().toString();
 		
 		System.out.println( "	Filename: " + f.getName() + "	File flag: " + delta.getFlags());
@@ -87,6 +88,11 @@ public class DirectoryListener extends AbstractDirectoryListener {
 						if (pm.isFileInWarnList(path, FileMoveNotification.class)) {
 							pm.removeFileFromWarnList(path, FileMoveNotification.class);
 						} else {
+							// get metadata again but with the old path because old one should be null 
+							// if the new path was used to find it
+							String absPath = Paths.get(f.getProject().getLocation().toString(), 
+									delta.getProjectRelativePath().removeLastSegments(1).toString()).normalize().toString();
+							fileMeta = mm.getFileMetadata(absPath);
 							rm.moveFile(fileMeta.getFileID(), 
 									fullMovedToPath.removeLastSegments(1).toString(), 
 									relativeMovedToPath.removeLastSegments(1).toString());
@@ -138,8 +144,12 @@ public class DirectoryListener extends AbstractDirectoryListener {
 						if (pm.isFileInWarnList(path, FileMoveNotification.class)) {
 							pm.removeFileFromWarnList(path, FileMoveNotification.class);
 						} else {
+							String absPath = Paths.get(f.getProject().getLocation().toString(), 
+									relativeMovedFromPath.removeLastSegments(1).toString()).normalize().toString();
+							fileMeta = mm.getFileMetadata(absPath);
+							System.out.println("Getting metadata from file : " + delta.getMovedFromPath().removeLastSegments(1).toString());
 							rm.moveFile(fileMeta.getFileID(), 
-									f.getFullPath().removeLastSegments(1).toString(), 
+									relativeMovedFromPath.removeLastSegments(1).toString(), 
 									f.getProjectRelativePath().removeLastSegments(1).toString());
 						}
 						System.out.println("sent file move request; moving from " +
@@ -159,7 +169,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			} else {
 				System.out.println("file added - " + f.getName());
 				if (!f.getName().equals(".project")) {
-					ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getFullPath().toString());
+					ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getLocation().toString());
 	
 					byte[] fileBytes;
 					try {
