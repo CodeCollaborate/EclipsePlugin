@@ -32,7 +32,7 @@ public class WelcomeDialog extends Dialog {
 	public WelcomeDialog(Shell parentShell, IPreferenceStore prefStore) {
 		super(parentShell);
 		this.prefStore = prefStore;
-		setShellStyle(SWT.DIALOG_TRIM | SWT.ON_TOP | SWT.APPLICATION_MODAL);
+		setShellStyle(SWT.SHELL_TRIM);
 	}
 
 	/**
@@ -112,7 +112,8 @@ public class WelcomeDialog extends Dialog {
 		String username = usernameBox.getText();
 		String password = passwordBox.getText();
 		
-		PluginManager.getInstance().getRequestManager().login(username, password);
+		PluginManager pm = PluginManager.getInstance();
+		pm.getRequestManager().login(username, password);
 		
 		prefStore.setValue(PreferenceConstants.USERNAME, username);
 		prefStore.setValue(PreferenceConstants.PASSWORD, password);

@@ -40,10 +40,10 @@ import cceclipseplugin.ui.dialogs.DialogStrings;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.OkCancelDialog;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
+import constants.CoreStringConstants;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import dataMgmt.SessionStorage;
-import constants.CoreStringConstants;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import websocket.ConnectException;
@@ -66,7 +66,7 @@ import websocket.models.responses.ProjectLookupResponse;
 
 /**
  * Manager for the entire plugin. Should only be instantiated once.
- * 
+ *
  * @author Benedict
  *
  */
@@ -76,7 +76,7 @@ public class PluginManager {
 
 	// PLUGIN SETTINGS
 	// TODO: move to configuration file
-	final private String WS_ADDRESS = "ws://cody.csse.rose-hulman.edu:8000/ws/";
+	final private String WS_ADDRESS = "wss://codecollaborate.obsessiveorange.com:8000/ws/";
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
 
@@ -93,12 +93,12 @@ public class PluginManager {
 	private final DataManager dataManager;
 	private final WSManager wsManager;
 	private final EclipseRequestManager requestManager;
-	
+
 	private boolean autoSubscribeForSession;
 
 	/**
 	 * Get the active instance of the PluginManager class.
-	 * 
+	 *
 	 * @return the instance of the PluginManager class
 	 */
 	public static PluginManager getInstance() {
@@ -158,7 +158,7 @@ public class PluginManager {
 		registerWSHooks();
 		registerResourceListeners();
 		initPropertyListeners();
-			
+
 		new Thread(() -> {
 			try {
 				wsManager.connect();
@@ -166,10 +166,10 @@ public class PluginManager {
 				e.printStackTrace();
 			}
 		}).start();
-		
+
 		requestManager.fetchPermissionConstants();
 	}
-	
+
 	public void onStop() {
 		writeSubscribedProjects();
 		deregisterResourceListeners();
@@ -179,7 +179,7 @@ public class PluginManager {
 	public EclipseRequestManager getRequestManager() {
 		return requestManager;
 	}
-	
+
 	public WSManager getWSManager() {
 		return wsManager;
 	}
@@ -195,7 +195,7 @@ public class PluginManager {
 	public DataManager getDataManager() {
 		return dataManager;
 	}
-	
+
 	private void registerWSHooks() {
 		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
 			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
@@ -203,7 +203,10 @@ public class PluginManager {
 			String password = prefStore.getString(PreferenceConstants.PASSWORD);
 			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
 			if (showWelcomeDialog) {
-				Display.getDefault().asyncExec(() -> new WelcomeDialog(new Shell(), prefStore).open());
+				Display.getDefault().asyncExec(() -> {
+					Shell shell = Display.getDefault().getActiveShell();
+					new WelcomeDialog(shell, prefStore).open();
+				});
 			} else {
 				if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
 					new Thread(() -> {
@@ -213,7 +216,7 @@ public class PluginManager {
 			}
 		 });
 	}
-	
+
 	private void registerNotificationHooks() {
 		SessionStorage storage = dataManager.getSessionStorage();
 		// ~~~ project hooks ~~~
@@ -233,29 +236,31 @@ public class PluginManager {
 			ArrayList<Long> projects = new ArrayList<>();
 			projects.add(resId);
 			Request projectLookupRequest = new ProjectLookupRequest(projects).getRequest(response -> {
-	        	ProjectLookupResponse r = (ProjectLookupResponse) response.getData();
-	        	if (r.getProjects() == null || r.getProjects().length != 1) {
-	        		System.out.println("Couldn't read projects from lookup");
-	        	} else {
-	        		Project p = r.getProjects()[0];
-	    			storage.setProject(p);
-	        	}
-	        }, new UIRequestErrorHandler("Couldn't send Project Lookup Request."));
-	        wsManager.sendAuthenticatedRequest(projectLookupRequest);
+				ProjectLookupResponse r = (ProjectLookupResponse) response.getData();
+				if (r.getProjects() == null || r.getProjects().length != 1) {
+					System.out.println("Couldn't read projects from lookup");
+				} else {
+					Project p = r.getProjects()[0];
+					storage.setProject(p);
+				}
+			}, new UIRequestErrorHandler("Couldn't send Project Lookup Request."));
+			wsManager.sendAuthenticatedRequest(projectLookupRequest);
 		});
 		// Project.RevokePermissions
 		wsManager.registerNotificationHandler("Project", "RevokePermissions", (notification) -> {
 			long resId = notification.getResourceID();
 			ProjectRevokePermissionsNotification n = ((ProjectRevokePermissionsNotification) notification.getData());
 			Project project = storage.getProjectById(resId);
-			if (project.getPermissions() == null) {
-				project.setPermissions(new HashMap<>());
-			}
-			project.getPermissions().remove(n.revokeUsername);
 			if (storage.getUsername().equals(n.revokeUsername)) {
 				storage.removeProjectById(resId);
 				getMetadataManager().projectDeleted(resId);
 			} else {
+				if (project != null) {
+					if (project.getPermissions() == null) {
+						project.setPermissions(new HashMap<>());
+					}
+					project.getPermissions().remove(n.revokeUsername);
+				}
 				storage.setProject(project);
 			}
 		});
@@ -263,9 +268,23 @@ public class PluginManager {
 		wsManager.registerNotificationHandler("Project", "Delete", (notification) -> {
 			long resId = notification.getResourceID();
 			storage.removeProjectById(resId);
+			ProjectMetadata meta = getMetadataManager().getProjectMetadata(resId);
+			if (meta == null) {
+				System.out.println("Received Project.Delete notification for non-existent project.");
+				return;
+			}
+			IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(getMetadataManager().getProjectMetadata(resId).getName());
+			IFile metaFile = iproject.getFile(CoreStringConstants.CONFIG_FILE_NAME);
 			getMetadataManager().projectDeleted(resId);
+			if (metaFile.exists()) {
+				try {
+					metaFile.delete(true, true, new NullProgressMonitor());
+				} catch (CoreException e) {
+					e.printStackTrace();
+				}
+			}
 		});
-		
+
 		// ~~~ file hooks ~~~
 		// File.Create
 		wsManager.registerNotificationHandler("File", "Create", (notification) -> {
@@ -273,7 +292,7 @@ public class PluginManager {
 			long resId = notification.getResourceID();
 			ProjectMetadata pmeta = mm.getProjectMetadata(resId);
 			if (pmeta == null) {
-				System.out.println("Received File.Create notification for unsubscribed project.");
+				System.out.println("Received File.Create notification for project with no metadata.");
 				return;
 			}
 			FileCreateNotification n = ((FileCreateNotification) notification.getData());
@@ -285,6 +304,13 @@ public class PluginManager {
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject eclipseProject = root.getProject(p.getName());
 			IProgressMonitor monitor = new NullProgressMonitor();
+
+			meta = new FileMetadata(n.file);
+			List<FileMetadata> fmetas = pmeta.getFiles();
+			fmetas.add(meta);
+			pmeta.setFiles(fmetas);
+			mm.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
+			mm.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
 			String path = Paths.get(n.file.getRelativePath(), n.file.getFilename()).toString();
 			putFileInWarnList(path, n.getClass());
 			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor, true);
@@ -312,6 +338,7 @@ public class PluginManager {
 			if (renameFile(file, new Path(newPathToFile), project.getProjectID())) {
 				meta.setFilename(n.newName);
 			}
+
 		});
 		// File.Move
 		wsManager.registerNotificationHandler("File", "Move", (notification) -> {
@@ -452,7 +479,7 @@ public class PluginManager {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		workspace.removeResourceChangeListener(postChangeDirListener);
 	}
-	
+
 	private void initPropertyListeners() {
 		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
 			if (event.getPropertyName().equals(SessionStorage.USERNAME)) {
@@ -477,12 +504,12 @@ public class PluginManager {
 			}
 		});
 	}
-	
+
 	private void autoSubscribe() {
 		SessionStorage storage = dataManager.getSessionStorage();
 		List<Long> subscribedIdsFromPrefs = getSubscribedProjectIds();
 		Set<Long> subscribedIds = storage.getSubscribedIds();
-		
+
 		for (Long id : subscribedIdsFromPrefs) {
 			Project p = storage.getProjectById(id);
 			if (p == null) {
@@ -492,12 +519,12 @@ public class PluginManager {
 			}
 		}
 	}
-	
+
 	/**
 	 * Removes the "auto-subscribe" preference associated with the given projectID.
 	 * Should be called when either the project is no longer on the server or the
 	 * user no longer has permissions for a project.
-	 * 
+	 *
 	 * @param id
 	 */
 	public void removeProjectIdFromPrefs(long id) {
@@ -515,13 +542,12 @@ public class PluginManager {
 			MessageDialog.createDialog("Could not remove project from subscribe preferences.").open();
 			e.printStackTrace();
 		}
-		
 	}
-	
+
 	/**
 	 * Returns a list of the project IDs that the user was subscribed to from their
 	 * last session.
-	 * 
+	 *
 	 * @return
 	 */
 	public List<Long> getSubscribedProjectIds() {
@@ -542,10 +568,10 @@ public class PluginManager {
 		}
 		return subscribedProjectIds;
 	}
-	
+
 	/**
 	 * Removes all project ID nodes from the subscribe preferences.
-	 * 
+	 *
 	 * @param b
 	 */
 	public void removeAllSubscribedPrefs(boolean b) {
@@ -564,7 +590,7 @@ public class PluginManager {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Goes through all of the projects in session storage, determines if the user is currently
 	 * subscribed, and then creates a node for that project in the subscribe preferences. If a
@@ -577,10 +603,10 @@ public class PluginManager {
 		List<Project> projects = ss.getProjects();
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
-		
+
 		for (Project p : projects) {
 			boolean subscribed = subscribedIDs.contains(p.getProjectID());
-			
+
 			if (!subscribed) {
 				// remove it from nodes if not subscribed
 				try {
