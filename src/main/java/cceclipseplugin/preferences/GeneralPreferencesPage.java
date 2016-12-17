@@ -1,5 +1,7 @@
 package cceclipseplugin.preferences;
 
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -8,12 +10,14 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.dialogs.RecoverPasswordDialog;
+import cceclipseplugin.ui.dialogs.WelcomeDialog;
 import websocket.ConnectException;
 
 public class GeneralPreferencesPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
@@ -30,16 +34,15 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 	 * editor knows how to save and restore itself.
 	 */
 	public void createFieldEditors() {
-		StringFieldEditor userBox = new StringFieldEditor(PreferenceConstants.USERNAME,
-				"Username:", getFieldEditorParent());
-		StringFieldEditor pwBox = new StringFieldEditor(PreferenceConstants.PASSWORD,
-				"Password:", getFieldEditorParent()) {
-			@Override
-			protected void doFillIntoGrid(Composite parent, int numColumns) {
-				super.doFillIntoGrid(parent, numColumns);
-				getTextControl().setEchoChar('*');
-			}
-		};
+		Button loginButton = new Button(getFieldEditorParent(), SWT.PUSH);
+		loginButton.setText("Login to CodeCollaborate");
+		loginButton.addListener(SWT.Selection, (event) -> {
+			Display.getDefault().asyncExec(() -> {
+				Shell shell = Display.getDefault().getActiveShell();
+				ISecurePreferences secureStore = SecurePreferencesFactory.getDefault();
+				new WelcomeDialog(shell, secureStore).open();
+			});
+		});
 		
 		BooleanFieldEditor autoConnect = new BooleanFieldEditor(PreferenceConstants.AUTO_CONNECT, "Auto-connect on startup",
 				getFieldEditorParent());
@@ -65,14 +68,6 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
 				Display.getDefault().asyncExec(() -> new RecoverPasswordDialog(getShell()).open());
 			}).start();
 		});
-		
-//		Button changePassword = new Button(getFieldEditorParent(), SWT.PUSH);
-//		changePassword.setText("Change Password");
-//		// TODO: change when change password is implemented
-//		changePassword.setEnabled(false);
-
-		addField(userBox);
-		addField(pwBox);
 		addField(autoConnect);
 	}
 

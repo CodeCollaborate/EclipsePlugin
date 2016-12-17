@@ -1,5 +1,7 @@
 package cceclipseplugin.ui.dialogs;
 
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -169,7 +171,7 @@ public class RegisterDialog extends Dialog {
 	@Override
 	protected void cancelPressed() {
 		close();
-		IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
+		ISecurePreferences prefStore = SecurePreferencesFactory.getDefault();
 		Shell shell = Display.getDefault().getActiveShell();
 		new WelcomeDialog(shell, prefStore).open();
 		super.cancelPressed();
