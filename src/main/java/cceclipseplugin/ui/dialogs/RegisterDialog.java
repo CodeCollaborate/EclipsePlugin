@@ -156,15 +156,15 @@ public class RegisterDialog extends Dialog {
 						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.RegisterDialog_UserRegistrationErr + response.getStatus() + ".").open()); // $NON-NLS-2$
 						return;
 					} else {
-						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.RegisterDialog_RegistrationSuccessMsg).open());
-
-						PluginManager.getInstance().getRequestManager().login(username, password);
+						Display.getDefault().asyncExec(() -> {
+							launchWelcome();
+							MessageDialog.createDialog(DialogStrings.RegisterDialog_RegistrationSuccessMsg).open();
+						});
 					}
 
 				} , new UIRequestErrorHandler(DialogStrings.RegisterDialog_UserRegisterErr));
 
 		PluginManager.getInstance().getWSManager().sendRequest(registerReq);
-		launchWelcome();
 		super.okPressed();
 	}
 	
@@ -176,7 +176,6 @@ public class RegisterDialog extends Dialog {
 	
 	@Override
 	protected void cancelPressed() {
-		close();
 		launchWelcome();
 		super.cancelPressed();
 	}
