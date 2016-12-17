@@ -82,7 +82,6 @@ public class CCIgnore {
 					ignoredFiles.add(path);
 				}
 				reader.close();
-				System.out.println(ignoredFiles);
 				(new Thread(() -> serverCleanUp(p))).start();
 			} catch (CoreException | IOException e) {
 				e.printStackTrace();

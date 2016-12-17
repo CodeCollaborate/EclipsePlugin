@@ -266,8 +266,7 @@ public class EclipseRequestManager extends RequestManager {
 		Semaphore waiter = new Semaphore(0);
 		for (IFile f : ifiles) {
 			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
-			try {
-				InputStream in = f.getContents();
+			try (InputStream in = f.getContents();) {
 				Request req = (new FileCreateRequest(f.getName(), 
 						path, 
 						project.getProjectID(),
@@ -281,7 +280,6 @@ public class EclipseRequestManager extends RequestManager {
 										return;
 									}
 								}, new UIRequestErrorHandler(DialogStrings.AddProjectDialog_FileCreateErr));
-				in.close();
 				PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
 			} catch (IOException | CoreException e) {
 				Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.AddProjectDialog_ReadFileErr).open());
@@ -348,14 +346,11 @@ public class EclipseRequestManager extends RequestManager {
 				if (ignoreFile.containsEntry(path)) {
 					System.out.println(String.format("Folder %s was ignored when scanning for files.", path));
 				} else {
-					folders.add((IFolder) m);
+					files.addAll(recursivelyGetFiles((IFolder) m, ignoreFile));
 				}
 			}
 		}
 		
-		for (IFolder folder : folders) {
-			files.addAll(recursivelyGetFiles(folder, ignoreFile));
-		}
 		return files;
 	}
 	
