@@ -120,6 +120,10 @@ public class DocumentManager implements INotificationHandler{
 	 * @return the document which was retrieved.
 	 */
 	private AbstractDocument getDocumentForEditor(ITextEditor editor) {
+		if (editor == null){
+			return null;
+		}
+		
 		IDocumentProvider provider = editor.getDocumentProvider();
 		IEditorInput input = editor.getEditorInput();
 		if (provider != null && input != null) {
