@@ -390,4 +390,16 @@ public class EclipseRequestManager extends RequestManager {
 			}
 		}
 	}
+
+	@Override
+	public void finishRenameFile(FileMetadata fMeta) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void finishMoveFile(FileMetadata fMeta) {
+		// TODO Auto-generated method stub
+		
+	}
 }
