@@ -164,16 +164,20 @@ public class RegisterDialog extends Dialog {
 				} , new UIRequestErrorHandler(DialogStrings.RegisterDialog_UserRegisterErr));
 
 		PluginManager.getInstance().getWSManager().sendRequest(registerReq);
-
+		launchWelcome();
 		super.okPressed();
+	}
+	
+	private void launchWelcome() {
+		ISecurePreferences prefStore = SecurePreferencesFactory.getDefault();
+		Shell shell = Display.getDefault().getActiveShell();
+		new WelcomeDialog(shell, prefStore).open();
 	}
 	
 	@Override
 	protected void cancelPressed() {
 		close();
-		ISecurePreferences prefStore = SecurePreferencesFactory.getDefault();
-		Shell shell = Display.getDefault().getActiveShell();
-		new WelcomeDialog(shell, prefStore).open();
+		launchWelcome();
 		super.cancelPressed();
 	}
 
