@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Queue;
 
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.swt.widgets.Display;
@@ -248,6 +249,7 @@ public class DocumentManager implements INotificationHandler{
 								} else {
 									document.replace(diff.getStartIndex(), diff.getLength(), "");
 								}
+								editor.doSave(new NullProgressMonitor());
 							} catch (BadLocationException e) {
 								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(), document.get().length(), document.get());
 								// TODO Auto-generated catch block
