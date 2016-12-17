@@ -1,14 +1,21 @@
 package cceclipseplugin.editor;
 
+import java.io.ByteArrayInputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Scanner;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.swt.widgets.Display;
@@ -28,6 +35,7 @@ import patching.Patch;
 import websocket.INotificationHandler;
 import websocket.models.Notification;
 import websocket.models.notifications.FileChangeNotification;
+import websocket.models.requests.FileChangeRequest;
 
 /**
  * Manages documents, finds editors as needed.
@@ -249,10 +257,10 @@ public class DocumentManager implements INotificationHandler{
 								} else {
 									document.replace(diff.getStartIndex(), diff.getLength(), "");
 								}
+								PluginManager.getInstance().putFileInWarnList(filePath, FileChangeRequest.class);
 								editor.doSave(new NullProgressMonitor());
 							} catch (BadLocationException e) {
 								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(), document.get().length(), document.get());
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 						}
@@ -260,8 +268,32 @@ public class DocumentManager implements INotificationHandler{
 				} else {
 					// If file is not open in an editor, enqueue the patch for
 					// writing.
-					PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
-							filePath, patches);
+					
+					IWorkspace workspace = ResourcesPlugin.getWorkspace();
+					IPath ipath = Path.fromOSString(filePath);
+					IFile file = workspace.getRoot().getFileForLocation(ipath);
+					if (!file.exists()) {
+						System.out.println("Cannot apply patches to non-existent file: " + filePath);
+						return;
+					}
+					String contents = null;
+					try(Scanner s = new Scanner(file.getContents())) {
+						contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
+					} catch (CoreException e) {
+						System.out.println("Cannot read file");
+						return;
+					}
+					PluginManager m = PluginManager.getInstance();
+					String newContents = m.getDataManager().getPatchManager().applyPatch(contents, patches);
+					m.putFileInWarnList(filePath, FileChangeRequest.class);
+					try {
+						file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
+					} catch (CoreException e) {
+						System.out.println("Fail to update files on disk");
+					}
+					
+//					PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
+//							filePath, patches);
 				}
 			}
 		});

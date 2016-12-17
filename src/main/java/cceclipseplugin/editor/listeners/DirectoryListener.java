@@ -20,6 +20,7 @@ import websocket.models.notifications.FileCreateNotification;
 import websocket.models.notifications.FileDeleteNotification;
 import websocket.models.notifications.FileMoveNotification;
 import websocket.models.notifications.FileRenameNotification;
+import websocket.models.requests.FileChangeRequest;
 import websocket.models.responses.FileCreateResponse;
 
 public class DirectoryListener extends AbstractDirectoryListener {
@@ -113,7 +114,11 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			} else if ((delta.getFlags() & IResourceDelta.CONTENT) != 0) {
 				EclipseRequestManager rm = pm.getRequestManager();
 				if (fileMeta != null) {
-					rm.pullDiffSendChanges(fileMeta);
+					if (pm.isFileInWarnList(path, FileChangeRequest.class)) {
+						pm.removeFileFromWarnList(path, FileChangeRequest.class);
+					} else {
+						rm.pullDiffSendChanges(fileMeta);
+					}
 				}
 			}
 			
