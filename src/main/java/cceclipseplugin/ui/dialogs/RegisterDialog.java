@@ -1,5 +1,7 @@
 package cceclipseplugin.ui.dialogs;
 
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -154,24 +156,27 @@ public class RegisterDialog extends Dialog {
 						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.RegisterDialog_UserRegistrationErr + response.getStatus() + ".").open()); // $NON-NLS-2$
 						return;
 					} else {
-						Display.getDefault().asyncExec(() -> MessageDialog.createDialog(DialogStrings.RegisterDialog_RegistrationSuccessMsg).open());
-
-						PluginManager.getInstance().getRequestManager().login(username, password);
+						Display.getDefault().asyncExec(() -> {
+							launchWelcome();
+							MessageDialog.createDialog(DialogStrings.RegisterDialog_RegistrationSuccessMsg).open();
+						});
 					}
 
 				} , new UIRequestErrorHandler(DialogStrings.RegisterDialog_UserRegisterErr));
 
 		PluginManager.getInstance().getWSManager().sendRequest(registerReq);
-
 		super.okPressed();
+	}
+	
+	private void launchWelcome() {
+		ISecurePreferences prefStore = SecurePreferencesFactory.getDefault();
+		Shell shell = Display.getDefault().getActiveShell();
+		new WelcomeDialog(shell, prefStore).open();
 	}
 	
 	@Override
 	protected void cancelPressed() {
-		close();
-		IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-		Shell shell = Display.getDefault().getActiveShell();
-		new WelcomeDialog(shell, prefStore).open();
+		launchWelcome();
 		super.cancelPressed();
 	}
 

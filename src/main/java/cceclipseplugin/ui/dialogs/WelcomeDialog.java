@@ -1,8 +1,9 @@
 package cceclipseplugin.ui.dialogs;
 
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.equinox.security.storage.StorageException;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
@@ -22,14 +23,14 @@ import org.eclipse.swt.events.SelectionEvent;
 public class WelcomeDialog extends Dialog {
 	private Text usernameBox;
 	private Text passwordBox;
-	private IPreferenceStore prefStore;
+	private ISecurePreferences prefStore;
 
 	/**
 	 * Create the dialog.
 	 * 
 	 * @param parentShell
 	 */
-	public WelcomeDialog(Shell parentShell, IPreferenceStore prefStore) {
+	public WelcomeDialog(Shell parentShell, ISecurePreferences prefStore) {
 		super(parentShell);
 		this.prefStore = prefStore;
 		setShellStyle(SWT.SHELL_TRIM);
@@ -80,10 +81,11 @@ public class WelcomeDialog extends Dialog {
 		lblDontHaveAn.setText(DialogStrings.WelcomeDialog_DontHaveAccount);
 		
 		Button btnRegister = new Button(composite_1, SWT.NONE);
+		Shell parentShell = this.getParentShell();
 		btnRegister.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				RegisterDialog dialog = new RegisterDialog(null);
+				RegisterDialog dialog = new RegisterDialog(parentShell);
 				close();
 				dialog.open();
 			}
@@ -115,8 +117,12 @@ public class WelcomeDialog extends Dialog {
 		PluginManager pm = PluginManager.getInstance();
 		pm.getRequestManager().login(username, password);
 		
-		prefStore.setValue(PreferenceConstants.USERNAME, username);
-		prefStore.setValue(PreferenceConstants.PASSWORD, password);
+		try {
+			prefStore.put(PreferenceConstants.USERNAME, username, true);
+			prefStore.put(PreferenceConstants.PASSWORD, password, true);
+		} catch (StorageException e) {
+			MessageDialog.createDialog("Failed to store login credentials. Please ensure Eclipse secure storage is properly initialized and try again.");
+		}
 
 		super.okPressed();
 	}
