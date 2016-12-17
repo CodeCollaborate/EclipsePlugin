@@ -132,14 +132,14 @@ public class EclipseRequestManager extends RequestManager {
 						}
 						fileContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
-							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
+							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);
 							
 							in.close();
 						} else {
 							// warn directory watching before creating the file
 							PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileChangeResponse.class);
-							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
+							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.create(in, false, progressMonitor);
 							in.close();
 						}
@@ -184,12 +184,19 @@ public class EclipseRequestManager extends RequestManager {
 	}
 	
 	public void pullDiffSendChanges(FileMetadata fMeta) {
-		
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
 		ProjectMetadata pMeta = mm.getProjectMetadata(mm.getProjectIDForFileID(fMeta.getFileID()));
-		IPath filePath = new Path(pMeta.getName());
-		filePath = filePath.append(fMeta.getFilePath());
-		IFile file = ResourcesPlugin.getWorkspace().getRoot().getFile(filePath);
+		String projLocation = mm.getProjectLocation(mm.getProjectIDForFileID(fMeta.getFileID()));
+		IPath filePath = new Path(fMeta.getRelativePath());
+//		filePath = filePath.append(fMeta.getFilename());
+		System.out.println("Project location: " + projLocation);
+		System.out.println("pulldiffsendchanges for " + filePath);
+		IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(filePath);
 		
 		Request req = new FilePullRequest(fMeta.getFileID()).getRequest(response -> {
 			if (response.getStatus() == 200) {

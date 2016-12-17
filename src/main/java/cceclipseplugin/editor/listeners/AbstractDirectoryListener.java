@@ -10,6 +10,8 @@ import org.eclipse.core.resources.IResourceDelta;
 import cceclipseplugin.core.CCIgnore;
 import cceclipseplugin.core.PluginManager;
 import dataMgmt.MetadataManager;
+import dataMgmt.SessionStorage;
+import dataMgmt.models.ProjectMetadata;
 
 public abstract class AbstractDirectoryListener implements IResourceChangeListener {
 	
@@ -40,9 +42,15 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 			// stop handling if the project doesn't have CodeCollaborate metadata
 			System.out.println("type: project; kind: " + delta.getKind());
 			MetadataManager meta = PluginManager.getInstance().getMetadataManager();
-			
-			if (meta.getProjectMetadata(res.getLocation().toString()) == null) {
+			ProjectMetadata pMeta = meta.getProjectMetadata(res.getLocation().toString());
+			if (pMeta == null) {
 				System.out.println("no project metadata found for project path \"" + res.getLocation().toString() + "\"");
+				return;
+			}
+			// stop handling if not subscribed
+			SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
+			if (!ss.getSubscribedIds().contains(pMeta.getProjectID())) {
+				System.out.println("Not subscribed, ignoring resource change for project \"" + res.getLocation().toString() + "\"");
 				return;
 			}
 			
