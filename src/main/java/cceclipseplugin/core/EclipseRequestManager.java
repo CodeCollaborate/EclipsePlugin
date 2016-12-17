@@ -139,6 +139,7 @@ public class EclipseRequestManager extends RequestManager {
 						} else {
 							// warn directory watching before creating the file
 							PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileChangeResponse.class);
+							System.out.println("Putting in: "+relPath.toString());
 							ByteArrayInputStream in = new ByteArrayInputStream(fileBytes);
 							newFile.create(in, false, progressMonitor);
 							in.close();

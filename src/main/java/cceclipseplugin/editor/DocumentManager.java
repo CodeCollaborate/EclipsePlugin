@@ -43,7 +43,7 @@ import websocket.models.requests.FileChangeRequest;
  * @author Benedict
  *
  */
-public class DocumentManager implements INotificationHandler{
+public class DocumentManager implements INotificationHandler {
 
 	private String currFile = null;
 	private HashMap<String, ITextEditor> openEditors = new HashMap<>();
@@ -129,10 +129,10 @@ public class DocumentManager implements INotificationHandler{
 	 * @return the document which was retrieved.
 	 */
 	private AbstractDocument getDocumentForEditor(ITextEditor editor) {
-		if (editor == null){
+		if (editor == null) {
 			return null;
 		}
-		
+
 		IDocumentProvider provider = editor.getDocumentProvider();
 		IEditorInput input = editor.getEditorInput();
 		if (provider != null && input != null) {
@@ -248,7 +248,6 @@ public class DocumentManager implements INotificationHandler{
 							if (currFile.equals(filePath)) {
 								appliedDiffs.add(diff);
 							}
-							
 
 							try {
 								// Apply the change to the document
@@ -260,7 +259,8 @@ public class DocumentManager implements INotificationHandler{
 								PluginManager.getInstance().putFileInWarnList(filePath, FileChangeRequest.class);
 								editor.doSave(new NullProgressMonitor());
 							} catch (BadLocationException e) {
-								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(), document.get().length(), document.get());
+								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
+										document.get().length(), document.get());
 								e.printStackTrace();
 							}
 						}
@@ -268,16 +268,17 @@ public class DocumentManager implements INotificationHandler{
 				} else {
 					// If file is not open in an editor, enqueue the patch for
 					// writing.
-					
+
 					IWorkspace workspace = ResourcesPlugin.getWorkspace();
 					IPath ipath = Path.fromOSString(filePath);
 					IFile file = workspace.getRoot().getFileForLocation(ipath);
 					if (!file.exists()) {
 						System.out.println("Cannot apply patches to non-existent file: " + filePath);
 						return;
-					}
+					}			
+					
 					String contents = null;
-					try(Scanner s = new Scanner(file.getContents())) {
+					try (Scanner s = new Scanner(file.getContents())) {
 						contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
 					} catch (CoreException e) {
 						System.out.println("Cannot read file");
@@ -285,15 +286,15 @@ public class DocumentManager implements INotificationHandler{
 					}
 					PluginManager m = PluginManager.getInstance();
 					String newContents = m.getDataManager().getPatchManager().applyPatch(contents, patches);
-					m.putFileInWarnList(filePath, FileChangeRequest.class);
+					m.putFileInWarnList(file.getProjectRelativePath().toString(), FileChangeRequest.class);
 					try {
 						file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
 					} catch (CoreException e) {
 						System.out.println("Fail to update files on disk");
 					}
-					
-//					PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
-//							filePath, patches);
+
+					// PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
+					// filePath, patches);
 				}
 			}
 		});
