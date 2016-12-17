@@ -235,6 +235,7 @@ public class DocumentManager implements INotificationHandler{
 							if (currFile.equals(filePath)) {
 								appliedDiffs.add(diff);
 							}
+							
 
 							try {
 								// Apply the change to the document
