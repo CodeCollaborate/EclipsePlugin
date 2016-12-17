@@ -12,6 +12,10 @@
 				<configuration>
 					<source>1.8</source>
 					<target>1.8</target>
+					<instructions>
+						<Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
+						<Embed-Directory>/lib</Embed-Directory>
+					</instructions>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -23,10 +27,17 @@
 		</repository>
 	</repositories>
 	<dependencies>
-		<dependency>
+		<!--<dependency>
 			<groupId>com.github.CodeCollaborate</groupId>
 			<artifactId>ClientCore</artifactId>
 			<version>4440b32d3c0a6613974941500966bf98596bed0b</version>
+		</dependency>-->
+		<!-- https://mvnrepository.com/artifact/org.bitbucket.cowwoc/diff-match-patch -->
+		<dependency>
+		    <groupId>org.bitbucket.cowwoc</groupId>
+		    <artifactId>diff-match-patch</artifactId>
+		    <version>1.1</version>
 		</dependency>
 	</dependencies>
+	
 </project>

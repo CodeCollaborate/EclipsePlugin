@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -17,6 +18,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
@@ -30,6 +32,7 @@ import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
+import patching.Diff;
 import patching.Patch;
 import requestMgmt.IInvalidResponseHandler;
 import requestMgmt.RequestManager;
@@ -40,6 +43,7 @@ import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
+import websocket.models.responses.FileChangeResponse;
 import websocket.models.requests.ProjectGetFilesRequest;
 import websocket.models.responses.FilePullResponse;
 import websocket.models.responses.ProjectGetFilesResponse;
@@ -77,14 +81,14 @@ public class EclipseRequestManager extends RequestManager {
 		List<FileMetadata> fileMetadatas = new ArrayList<>();
 		for (File f : files) {
 			fileMetadatas.add(new FileMetadata(f));
-			pullFileAndCreate(eclipseProject, p, f, progressMonitor);
+			pullFileAndCreate(eclipseProject, p, f, progressMonitor, false);
 		}
 		pmeta.setFiles(fileMetadatas);
 		metaMgr.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
 		metaMgr.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
 	}
-
-	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor) {
+	
+	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor, boolean unsubscribeOnFailure) {
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 				if (response.getStatus() == 200) {
 					byte[] fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
@@ -107,6 +111,10 @@ public class EclipseRequestManager extends RequestManager {
 							} catch (Exception e1) {
 								System.out.println("Could not create folder for " + currentFolder.toString());
 								e1.printStackTrace();
+								if (unsubscribeOnFailure) {
+									showErrorAndUnsubscribe(ccp.getProjectID());
+								}
+								return;
 							}
 							
 						}
@@ -124,19 +132,125 @@ public class EclipseRequestManager extends RequestManager {
 						}
 						fileContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
-							newFile.setContents(new ByteArrayInputStream(fileContents.getBytes()), true, false, progressMonitor);
+							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
+							newFile.setContents(in, false, false, progressMonitor);
+							
+							in.close();
 						} else {
-							newFile.create(new ByteArrayInputStream(fileContents.getBytes()), true, progressMonitor);
+							// warn directory watching before creating the file
+							PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileChangeResponse.class);
+							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
+							newFile.create(in, false, progressMonitor);
+							in.close();
 						}
+						FileMetadata meta = new FileMetadata();
+						meta.setFileID(file.getFileID());
+						meta.setFilename(file.getFilename());
+						meta.setRelativePath(file.getRelativePath());
+						meta.setVersion(file.getFileVersion());
+						PluginManager.getInstance().getMetadataManager().putFileMetadata(newFile.getFullPath().removeLastSegments(1).toString(), 
+								ccp.getProjectID(), meta);
 					} catch (Exception e) {
 						e.printStackTrace();
+						if (unsubscribeOnFailure) {
+							showErrorAndUnsubscribe(ccp.getProjectID());
+						}
+						return;
 					}
 				} else {
 					Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Failed to pull file" + file.getFilename() + " with status code " + response.getStatus()).open());
+					if (unsubscribeOnFailure) {
+						showErrorAndUnsubscribe(ccp.getProjectID());
+					}
 				}
-		}, new UIRequestErrorHandler("Couldn't send file pull request."));
+		}, () -> {
+			if (unsubscribeOnFailure) {
+				showErrorAndUnsubscribe(ccp.getProjectID());
+			} else {
+				new UIRequestErrorHandler("Couldn't send file pull request.").handleRequestSendError();
+			}
+		});
+		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+	}
+	
+	@Override
+	public void finishRenameFile(FileMetadata fMeta) {
+		pullDiffSendChanges(fMeta);
+	}
+	
+	@Override
+	public void finishMoveFile(FileMetadata fMeta) {
+		pullDiffSendChanges(fMeta);
+	}
+	
+	public void pullDiffSendChanges(FileMetadata fMeta) {
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		ProjectMetadata pMeta = mm.getProjectMetadata(mm.getProjectIDForFileID(fMeta.getFileID()));
+		String projLocation = mm.getProjectLocation(mm.getProjectIDForFileID(fMeta.getFileID()));
+		IPath filePath = new Path(fMeta.getRelativePath());
+//		filePath = filePath.append(fMeta.getFilename());
+		System.out.println("Project location: " + projLocation);
+		System.out.println("pulldiffsendchanges for " + filePath);
+		IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(filePath);
+		
+		Request req = new FilePullRequest(fMeta.getFileID()).getRequest(response -> {
+			if (response.getStatus() == 200) {
+				try {
+					byte[] oldContents = ((FilePullResponse) response.getData()).getFileBytes();
+					InputStream in = file.getContents();
+					byte[] newContents = inputStreamToByteArray(in);
+					in.close();
+					
+					List<Diff> diffs = generateStringDiffs(new String(oldContents), new String(newContents));
+					
+					if (diffs != null && !diffs.isEmpty()) {
+						this.sendFileChanges(fMeta.getFileID(), new String[] { new Patch((int) fMeta.getVersion(), diffs).toString() }, 0);
+					} else {
+						System.out.println("File either failed to pull or no diffs were found.");
+					}
+					
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}, new UIRequestErrorHandler("Couldn't send file pull request"));
 		
 		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+	}
+	
+	public List<Diff> generateStringDiffs(String oldContents, String newContents) {
+		DiffMatchPatch dmp = new DiffMatchPatch();
+		List<org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch.Patch> patches = dmp.patchMake(oldContents, newContents);
+		List<Diff> ccDiffs = new ArrayList<>();
+
+		for (org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch.Patch p : patches) {
+			int index = p.start1;
+			
+			for (org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch.Diff d : p.diffs) {
+				Diff ccDiff = null;
+				
+				if (d.operation == DiffMatchPatch.Operation.INSERT) {
+					ccDiff = new Diff(true, index, d.text);
+					index += d.text.length();
+				} else if (d.operation == DiffMatchPatch.Operation.DELETE) {
+					ccDiff = new Diff(false, index, d.text);
+				} else if (d.operation == DiffMatchPatch.Operation.EQUAL) {
+					index += d.text.length();
+				}
+				
+				if (ccDiff != null) {
+					ccDiffs.add(ccDiff);
+				}
+			}
+			
+		}
+		
+		return ccDiffs;
 	}
 
 	@Override
@@ -145,15 +259,18 @@ public class EclipseRequestManager extends RequestManager {
 		ProjectMetadata meta = new ProjectMetadata();
 		meta.setName(project.getName());
 		meta.setProjectID(project.getProjectID());
-		List<IFile> ifiles = recursivelyGetFiles(iproject);
+		
+		CCIgnore ignoreFile = CCIgnore.createForProject(iproject);
+		
+		List<IFile> ifiles = recursivelyGetFiles(iproject, ignoreFile);
 		Semaphore waiter = new Semaphore(0);
 		for (IFile f : ifiles) {
 			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
-			try {
+			try (InputStream in = f.getContents();) {
 				Request req = (new FileCreateRequest(f.getName(), 
 						path, 
 						project.getProjectID(),
-						inputStreamToByteArray(f.getContents()))).getRequest(
+						inputStreamToByteArray(in))).getRequest(
 								response -> {
 									int fileCreateStatusCode = response.getStatus();
 									if (fileCreateStatusCode == 200) {
@@ -204,30 +321,49 @@ public class EclipseRequestManager extends RequestManager {
         PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(requestForFiles);
 	}
 	
-	private List<IFile> recursivelyGetFiles(IContainer f) {
+	private List<IFile> recursivelyGetFiles(IContainer f, CCIgnore ignoreFile) {
 		ArrayList<IFile> files = new ArrayList<>();
 		ArrayList<IFolder> folders = new ArrayList<>();
 		IResource[] members = null;
+		
 		try {
 			members = f.members();
 		} catch (CoreException e1) {
 			e1.printStackTrace();
 		}
+		
 		for(IResource m : members) {
+			
 			if (m instanceof IFile) {
-				files.add((IFile) m);
+				String path = ((IFile) m).getProjectRelativePath().toString();
+				if (ignoreFile.containsEntry(path)) {
+					System.out.println(String.format("File %s was ignored when scanning for files.", path));
+				} else {
+					files.add((IFile) m);
+				}
 			} else if (m instanceof IFolder) {
-				folders.add((IFolder) m);
+				String path = ((IFolder) m).getProjectRelativePath().toString();
+				if (ignoreFile.containsEntry(path)) {
+					System.out.println(String.format("Folder %s was ignored when scanning for files.", path));
+				} else {
+					files.addAll(recursivelyGetFiles((IFolder) m, ignoreFile));
+				}
 			}
 		}
 		
-		for (IFolder folder : folders) {
-			files.addAll(recursivelyGetFiles(folder));
-		}
 		return files;
 	}
 	
-	private byte[] inputStreamToByteArray(InputStream is) throws IOException {
+	private void showErrorAndUnsubscribe(long projectId) {
+		Display.getDefault().asyncExec(() -> {
+			PluginManager pm = PluginManager.getInstance();
+			String projName = pm.getDataManager().getSessionStorage().getProjectById(projectId).getName();
+			unsubscribeFromProject(projectId);
+			MessageDialog.createDialog("An error occured. Please re-subscribe to the project " + projName).open();
+		});
+	}
+	
+	public static byte[] inputStreamToByteArray(InputStream is) throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		
 		byte curr;
@@ -237,10 +373,11 @@ public class EclipseRequestManager extends RequestManager {
 				break;
 			out.write(curr);
 		}
-		
-		return out.toByteArray();
+		byte[] result = out.toByteArray();
+		out.close();
+		return result;
 	}
-	
+
 	@Override
 	public void finishDeleteProject(Project project) {
 		IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());

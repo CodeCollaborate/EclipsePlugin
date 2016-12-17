@@ -1,20 +1,25 @@
 package cceclipseplugin.core;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.equinox.security.storage.ISecurePreferences;
 import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
 import org.eclipse.equinox.security.storage.StorageException;
@@ -29,10 +34,12 @@ import org.osgi.service.prefs.Preferences;
 import cceclipseplugin.Activator;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
+import cceclipseplugin.editor.listeners.DirectoryListener;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
 import cceclipseplugin.ui.DialogRequestSendErrorHandler;
 import cceclipseplugin.ui.UIRequestErrorHandler;
+import cceclipseplugin.ui.dialogs.DialogStrings;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.OkCancelDialog;
 import cceclipseplugin.ui.dialogs.WelcomeDialog;
@@ -50,11 +57,14 @@ import websocket.models.Notification;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.notifications.FileCreateNotification;
+import websocket.models.notifications.FileDeleteNotification;
 import websocket.models.notifications.FileMoveNotification;
 import websocket.models.notifications.FileRenameNotification;
 import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.notifications.ProjectRevokePermissionsNotification;
+import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.ProjectLookupRequest;
+import websocket.models.responses.FileCreateResponse;
 import websocket.models.responses.ProjectLookupResponse;
 
 /**
@@ -73,8 +83,15 @@ public class PluginManager {
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
 
-	// PLUGIN MODULES
+	// LISTENERS
 	private EditorChangeListener editorChangeListener;
+	private DirectoryListener postChangeDirListener;
+	
+	// may have to switch to using a queue if we run into issues with the order notifications are received
+	private HashMap<String, List<Class<?>>> fileDirectoryWatchWarnList = new HashMap<>();
+	private HashMap<String, List<Class<?>>> projectDirectoryWatchWarnList = new HashMap<>();
+	
+	// PLUGIN MODULES
 	private final DocumentManager documentManager;
 	private final DataManager dataManager;
 	private final WSManager wsManager;
@@ -140,9 +157,10 @@ public class PluginManager {
 			}
 		}
 		System.out.println("Enumerated all files");
-
-		initPropertyListeners();
+		
 		registerWSHooks();
+		registerResourceListeners();
+		initPropertyListeners();
 
 		new Thread(() -> {
 			try {
@@ -157,6 +175,7 @@ public class PluginManager {
 
 	public void onStop() {
 		writeSubscribedProjects();
+		deregisterResourceListeners();
 		wsManager.close();
 	}
 
@@ -291,7 +310,6 @@ public class PluginManager {
 			if (meta != null) {
 				return;
 			}
-
 			Project p = dataManager.getSessionStorage().getProjectById(pmeta.getProjectID());
 			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 			IProject eclipseProject = root.getProject(p.getName());
@@ -303,7 +321,9 @@ public class PluginManager {
 			pmeta.setFiles(fmetas);
 			mm.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
 			mm.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
-			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor);
+			String path = Paths.get(n.file.getRelativePath(), n.file.getFilename()).toString();
+			putFileInWarnList(path, n.getClass());
+			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor, true);
 		});
 		// File.Rename
 		wsManager.registerNotificationHandler("File", "Rename", (notification) -> {
@@ -315,26 +335,20 @@ public class PluginManager {
 				return;
 			}
 			FileRenameNotification n = ((FileRenameNotification) notification.getData());
-			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
+			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
+			
+			// old file
+			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
+			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+			IFile file = p.getFile(pathToFile);
+			
+			// new file
+			String newPathToFile = Paths.get(meta.getFilePath(), n.newName).normalize().toString();
+			
+			if (renameFile(file, new Path(newPathToFile), project.getProjectID())) {
+				meta.setFilename(n.newName);
+			}
 
-//			StringBuilder pathBuilder = new StringBuilder();
-//			pathBuilder.append(projectLocation);
-//			pathBuilder.append(meta.getRelativePath());
-//			pathBuilder.append(meta.getFilename());
-//
-//			StringBuilder newPathBuilder = new StringBuilder();
-//			newPathBuilder.append(projectLocation);
-//			newPathBuilder.append(meta.getRelativePath());
-//			newPathBuilder.append(n.newName);
-//
-//			File file = new File(pathBuilder.toString());
-//			if (file.exists()) {
-//				file.renameTo(new File(newPathBuilder.toString()));
-//				meta.setFilename(n.newName);
-//			} else {
-//				System.out.println("Tried to rename file that does not exist: " + pathBuilder.toString());
-//				return;
-//			}
 		});
 		// File.Move
 		wsManager.registerNotificationHandler("File", "Move", (notification) -> {
@@ -346,27 +360,19 @@ public class PluginManager {
 				return;
 			}
 			FileMoveNotification n = ((FileMoveNotification) notification.getData());
-			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-
-			// TODO (fahslaj): Finish these blocks of code in integration of editor
-//			StringBuilder pathBuilder = new StringBuilder();
-//			pathBuilder.append(projectLocation);
-//			pathBuilder.append(meta.getRelativePath());
-//			pathBuilder.append(meta.getFilename());
-//
-//			StringBuilder newPathBuilder = new StringBuilder();
-//			newPathBuilder.append(projectLocation);
-//			newPathBuilder.append(n.newPath);
-//			newPathBuilder.append(meta.getFilename());
-//
-//			File file = new File(pathBuilder.toString());
-//			if (file.exists()) {
-//				file.renameTo(new File(newPathBuilder.toString()));
-//				meta.setRelativePath(n.newPath);
-//			} else {
-//				System.out.println("Tried to move file that does not exist: " + pathBuilder.toString());
-//				return;
-//			}
+			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
+			
+			// old file
+			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
+			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+			IFile file = p.getFile(pathToFile);
+			
+			// new file
+			String newPathToFile = Paths.get(n.newPath, meta.getFilename()).normalize().toString();
+			
+			if (renameFile(file, new Path(newPathToFile), project.getProjectID())) {
+				meta.setRelativePath(n.newPath);
+			}
 		});
 		// File.Delete
 		wsManager.registerNotificationHandler("File", "Delete", (notification) -> {
@@ -377,26 +383,111 @@ public class PluginManager {
 				System.out.println("Received File.Delete notification for unsubscribed project or file that does not exist.");
 				return;
 			}
-			String projectLocation = mm.getProjectLocation(mm.getProjectIDForFileID(resId));
-
-			// TODO (fahslaj): Finish these blocks of code in integration of editor
-//			StringBuilder pathBuilder = new StringBuilder();
-//			pathBuilder.append(projectLocation);
-//			pathBuilder.append(meta.getRelativePath());
-//			pathBuilder.append(meta.getFilename());
-//
-//			File file = new File(pathBuilder.toString());
-//			if (file.exists()) {
-//				file.delete();
-//				mm.fileDeleted(resId);
-//			} else {
-//				System.out.println("Tried to delete file that does not exist: " + pathBuilder.toString());
-//				return;
-//			}
+			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
+			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
+			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+			IFile file = p.getFile(pathToFile);
+			
+			if (file.exists()) {
+				if (documentManager.getEditor(pathToFile) != null) {
+					Display.getDefault().asyncExec(() -> {
+						String message = String.format(DialogStrings.DeleteWarningDialog_Message, file.getName());
+						OkCancelDialog dialog = OkCancelDialog.createDialog(message,
+								"Restore", IDialogConstants.OK_LABEL, true);
+						// Restore is the "ok" option, because it should not be the default option
+						if (dialog.open() == Window.OK) {
+							tryRestoreFile(resId, file, meta, project.getProjectID());
+						}
+					});
+					return;
+				}
+				try {
+					putFileInWarnList(pathToFile, FileDeleteNotification.class);
+					file.delete(true, new NullProgressMonitor());
+					mm.fileDeleted(resId);
+				} catch (CoreException e) {
+					e.printStackTrace();
+					removeFileFromWarnList(pathToFile, FileDeleteNotification.class);
+					showErrorAndUnsubscribe(project.getProjectID());
+				}
+			} else {
+				System.out.println("Tried to delete file that does not exist: " + pathToFile);
+			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change",
 				(Notification n) -> documentManager.handleNotification(n));
+	}
+		
+	private boolean renameFile(IFile file, IPath newPath, long projId) {
+		if (file.exists()) {
+			try {
+				NullProgressMonitor monitor = new NullProgressMonitor();
+				putFileInWarnList(newPath.toString(), FileRenameNotification.class);
+				file.move(newPath, true, monitor);
+				return true;
+			} catch (Exception e) {
+				e.printStackTrace();
+				removeFileFromWarnList(newPath.toString(), FileRenameNotification.class);
+				showErrorAndUnsubscribe(projId);
+			}
+		} else {
+			System.out.println("Tried to rename file that does not exist: " + file.getFullPath().toString());
+		}
+		return false;
+	}
+	
+	private void tryRestoreFile(long oldId, IFile file, FileMetadata meta, long projectId) {		
+		// get file bytes
+		byte[] fileBytes;
+		try {
+			fileBytes = EclipseRequestManager.inputStreamToByteArray(file.getContents());
+		} catch (IOException | CoreException e) {
+			e.printStackTrace();
+			showErrorAndUnsubscribe(projectId);
+			return;
+		}
+		
+		MetadataManager mm = getMetadataManager();
+		mm.fileDeleted(oldId);
+		
+		// send file create request
+		Request request = new FileCreateRequest(file.getName(), meta.getFilePath(), projectId, fileBytes).getRequest(response -> {
+			if (response.getStatus() == 200) {
+				FileCreateResponse resp = (FileCreateResponse) response.getData();
+				long fileId = resp.getFileID();
+				meta.setFileID(fileId);
+				meta.setFilename(meta.getFilename());
+				meta.setRelativePath(meta.getRelativePath());
+				meta.setVersion(0);
+				mm.putFileMetadata(meta.getFilePath(), projectId, meta);
+			} else {
+				showErrorAndUnsubscribe(projectId);
+			}
+		}, () -> {
+			showErrorAndUnsubscribe(projectId);
+		});
+		this.wsManager.sendAuthenticatedRequest(request);
+	}
+	
+	private void showErrorAndUnsubscribe(long projectId) {
+		Display.getDefault().asyncExec(() -> {
+			PluginManager pm = PluginManager.getInstance();
+			String projName = pm.getDataManager().getSessionStorage().getProjectById(projectId).getName();
+			getRequestManager().unsubscribeFromProject(projectId);
+			MessageDialog.createDialog("An error occured. Please re-subscribe to the project " + projName).open();
+		});
+	}
+	
+	public void registerResourceListeners() {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		postChangeDirListener = new DirectoryListener();
+		workspace.addResourceChangeListener(postChangeDirListener, IResourceChangeEvent.POST_BUILD);
+	}
+	
+	public void deregisterResourceListeners() {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		workspace.removeResourceChangeListener(postChangeDirListener);
 	}
 
 	private void initPropertyListeners() {
@@ -550,6 +641,57 @@ public class PluginManager {
 		} catch (BackingStoreException e) {
 			System.out.println("Could not write subscribe preferences.");
 			e.printStackTrace();
+		}
+	}
+	
+	
+	public boolean isFileInWarnList(String fullFilePath, Class<?> notificationType) {
+		if (fileDirectoryWatchWarnList.containsKey(fullFilePath)) {
+			return fileDirectoryWatchWarnList.get(fullFilePath).contains(notificationType);
+		}
+		return false;
+	}
+	
+	public void putFileInWarnList(String fullFilePath, Class<?> notificationType) {
+		if (fileDirectoryWatchWarnList.containsKey(fullFilePath)) {
+			List<Class<?>> notificationTypes = fileDirectoryWatchWarnList.get(fullFilePath);
+			notificationTypes.add(notificationType);
+			fileDirectoryWatchWarnList.put(fullFilePath, notificationTypes);
+		} else {
+			List<Class<?>> notificationTypes = new ArrayList<>();
+			notificationTypes.add(notificationType);
+			fileDirectoryWatchWarnList.put(fullFilePath, notificationTypes);
+		} 
+	}
+	
+	public void removeFileFromWarnList(String fullFilePath, Class<?> notificationType) {
+		if (fileDirectoryWatchWarnList.containsKey(fullFilePath)) {
+			fileDirectoryWatchWarnList.get(fullFilePath).remove(notificationType);
+		}
+	}
+	
+	public boolean isProjectInWarnList(String projectName, Class<?> notificationType) {
+		if (projectDirectoryWatchWarnList.containsKey(projectName)) {
+			return projectDirectoryWatchWarnList.get(projectName).contains(notificationType);
+		}
+		return false;
+	}
+	
+	public void putProjectInWarnList(String projectName, Class<?> notificationType) {
+		if (projectDirectoryWatchWarnList.containsKey(projectName)) {
+			List<Class<?>> notificationTypes = projectDirectoryWatchWarnList.get(projectName);
+			notificationTypes.add(notificationType);
+			projectDirectoryWatchWarnList.put(projectName, notificationTypes);
+		} else {
+			List<Class<?>> notificationTypes = new ArrayList<>();
+			notificationTypes.add(notificationType);
+			projectDirectoryWatchWarnList.put(projectName, notificationTypes);
+		}
+	}
+	
+	public void removeProjectFromWarnList(String projectName, Class<?> notificationType) {
+		if (projectDirectoryWatchWarnList.containsKey(projectName)) {
+			projectDirectoryWatchWarnList.get(projectName).remove(notificationType);
 		}
 	}
 }
