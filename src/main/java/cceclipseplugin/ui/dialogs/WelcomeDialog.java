@@ -120,8 +120,7 @@ public class WelcomeDialog extends Dialog {
 			prefStore.put(PreferenceConstants.USERNAME, username, true);
 			prefStore.put(PreferenceConstants.PASSWORD, password, true);
 		} catch (StorageException e) {
-			System.err.println("Failure to store CodeCollaborate credentials");
-			e.printStackTrace();
+			MessageDialog.createDialog("Failed to store login credentials. Please ensure Eclipse secure storage is properly initialized and try again.");
 		}
 
 		super.okPressed();
