@@ -53,7 +53,6 @@ import websocket.ConnectException;
 import websocket.WSConnection;
 import websocket.WSManager;
 import websocket.models.ConnectionConfig;
-import websocket.models.Notification;
 import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.notifications.FileCreateNotification;
@@ -117,9 +116,12 @@ public class PluginManager {
 
 	private PluginManager() {
 		documentManager = new DocumentManager();
-		dataManager = DataManager.getInstance();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
-		requestManager = new EclipseRequestManager(dataManager, wsManager, new DialogRequestSendErrorHandler(), new DialogInvalidResponseHandler());
+		dataManager = DataManager.getInstance();
+		dataManager.getPatchManager().setWsMgr(wsManager);
+		dataManager.getPatchManager().setNotifHandler(documentManager);
+		requestManager = new EclipseRequestManager(dataManager, wsManager, new DialogRequestSendErrorHandler(),
+				new DialogInvalidResponseHandler());
 
 		registerNotificationHooks();
 
@@ -211,7 +213,7 @@ public class PluginManager {
 				e.printStackTrace();
 			}
 			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-			
+
 			if (username[0] == null || username[0].equals("") || password[0] == null || password[0].equals("")) {
 				Display.getDefault().asyncExec(() -> {
 					Shell shell = Display.getDefault().getActiveShell();
@@ -224,7 +226,7 @@ public class PluginManager {
 					}).start();
 				}
 			}
-		 });
+		});
 	}
 
 	private void registerNotificationHooks() {
@@ -283,7 +285,8 @@ public class PluginManager {
 				System.out.println("Received Project.Delete notification for non-existent project.");
 				return;
 			}
-			IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(getMetadataManager().getProjectMetadata(resId).getName());
+			IProject iproject = ResourcesPlugin.getWorkspace().getRoot()
+					.getProject(getMetadataManager().getProjectMetadata(resId).getName());
 			IFile metaFile = iproject.getFile(CoreStringConstants.CONFIG_FILE_NAME);
 			getMetadataManager().projectDeleted(resId);
 			if (metaFile.exists()) {
@@ -348,7 +351,6 @@ public class PluginManager {
 			if (renameFile(file, new Path(newPathToFile), project.getProjectID())) {
 				meta.setFilename(n.newName);
 			}
-
 		});
 		// File.Move
 		wsManager.registerNotificationHandler("File", "Move", (notification) -> {
@@ -380,7 +382,8 @@ public class PluginManager {
 			MetadataManager mm = dataManager.getMetadataManager();
 			FileMetadata meta = mm.getFileMetadata(resId);
 			if (meta == null) {
-				System.out.println("Received File.Delete notification for unsubscribed project or file that does not exist.");
+				System.out.println(
+						"Received File.Delete notification for unsubscribed project or file that does not exist.");
 				return;
 			}
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
@@ -415,8 +418,7 @@ public class PluginManager {
 			}
 		});
 		// File.Change
-		wsManager.registerNotificationHandler("File", "Change",
-				(Notification n) -> documentManager.handleNotification(n));
+		wsManager.registerNotificationHandler("File", "Change", dataManager.getPatchManager());
 	}
 		
 	private boolean renameFile(IFile file, IPath newPath, long projId) {
@@ -496,8 +498,11 @@ public class PluginManager {
 				requestManager.fetchProjects();
 				Display.getDefault().asyncExec(() -> {
 					if (event.getOldValue() == null || !event.getOldValue().equals(event.getNewValue())) {
-						if (Window.OK == OkCancelDialog.createDialog("Do you want to auto-subscribe to subscribed projets from the last session?\n"
-								+ "This will overwrite any local changes made since the last online session.").open()) {
+						if (Window.OK == OkCancelDialog
+								.createDialog(
+										"Do you want to auto-subscribe to subscribed projets from the last session?\n"
+												+ "This will overwrite any local changes made since the last online session.")
+								.open()) {
 							autoSubscribeForSession = true;
 							autoSubscribe();
 						} else {
@@ -531,9 +536,10 @@ public class PluginManager {
 	}
 
 	/**
-	 * Removes the "auto-subscribe" preference associated with the given projectID.
-	 * Should be called when either the project is no longer on the server or the
-	 * user no longer has permissions for a project.
+	 * Removes the "auto-subscribe" preference
+	 * associated with the given projectID. Should be called when either the
+	 * project is no longer on the server or the user no longer has permissions
+	 * for a project.
 	 *
 	 * @param id
 	 */
@@ -555,8 +561,8 @@ public class PluginManager {
 	}
 
 	/**
-	 * Returns a list of the project IDs that the user was subscribed to from their
-	 * last session.
+	 * Returns a list of the project IDs that the user was subscribed to
+	 * from their last session.
 	 *
 	 * @return
 	 */
@@ -602,9 +608,10 @@ public class PluginManager {
 	}
 
 	/**
-	 * Goes through all of the projects in session storage, determines if the user is currently
-	 * subscribed, and then creates a node for that project in the subscribe preferences. If a
-	 * node is found and the user is not subscribed, it is removed.
+	 * Goes through all of the projects in session storage, determines if the
+	 * user is currently subscribed, and then creates a node for that project in
+	 * the subscribe preferences. If a node is found and the user is not
+	 * subscribed, it is removed.
 	 */
 	public void writeSubscribedProjects() {
 		System.out.println("Writing subscribed projects to auto-subscribe preferences...");
@@ -631,7 +638,8 @@ public class PluginManager {
 			} else {
 				// otherwise, make node
 				Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
-				// have to put something in it, otherwise the node will be dumped
+				// have to put something in it, otherwise the node will be
+				// dumped
 				thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
 				System.out.println("Wrote subscribed pref for project " + p.getProjectID());
 			}

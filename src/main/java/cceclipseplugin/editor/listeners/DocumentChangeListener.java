@@ -12,6 +12,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
 import constants.CoreStringConstants;
+import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import dataMgmt.SessionStorage;
 import dataMgmt.models.FileMetadata;
@@ -19,10 +20,6 @@ import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
 import websocket.ConnectException;
-import websocket.IRequestSendErrorHandler;
-import websocket.IResponseHandler;
-import websocket.models.Request;
-import websocket.models.requests.FileChangeRequest;
 import websocket.models.responses.FileChangeResponse;
 
 /**
@@ -41,9 +38,11 @@ public class DocumentChangeListener implements IDocumentListener {
 	 */
 	@Override
 	public void documentAboutToBeChanged(DocumentEvent event) {
+		System.out.printf("DocumentChangeListener %s got event %s", this, event.toString());
+
 		List<Diff> diffs = new ArrayList<>();
 		String currDocument = event.getDocument().get();
-		
+
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
 		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
 		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
@@ -53,7 +52,7 @@ public class DocumentChangeListener implements IDocumentListener {
 		IProject proj = file.getProject();
 		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
 		FileMetadata fileMeta = mm.getFileMetadata(file.getLocation().toString());
-		if (projMeta == null || fileMeta == null || !ss.getSubscribedIds().contains(projMeta.getProjectID()) 
+		if (projMeta == null || fileMeta == null || !ss.getSubscribedIds().contains(projMeta.getProjectID())
 				|| fileMeta.getFilename().contains(CoreStringConstants.CONFIG_FILE_NAME)) {
 			return;
 		}
@@ -70,66 +69,45 @@ public class DocumentChangeListener implements IDocumentListener {
 			diffs.add(patch);
 		}
 
-		// If diffs were incoming, applied diffs, early-out
-		for (int i = 0; i < diffs.size(); i++) {
+		// If diffs were not incoming, applied diffs, convert to LF
+
+		List<Diff> newDiffs = new ArrayList<>();
+		diffLoop: for (int i = 0; i < diffs.size(); i++) {
 			while (!docMgr.getAppliedDiffs().isEmpty()) {
-				if (diffs.get(i).equals(docMgr.getAppliedDiffs().poll())) {
-					diffs.remove(i);
-					i--;
+				Diff appliedDiff = docMgr.getAppliedDiffs().poll();
+				System.out.printf("DEBUG SEND-ON-NOTIF: %s ?= %s; %b\n", diffs.get(i).toString(),
+						appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
+				if (diffs.get(i).equals(appliedDiff)) {
+					continue diffLoop;
 				}
 			}
+			newDiffs.add(diffs.get(i).convertToLF(currDocument));
 		}
 
 		// If no diffs left; abort
-		if (diffs.isEmpty()) {
+		if (newDiffs.isEmpty()) {
 			return;
 		}
 
-		// Convert all diffs to LF format.
-		List<Diff> newDiffs = new ArrayList<>();
-		for (Diff diff : diffs) {
-			newDiffs.add(diff.convertToLF(currDocument));
-		}
-
 		// Create the patch
-		Patch patch = new Patch(0, newDiffs);
+		Patch patch = new Patch(fileMeta.getVersion(), newDiffs);
 
-		String projRootPath = proj.getLocation().toString();
-
-		Request req = getFileChangeRequest(fileMeta, new String[] { patch.toString() }, response -> {
-			fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
-			PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta, projRootPath,
-					CoreStringConstants.CONFIG_FILE_NAME);
-		}, null, 1);
+		System.out.println("DocumentManager sending change request");
 
 		try {
-			PluginManager.getInstance().getWSManager().sendRequest(req);
+			String projRootPath = proj.getLocation().toString();
+			DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(), fileMeta.getVersion(),
+					new Patch[] { patch }, response -> {
+						synchronized (fileMeta) {
+							fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
+						}
+						PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
+								projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
+					}, null);
 		} catch (ConnectException e) {
 			System.out.println("Failed to send change request.");
 			e.printStackTrace();
 		}
-	}
-
-	private Request getFileChangeRequest(FileMetadata fileMeta, String[] changes, IResponseHandler respHandler,
-			IRequestSendErrorHandler sendErrHandler, int retryCount) {
-
-		return new FileChangeRequest(fileMeta.getFileID(), changes, fileMeta.getVersion()).getRequest(response -> {
-
-			// If we failed the first time around, update the fileVersion and
-			// retry.
-			if (response.getStatus() == 409 && retryCount > 0) {
-				Request req = getFileChangeRequest(fileMeta, changes, respHandler, sendErrHandler, retryCount - 1);
-				try {
-					PluginManager.getInstance().getWSManager().sendRequest(req);
-				} catch (ConnectException e) {
-					System.out.println("Failed to send change request.");
-					e.printStackTrace();
-				}
-				return;
-			}
-
-			respHandler.handleResponse(response);
-		}, sendErrHandler);
 	}
 
 	/**
