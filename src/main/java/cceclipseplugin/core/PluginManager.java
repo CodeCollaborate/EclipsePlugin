@@ -15,6 +15,9 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.InstanceScope;
+import org.eclipse.equinox.security.storage.ISecurePreferences;
+import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
+import org.eclipse.equinox.security.storage.StorageException;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
@@ -179,19 +182,26 @@ public class PluginManager {
 
 	private void registerWSHooks() {
 		 wsManager.registerEventHandler(WSConnection.EventType.ON_CONNECT, () -> {
+			ISecurePreferences secureStore = SecurePreferencesFactory.getDefault();
+			final String[] username = {null};
+			final String[] password = {null};
+			try {
+				username[0] = secureStore.get(PreferenceConstants.USERNAME, null);
+				password[0] = secureStore.get(PreferenceConstants.PASSWORD, null);
+			} catch (StorageException e) {
+				e.printStackTrace();
+			}
 			IPreferenceStore prefStore = Activator.getDefault().getPreferenceStore();
-			String username = prefStore.getString(PreferenceConstants.USERNAME);
-			String password = prefStore.getString(PreferenceConstants.PASSWORD);
-			boolean showWelcomeDialog = (username == null || username.equals("") || password == null || password.equals(""));
-			if (showWelcomeDialog) {
+			
+			if (username[0] == null || username[0].equals("") || password[0] == null || password[0].equals("")) {
 				Display.getDefault().asyncExec(() -> {
 					Shell shell = Display.getDefault().getActiveShell();
-					new WelcomeDialog(shell, prefStore).open();
+					new WelcomeDialog(shell, secureStore).open();
 				});
 			} else {
 				if (prefStore.getBoolean(PreferenceConstants.AUTO_CONNECT)) {
 					new Thread(() -> {
-						requestManager.login(username, password);
+						requestManager.login(username[0], password[0]);
 					}).start();
 				}
 			}
