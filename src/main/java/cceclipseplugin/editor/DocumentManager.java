@@ -11,6 +11,8 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -118,7 +120,14 @@ public class DocumentManager implements INotificationHandler{
 	 * @return the document which was retrieved.
 	 */
 	private AbstractDocument getDocumentForEditor(ITextEditor editor) {
-		return (AbstractDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput());
+		IDocumentProvider provider = editor.getDocumentProvider();
+		IEditorInput input = editor.getEditorInput();
+		if (provider != null && input != null) {
+			return (AbstractDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput());
+		} else {
+			System.out.println("Error getting document for editor");
+			return null;
+		}
 	}
 
 	/**
@@ -195,9 +204,9 @@ public class DocumentManager implements INotificationHandler{
 			@Override
 			public void run() {
 				ITextEditor editor = getEditor(filePath);
-				if (editor != null) {
-					// Get reference to open document
-					AbstractDocument document = getDocumentForEditor(editor);
+				// Get reference to open document
+				AbstractDocument document = getDocumentForEditor(editor);
+				if (editor != null && document != null) {
 
 					// Get text in document.
 					String newDocument = document.get();
