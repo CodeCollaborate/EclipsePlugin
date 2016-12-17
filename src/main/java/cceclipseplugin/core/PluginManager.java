@@ -87,8 +87,8 @@ public class PluginManager {
 	private DirectoryListener postChangeDirListener;
 	
 	// may have to switch to using a queue if we run into issues with the order notifications are received
-	private HashMap<String, List<Class<?>>> fileDirectoryWatchWarnList = new HashMap<>();
-	private HashMap<String, List<Class<?>>> projectDirectoryWatchWarnList = new HashMap<>();
+	public HashMap<String, List<Class<?>>> fileDirectoryWatchWarnList = new HashMap<>();
+	public HashMap<String, List<Class<?>>> projectDirectoryWatchWarnList = new HashMap<>();
 	
 	// PLUGIN MODULES
 	private final DocumentManager documentManager;

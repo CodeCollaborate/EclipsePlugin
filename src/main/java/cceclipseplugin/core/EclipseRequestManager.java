@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -44,6 +45,7 @@ import websocket.models.Request;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
 import websocket.models.responses.FileChangeResponse;
+import websocket.models.responses.FileCreateResponse;
 import websocket.models.requests.ProjectGetFilesRequest;
 import websocket.models.responses.FilePullResponse;
 import websocket.models.responses.ProjectGetFilesResponse;
@@ -122,6 +124,7 @@ public class EclipseRequestManager extends RequestManager {
 					}
 					
 					relPath = (Path) relPath.append(file.getFilename());
+					String relPathNormalized = Paths.get(relPath.toString()).normalize().toString();
 					System.out.println("Making file " + relPath.toString());
 					IFile newFile = p.getFile(relPath);
 					try {
@@ -132,13 +135,17 @@ public class EclipseRequestManager extends RequestManager {
 						}
 						fileContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
+
+							System.out.println("Putting in: "+relPath.toString());
+							PluginManager.getInstance().putFileInWarnList(relPathNormalized, FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);
 							
 							in.close();
 						} else {
 							// warn directory watching before creating the file
-							PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileChangeResponse.class);
+							System.out.println("Putting in: "+relPath.toString());
+							PluginManager.getInstance().putFileInWarnList(relPathNormalized, FileCreateResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.create(in, false, progressMonitor);
 							in.close();
