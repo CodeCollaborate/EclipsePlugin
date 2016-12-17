@@ -174,7 +174,8 @@ public class DirectoryListener extends AbstractDirectoryListener {
 				}
 			} else {
 				System.out.println("file added - " + f.getName());
-				if (!f.getName().equals(".project")) {
+				System.out.println(pm.fileDirectoryWatchWarnList.keySet());
+				if (!f.getName().equals(".project") && !f.getName().equals(".ccignore") && !f.getName().equals(".classpath")) {
 					ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getLocation().toString());
 	
 					byte[] fileBytes;
