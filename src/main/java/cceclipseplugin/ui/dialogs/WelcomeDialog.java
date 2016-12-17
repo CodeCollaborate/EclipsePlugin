@@ -81,10 +81,11 @@ public class WelcomeDialog extends Dialog {
 		lblDontHaveAn.setText(DialogStrings.WelcomeDialog_DontHaveAccount);
 		
 		Button btnRegister = new Button(composite_1, SWT.NONE);
+		Shell parentShell = this.getParentShell();
 		btnRegister.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				RegisterDialog dialog = new RegisterDialog(null);
+				RegisterDialog dialog = new RegisterDialog(parentShell);
 				close();
 				dialog.open();
 			}
