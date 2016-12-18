@@ -1,18 +1,30 @@
 package cceclipseplugin.editor;
 
-import java.nio.file.Path;
+import java.io.ByteArrayInputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Scanner;
 
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cceclipseplugin.core.PluginManager;
 import constants.CoreStringConstants;
@@ -20,8 +32,10 @@ import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
+import websocket.INotificationHandler;
 import websocket.models.Notification;
 import websocket.models.notifications.FileChangeNotification;
+import websocket.models.requests.FileChangeRequest;
 
 /**
  * Manages documents, finds editors as needed.
@@ -29,7 +43,7 @@ import websocket.models.notifications.FileChangeNotification;
  * @author Benedict
  *
  */
-public class DocumentManager {
+public class DocumentManager implements INotificationHandler {
 
 	private String currFile = null;
 	private HashMap<String, ITextEditor> openEditors = new HashMap<>();
@@ -55,7 +69,7 @@ public class DocumentManager {
 	 *            File path of active file
 	 */
 	public void setCurrFile(String filePath) {
-		if(filePath == null){
+		if (filePath == null) {
 			this.currFile = null;
 			return;
 		}
@@ -81,7 +95,7 @@ public class DocumentManager {
 	 *            filePath of file that was closed.
 	 */
 	public void closedDocument(String filePath) {
-		if (this.currFile.equals(filePath)) {
+		if (filePath == null || filePath.equals(this.currFile)) {
 			setCurrFile(null);
 		}
 		this.openEditors.remove(filePath);
@@ -115,7 +129,18 @@ public class DocumentManager {
 	 * @return the document which was retrieved.
 	 */
 	private AbstractDocument getDocumentForEditor(ITextEditor editor) {
-		return (AbstractDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput());
+		if (editor == null) {
+			return null;
+		}
+
+		IDocumentProvider provider = editor.getDocumentProvider();
+		IEditorInput input = editor.getEditorInput();
+		if (provider != null && input != null) {
+			return (AbstractDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput());
+		} else {
+			System.out.println("Error getting document for editor");
+			return null;
+		}
 	}
 
 	/**
@@ -136,36 +161,41 @@ public class DocumentManager {
 		}
 
 		// Get file path to write to.
-		FileMetadata fileMetaData = PluginManager.getInstance().getMetadataManager()
-				.getFileMetadata(n.getResourceID());
-		Long projectID = PluginManager.getInstance().getMetadataManager().getProjectIDForFileID(fileMetaData.getFileID());
-		if (projectID == null){
+		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(n.getResourceID());
+		Long projectID = PluginManager.getInstance().getMetadataManager().getProjectIDForFileID(fileMeta.getFileID());
+		if (projectID == null) {
 			// Early out if no such projectID found.
 			return;
 		}
-		
-		String projectRootPath = PluginManager.getInstance().getMetadataManager()
-				.getProjectLocation(projectID);
-		String filepath = Paths.get(projectRootPath, fileMetaData.getFilePath()).normalize().toString();
 
-		// TODO(wongb): FIND A WAY TO MAKE THIS MORE DETERMINISTIC
-		// Only apply patch if incoming fileVersion is greater than local fileVersion. 
-		// This is meant to ensure that the notification from our own fileChangeRequest doesn't get re-processed.
-		// **** This need to be changed, as a missing response means that local fileVersion is not updated.
-		if(changeNotif.fileVersion <= fileMetaData.getVersion()){
+		String projectRootPath = PluginManager.getInstance().getMetadataManager().getProjectLocation(projectID);
+		String filepath = Paths.get(projectRootPath, fileMeta.getFilePath()).normalize().toString();
+
+		// TODO(wongb): Build patch reorder buffer, making sure that they are applied in
+		// order.
+		// This is a temporary fix.
+		if (changeNotif.fileVersion <= fileMeta.getVersion()) {
+			try {
+				System.out.printf(
+						"ChangeNotification version was less than or equal to current version: %d <= %d; Notification: ",
+						changeNotif.fileVersion, fileMeta.getVersion(), new ObjectMapper().writeValueAsString(n));
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+			}
 			return;
 		}
-		
+
 		this.applyPatch(n.getResourceID(), filepath, patches);
-		
+
 		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
-				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString()+"/");
-		FileMetadata fileMeta = PluginManager.getInstance().getMetadataManager().getFileMetadata(n.getResourceID());
-		
-		fileMeta.setVersion(changeNotif.fileVersion);
+				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/");
+
+		synchronized (fileMeta) {
+			fileMeta.setVersion(changeNotif.fileVersion);
+		}
 		PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta, projectRootPath,
 				CoreStringConstants.CONFIG_FILE_NAME);
-		
+
 	}
 
 	/**
@@ -181,14 +211,14 @@ public class DocumentManager {
 	 */
 	public void applyPatch(long fileId, String filePath, List<Patch> patches) {
 		String currFile = this.currFile;
-		
+
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
 				ITextEditor editor = getEditor(filePath);
-				if (editor != null) {
-					// Get reference to open document
-					AbstractDocument document = getDocumentForEditor(editor);
+				// Get reference to open document
+				AbstractDocument document = getDocumentForEditor(editor);
+				if (editor != null && document != null) {
 
 					// Get text in document.
 					String newDocument = document.get();
@@ -225,8 +255,11 @@ public class DocumentManager {
 								} else {
 									document.replace(diff.getStartIndex(), diff.getLength(), "");
 								}
+								PluginManager.getInstance().putFileInWarnList(filePath, FileChangeRequest.class);
+								editor.doSave(new NullProgressMonitor());
 							} catch (BadLocationException e) {
-								// TODO Auto-generated catch block
+								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
+										document.get().length(), document.get());
 								e.printStackTrace();
 							}
 						}
@@ -234,8 +267,33 @@ public class DocumentManager {
 				} else {
 					// If file is not open in an editor, enqueue the patch for
 					// writing.
-					PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
-							filePath, patches);
+
+					IWorkspace workspace = ResourcesPlugin.getWorkspace();
+					IPath ipath = Path.fromOSString(filePath);
+					IFile file = workspace.getRoot().getFileForLocation(ipath);
+					if (!file.exists()) {
+						System.out.println("Cannot apply patches to non-existent file: " + filePath);
+						return;
+					}			
+					
+					String contents = null;
+					try (Scanner s = new Scanner(file.getContents())) {
+						contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
+					} catch (CoreException e) {
+						System.out.println("Cannot read file");
+						return;
+					}
+					PluginManager m = PluginManager.getInstance();
+					String newContents = m.getDataManager().getPatchManager().applyPatch(contents, patches);
+					m.putFileInWarnList(file.getProjectRelativePath().toString(), FileChangeRequest.class);
+					try {
+						file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
+					} catch (CoreException e) {
+						System.out.println("Fail to update files on disk");
+					}
+
+					// PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
+					// filePath, patches);
 				}
 			}
 		});
