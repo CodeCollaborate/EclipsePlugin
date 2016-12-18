@@ -68,7 +68,6 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		MetadataManager mm = pm.getMetadataManager();
 		FileMetadata fileMeta = mm.getFileMetadata(f.getLocation().toString());
 		String path = f.getProjectRelativePath().toString();
-		System.out.println("Pulling out: "+path);
 		
 		System.out.println( "	Filename: " + f.getName() + "	File flag: " + delta.getFlags());
 		

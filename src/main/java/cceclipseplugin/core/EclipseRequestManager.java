@@ -135,8 +135,6 @@ public class EclipseRequestManager extends RequestManager {
 						}
 						fileContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
-
-							System.out.println("Putting in: "+relPath.toString());
 							PluginManager.getInstance().putFileInWarnList(relPathNormalized, FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);
@@ -144,7 +142,6 @@ public class EclipseRequestManager extends RequestManager {
 							in.close();
 						} else {
 							// warn directory watching before creating the file
-							System.out.println("Putting in: "+relPath.toString());
 							PluginManager.getInstance().putFileInWarnList(relPathNormalized, FileCreateResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.create(in, false, progressMonitor);
@@ -216,7 +213,7 @@ public class EclipseRequestManager extends RequestManager {
 					List<Diff> diffs = generateStringDiffs(new String(oldContents), new String(newContents));
 					
 					if (diffs != null && !diffs.isEmpty()) {
-						this.sendFileChanges(fMeta.getFileID(), new Patch[] { new Patch((int) fMeta.getVersion(), diffs) });
+						this.sendFileChanges(fMeta.getFileID(), new String[] { new Patch((int) fMeta.getVersion(), diffs).toString() }, 0);
 					} else {
 						System.out.println("File either failed to pull or no diffs were found.");
 					}
@@ -357,7 +354,6 @@ public class EclipseRequestManager extends RequestManager {
 				}
 			}
 		}
-
 		return files;
 	}
 	
