@@ -1,0 +1,18 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.class
+
+# Folders
+build/*
+target/*
+bin/*
+
+# Eclipse, IntelliJ project files
+*.iml
+.idea
+*.project
+*.settings
+*.classpath
+
+# Config files
+/config*
+/target/
