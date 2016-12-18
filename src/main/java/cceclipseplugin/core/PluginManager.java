@@ -78,7 +78,7 @@ public class PluginManager {
 
 	// PLUGIN SETTINGS
 	// TODO: move to configuration file
-	final private String WS_ADDRESS = "wss://codecollaborate.obsessiveorange.com:8000/ws/";
+	final private String WS_ADDRESS = "ws://cody.csse.rose-hulman.edu:8000/ws/";
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
 
@@ -491,77 +491,6 @@ public class PluginManager {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		workspace.removeResourceChangeListener(postChangeDirListener);
 	}
-		
-	private boolean renameFile(IFile file, IPath newPath, long projId) {
-		if (file.exists()) {
-			try {
-				NullProgressMonitor monitor = new NullProgressMonitor();
-				putFileInWarnList(newPath.toString(), FileRenameNotification.class);
-				file.move(newPath, true, monitor);
-				return true;
-			} catch (Exception e) {
-				e.printStackTrace();
-				removeFileFromWarnList(newPath.toString(), FileRenameNotification.class);
-				showErrorAndUnsubscribe(projId);
-			}
-		} else {
-			System.out.println("Tried to rename file that does not exist: " + file.getFullPath().toString());
-		}
-		return false;
-	}
-	
-	private void tryRestoreFile(long oldId, IFile file, FileMetadata meta, long projectId) {		
-		// get file bytes
-		byte[] fileBytes;
-		try {
-			fileBytes = EclipseRequestManager.inputStreamToByteArray(file.getContents());
-		} catch (IOException | CoreException e) {
-			e.printStackTrace();
-			showErrorAndUnsubscribe(projectId);
-			return;
-		}
-		
-		MetadataManager mm = getMetadataManager();
-		mm.fileDeleted(oldId);
-		
-		// send file create request
-		Request request = new FileCreateRequest(file.getName(), meta.getFilePath(), projectId, fileBytes).getRequest(response -> {
-			if (response.getStatus() == 200) {
-				FileCreateResponse resp = (FileCreateResponse) response.getData();
-				long fileId = resp.getFileID();
-				meta.setFileID(fileId);
-				meta.setFilename(meta.getFilename());
-				meta.setRelativePath(meta.getRelativePath());
-				meta.setVersion(0);
-				mm.putFileMetadata(meta.getFilePath(), projectId, meta);
-			} else {
-				showErrorAndUnsubscribe(projectId);
-			}
-		}, () -> {
-			showErrorAndUnsubscribe(projectId);
-		});
-		this.wsManager.sendAuthenticatedRequest(request);
-	}
-	
-	private void showErrorAndUnsubscribe(long projectId) {
-		Display.getDefault().asyncExec(() -> {
-			PluginManager pm = PluginManager.getInstance();
-			String projName = pm.getDataManager().getSessionStorage().getProjectById(projectId).getName();
-			getRequestManager().unsubscribeFromProject(projectId);
-			MessageDialog.createDialog("An error occured. Please re-subscribe to the project " + projName).open();
-		});
-	}
-	
-	public void registerResourceListeners() {
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		postChangeDirListener = new DirectoryListener();
-		workspace.addResourceChangeListener(postChangeDirListener, IResourceChangeEvent.POST_BUILD);
-	}
-	
-	public void deregisterResourceListeners() {
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		workspace.removeResourceChangeListener(postChangeDirListener);
-	}
 
 	private void initPropertyListeners() {
 		dataManager.getSessionStorage().addPropertyChangeListener((event) -> {
@@ -570,9 +499,8 @@ public class PluginManager {
 				Display.getDefault().asyncExec(() -> {
 					if (event.getOldValue() == null || !event.getOldValue().equals(event.getNewValue())) {
 						if (Window.OK == OkCancelDialog
-								.createDialog(
-										"Do you want to auto-subscribe to subscribed projets from the last session?\n"
-												+ "This will overwrite any local changes made since the last online session.")
+								.createDialog("Do you want to auto-subscribe to subscribed projets from the last session?\n"
+											+ "This will overwrite any local changes made since the last online session.")
 								.open()) {
 							autoSubscribeForSession = true;
 							autoSubscribe();

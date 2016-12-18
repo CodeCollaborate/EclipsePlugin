@@ -171,7 +171,7 @@ public class DocumentManager implements INotificationHandler {
 		String projectRootPath = PluginManager.getInstance().getMetadataManager().getProjectLocation(projectID);
 		String filepath = Paths.get(projectRootPath, fileMeta.getFilePath()).normalize().toString();
 
-		// TODO(wongb): Build patch buffer, making sure that they are applied in
+		// TODO(wongb): Build patch reorder buffer, making sure that they are applied in
 		// order.
 		// This is a temporary fix.
 		if (changeNotif.fileVersion <= fileMeta.getVersion()) {
@@ -180,7 +180,6 @@ public class DocumentManager implements INotificationHandler {
 						"ChangeNotification version was less than or equal to current version: %d <= %d; Notification: ",
 						changeNotif.fileVersion, fileMeta.getVersion(), new ObjectMapper().writeValueAsString(n));
 			} catch (JsonProcessingException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			return;

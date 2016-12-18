@@ -213,7 +213,7 @@ public class EclipseRequestManager extends RequestManager {
 					List<Diff> diffs = generateStringDiffs(new String(oldContents), new String(newContents));
 					
 					if (diffs != null && !diffs.isEmpty()) {
-						this.sendFileChanges(fMeta.getFileID(), new String[] { new Patch((int) fMeta.getVersion(), diffs).toString() }, 0);
+						this.sendFileChanges(fMeta.getFileID(), new Patch[] { new Patch((int) fMeta.getVersion(), diffs)});
 					} else {
 						System.out.println("File either failed to pull or no diffs were found.");
 					}
