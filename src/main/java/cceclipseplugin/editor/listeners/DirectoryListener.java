@@ -20,6 +20,8 @@ import websocket.models.notifications.FileCreateNotification;
 import websocket.models.notifications.FileDeleteNotification;
 import websocket.models.notifications.FileMoveNotification;
 import websocket.models.notifications.FileRenameNotification;
+import websocket.models.notifications.ProjectDeleteNotification;
+import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.requests.FileChangeRequest;
 import websocket.models.responses.FileCreateResponse;
 
@@ -36,24 +38,33 @@ public class DirectoryListener extends AbstractDirectoryListener {
 	protected boolean handleProject(IResourceDelta delta) {
 		IProject p = (IProject) delta.getResource();
 		ProjectMetadata projectMeta = PluginManager.getInstance().getMetadataManager().getProjectMetadata(p.getFullPath().toString());
-		RequestManager rm = PluginManager.getInstance().getRequestManager();
+		PluginManager pm = PluginManager.getInstance();
+		RequestManager rm = pm.getRequestManager();
 		
 		if (delta.getKind() == IResourceDelta.REMOVED) {			
 			// Project was renamed
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
-				String newName = delta.getMovedToPath().lastSegment();
-				String newPath = delta.getMovedToPath().toString();
-				
-				rm.renameProject(projectMeta.getProjectID(), newName, newPath);
-				System.out.println("sent project rename request: renamed to \"" + newName + "\"; path changed to : " + newPath);
-				return false;
+				if (pm.isProjectInWarnList(p.getName(), ProjectRenameNotification.class)) {
+					pm.removeProjectFromWarnList(p.getName(), ProjectRenameNotification.class);
+				} else {
+					String newName = delta.getMovedToPath().lastSegment();
+					String newPath = delta.getMovedToPath().toString();
+					
+					rm.renameProject(projectMeta.getProjectID(), newName, newPath);
+					System.out.println("sent project rename request: renamed to \"" + newName + "\"; path changed to : " + newPath);
+					return false;
+				}
+			} else if ((delta.getFlags() & IResourceDelta.REMOVED) != 0) {
+				if (pm.isProjectInWarnList(p.getName(), ProjectDeleteNotification.class)) {
+					pm.removeProjectFromWarnList(p.getName(), ProjectDeleteNotification.class);
+				} else {
+					System.out.println("deleting project");
+					// Project was deleted from disk
+					System.out.println("unsubscribed from project due to removal from disk");
+					PluginManager.getInstance().getRequestManager().unsubscribeFromProject(projectMeta.getProjectID());
+					return true;
+				}
 			}
-			
-			// Project was deleted from disk
-			System.out.println("unsubscribed from project due to removal from disk");
-			PluginManager.getInstance().getRequestManager().unsubscribeFromProject(projectMeta.getProjectID());
-			return true;
-			
 		} else if (delta.getKind() == IResourceDelta.ADDED) {
 			return true;
 		}
@@ -154,9 +165,9 @@ public class DirectoryListener extends AbstractDirectoryListener {
 							rm.moveFile(fileMeta.getFileID(), 
 									f.getLocation().toString(), 
 									f.getProjectRelativePath().removeLastSegments(1).toString());
-						}
-						System.out.println("sent file move request; moving from " +
-							f.getProjectRelativePath().toString() + " to " + relativeMovedFromPath);						
+							System.out.println("sent file move request; moving from " +
+									f.getProjectRelativePath().toString() + " to " + relativeMovedFromPath);	
+						}					
 					} else {
 						// send File.Rename request
 						String newName = f.getProjectRelativePath().lastSegment();
@@ -167,8 +178,8 @@ public class DirectoryListener extends AbstractDirectoryListener {
 							pm.removeFileFromWarnList(path, FileRenameNotification.class);
 						} else {
 							rm.renameFile(fileMeta.getFileID(), newName);
+							System.out.println("sent file rename request; changing to " + newName);
 						}
-						System.out.println("sent file rename request; changing to " + newName);
 					}
 					
 				}

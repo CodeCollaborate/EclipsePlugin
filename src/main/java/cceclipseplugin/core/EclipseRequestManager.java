@@ -42,8 +42,12 @@ import websocket.WSManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
+import websocket.models.notifications.FileCreateNotification;
+import websocket.models.notifications.ProjectDeleteNotification;
+import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
+import websocket.models.requests.ProjectCreateRequest;
 import websocket.models.responses.FileChangeResponse;
 import websocket.models.responses.FileCreateResponse;
 import websocket.models.requests.ProjectGetFilesRequest;
@@ -59,17 +63,20 @@ public class EclipseRequestManager extends RequestManager {
 	
 	@Override
 	public void finishSubscribeToProject(long id, File[] files) {
-		MetadataManager metaMgr = PluginManager.getInstance().getMetadataManager();
+		PluginManager pm = PluginManager.getInstance();
+		MetadataManager metaMgr = pm.getMetadataManager();
 		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-		Project p = PluginManager.getInstance().getDataManager().getSessionStorage().getProjectById(id);
+		Project p = pm.getDataManager().getSessionStorage().getProjectById(id);
 		IProject eclipseProject = root.getProject(p.getName());
 		NullProgressMonitor progressMonitor = new NullProgressMonitor();
 		
 		// create & open a new project, deleting the old one if it exists
 		try {
+			pm.putProjectInWarnList(p.getName(), ProjectDeleteNotification.class);
 			if (eclipseProject.exists()) {
 				eclipseProject.delete(true, true, progressMonitor);
 			}
+			pm.putProjectInWarnList(p.getName(), ProjectCreateRequest.class);
 			eclipseProject.create(progressMonitor);
 			eclipseProject.open(progressMonitor);
 		} catch (CoreException e) {
@@ -108,6 +115,7 @@ public class EclipseRequestManager extends RequestManager {
 							IFolder newFolder = p.getFolder(currentFolder);
 							try {
 								if (!newFolder.exists()) {
+									PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileCreateNotification.class);
 									newFolder.create(true, true, progressMonitor);
 								}
 							} catch (Exception e1) {
