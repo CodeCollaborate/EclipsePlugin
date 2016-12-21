@@ -387,7 +387,7 @@ public class PluginManager {
 				return;
 			}
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
-			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
+			String pathToFile = meta.getFilePath();
 			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
 			IFile file = p.getFile(pathToFile);
 			
