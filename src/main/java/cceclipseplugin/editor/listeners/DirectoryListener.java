@@ -186,32 +186,29 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			} else {
 				System.out.println("file added - " + f.getName());
 				System.out.println(pm.fileDirectoryWatchWarnList.keySet());
-				if (!f.getName().equals(".project") && !f.getName().equals(".ccignore") && !f.getName().equals(".classpath")) {
-					ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getLocation().toString());
-	
-					byte[] fileBytes;
-					try {
-						if (pm.isFileInWarnList(path, FileCreateNotification.class)) {
-							pm.removeFileFromWarnList(path, FileCreateNotification.class);
-						} else if (pm.isFileInWarnList(path, FileCreateResponse.class)) {
-							pm.removeFileFromWarnList(path, FileCreateResponse.class);
-						} else {
-							InputStream in = f.getContents();
-							fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
-							in.close();
-	
-							EclipseRequestManager rm = pm.getRequestManager();
-							
-							rm.createFile(f.getName(), f.getFullPath().removeLastSegments(1).toString(),
-									f.getProjectRelativePath().removeLastSegments(1).toString(), pMeta.getProjectID(), fileBytes);						
-							System.out.println("sent file create request: " + f.getName());
-						}
-					} catch (IOException | CoreException e) {
-						e.printStackTrace();
+				ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getLocation().toString());
+
+				byte[] fileBytes;
+				try {
+					if (pm.isFileInWarnList(path, FileCreateNotification.class)) {
+						pm.removeFileFromWarnList(path, FileCreateNotification.class);
+					} else if (pm.isFileInWarnList(path, FileCreateResponse.class)) {
+						pm.removeFileFromWarnList(path, FileCreateResponse.class);
+					} else {
+						InputStream in = f.getContents();
+						fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
+						in.close();
+
+						EclipseRequestManager rm = pm.getRequestManager();
+						rm.createFile(f.getName(),
+									  f.getFullPath().removeLastSegments(1).toString(),
+									  f.getProjectRelativePath().removeLastSegments(1).toString(),
+									  pMeta.getProjectID(),
+									  fileBytes);
+						System.out.println("sent file create request: " + f.getName());
 					}
-	
-				} else {
-					System.out.println("metadata found for " + f.getName() + "; create request not sent");
+				} catch (IOException | CoreException e) {
+					e.printStackTrace();
 				}
 			}
 
