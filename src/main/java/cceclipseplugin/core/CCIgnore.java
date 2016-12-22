@@ -99,7 +99,7 @@ public class CCIgnore {
 	private void serverCleanUp(IProject p) {
 		EclipseRequestManager rm = PluginManager.getInstance().getRequestManager();
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
-		List<FileMetadata> fileMetas = mm.getProjectMetadata(p.getLocation().toString()).getFiles();
+		List<FileMetadata> fileMetas = mm.getProjectMetadata(p.getLocation().toString().replace("\\", "/")).getFiles();
 		
 		if (fileMetas == null) {
 			return;
