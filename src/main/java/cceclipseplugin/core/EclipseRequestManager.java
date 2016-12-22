@@ -98,6 +98,7 @@ public class EclipseRequestManager extends RequestManager {
 	}
 	
 	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor, boolean unsubscribeOnFailure) {
+		PluginManager pm = PluginManager.getInstance();
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 				if (response.getStatus() == 200) {
 					byte[] fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
@@ -115,7 +116,7 @@ public class EclipseRequestManager extends RequestManager {
 							IFolder newFolder = p.getFolder(currentFolder);
 							try {
 								if (!newFolder.exists()) {
-									PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileCreateNotification.class);
+									pm.putFileInWarnList(relPath.toString(), FileCreateNotification.class);
 									newFolder.create(true, true, progressMonitor);
 								}
 							} catch (Exception e1) {
@@ -141,16 +142,16 @@ public class EclipseRequestManager extends RequestManager {
 						for (String stringPatch : ((FilePullResponse) response.getData()).getChanges()) {
 							patches.add(new Patch(stringPatch));
 						}
-						fileContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(fileContents, patches);
+						fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
-							PluginManager.getInstance().putFileInWarnList(relPathNormalized, FileChangeResponse.class);
+							pm.putFileInWarnList(relPathNormalized, FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);
 							
 							in.close();
 						} else {
 							// warn directory watching before creating the file
-							PluginManager.getInstance().putFileInWarnList(relPathNormalized, FileCreateResponse.class);
+							pm.putFileInWarnList(relPathNormalized, FileCreateResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.create(in, false, progressMonitor);
 							in.close();
@@ -160,7 +161,7 @@ public class EclipseRequestManager extends RequestManager {
 						meta.setFilename(file.getFilename());
 						meta.setRelativePath(file.getRelativePath());
 						meta.setVersion(file.getFileVersion());
-						PluginManager.getInstance().getMetadataManager().putFileMetadata(newFile.getLocation().toString(), 
+						pm.getMetadataManager().putFileMetadata(newFile.getLocation().toString(), 
 								ccp.getProjectID(), meta);
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -182,7 +183,7 @@ public class EclipseRequestManager extends RequestManager {
 				new UIRequestErrorHandler("Couldn't send file pull request.").handleRequestSendError();
 			}
 		});
-		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+		pm.getWSManager().sendAuthenticatedRequest(req);
 	}
 	
 	@Override
