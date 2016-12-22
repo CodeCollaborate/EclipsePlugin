@@ -98,6 +98,7 @@ public class EclipseRequestManager extends RequestManager {
 	}
 	
 	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor, boolean unsubscribeOnFailure) {
+		PluginManager pm = PluginManager.getInstance();
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 				if (response.getStatus() == 200) {
 					byte[] fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
@@ -115,7 +116,7 @@ public class EclipseRequestManager extends RequestManager {
 							IFolder newFolder = p.getFolder(currentFolder);
 							try {
 								if (!newFolder.exists()) {
-									PluginManager.getInstance().putFileInWarnList(relPath.toString(), FileCreateNotification.class);
+									pm.putFileInWarnList(relPath.toString(), FileCreateNotification.class);
 									newFolder.create(true, true, progressMonitor);
 								}
 							} catch (Exception e1) {
@@ -141,16 +142,16 @@ public class EclipseRequestManager extends RequestManager {
 						for (String stringPatch : ((FilePullResponse) response.getData()).getChanges()) {
 							patches.add(new Patch(stringPatch));
 						}
-						fileContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(fileContents, patches);
+						fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
-							PluginManager.getInstance().putFileInWarnList(relPathNormalized, FileChangeResponse.class);
+							pm.putFileInWarnList(relPathNormalized, FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);
 							
 							in.close();
 						} else {
 							// warn directory watching before creating the file
-							PluginManager.getInstance().putFileInWarnList(relPathNormalized, FileCreateResponse.class);
+							pm.putFileInWarnList(relPathNormalized, FileCreateResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.create(in, false, progressMonitor);
 							in.close();
@@ -160,7 +161,7 @@ public class EclipseRequestManager extends RequestManager {
 						meta.setFilename(file.getFilename());
 						meta.setRelativePath(file.getRelativePath());
 						meta.setVersion(file.getFileVersion());
-						PluginManager.getInstance().getMetadataManager().putFileMetadata(newFile.getFullPath().removeLastSegments(1).toString(), 
+						pm.getMetadataManager().putFileMetadata(newFile.getLocation().toString(), 
 								ccp.getProjectID(), meta);
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -182,7 +183,7 @@ public class EclipseRequestManager extends RequestManager {
 				new UIRequestErrorHandler("Couldn't send file pull request.").handleRequestSendError();
 			}
 		});
-		PluginManager.getInstance().getWSManager().sendAuthenticatedRequest(req);
+		pm.getWSManager().sendAuthenticatedRequest(req);
 	}
 	
 	@Override
@@ -196,19 +197,14 @@ public class EclipseRequestManager extends RequestManager {
 	}
 	
 	public void pullDiffSendChanges(FileMetadata fMeta) {
-		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
-		}
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
-		ProjectMetadata pMeta = mm.getProjectMetadata(mm.getProjectIDForFileID(fMeta.getFileID()));
-		String projLocation = mm.getProjectLocation(mm.getProjectIDForFileID(fMeta.getFileID()));
-		IPath filePath = new Path(fMeta.getRelativePath());
-//		filePath = filePath.append(fMeta.getFilename());
-		System.out.println("Project location: " + projLocation);
+		long fileID = fMeta.getFileID();
+		long projectID = mm.getProjectIDForFileID(fileID);
+		ProjectMetadata pMeta = mm.getProjectMetadata(projectID);
+		IPath filePath = new Path(fMeta.getFilePath());
 		System.out.println("pulldiffsendchanges for " + filePath);
-		IFile file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(filePath);
+		IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(pMeta.getName());
+		IFile file = project.getFile(filePath);
 		
 		Request req = new FilePullRequest(fMeta.getFileID()).getRequest(response -> {
 			if (response.getStatus() == 200) {
@@ -217,8 +213,15 @@ public class EclipseRequestManager extends RequestManager {
 					InputStream in = file.getContents();
 					byte[] newContents = inputStreamToByteArray(in);
 					in.close();
+					// applying patches
+					String oldStringContents = new String(oldContents);
+					List<Patch> patches = new ArrayList<>();
+					for (String stringPatch : ((FilePullResponse) response.getData()).getChanges()) {
+						patches.add(new Patch(stringPatch));
+					}
+					oldStringContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(oldStringContents, patches);
 					
-					List<Diff> diffs = generateStringDiffs(new String(oldContents), new String(newContents));
+					List<Diff> diffs = generateStringDiffs(oldStringContents, new String(newContents));
 					
 					if (diffs != null && !diffs.isEmpty()) {
 						this.sendFileChanges(fMeta.getFileID(), new Patch[] { new Patch((int) fMeta.getVersion(), diffs)});
