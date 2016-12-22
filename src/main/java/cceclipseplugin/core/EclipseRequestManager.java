@@ -200,11 +200,9 @@ public class EclipseRequestManager extends RequestManager {
 		long fileID = fMeta.getFileID();
 		long projectID = mm.getProjectIDForFileID(fileID);
 		ProjectMetadata pMeta = mm.getProjectMetadata(projectID);
-		String projLocation = mm.getProjectLocation(projectID);
 		IPath filePath = new Path(fMeta.getFilePath());
 		System.out.println("pulldiffsendchanges for " + filePath);
 		IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(pMeta.getName());
-		System.out.println("Project location: " + projLocation);
 		IFile file = project.getFile(filePath);
 		
 		Request req = new FilePullRequest(fMeta.getFileID()).getRequest(response -> {
