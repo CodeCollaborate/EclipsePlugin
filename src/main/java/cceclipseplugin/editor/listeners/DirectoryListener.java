@@ -54,7 +54,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 					System.out.println("sent project rename request: renamed to \"" + newName + "\"; path changed to : " + newPath);
 					return false;
 				}
-			} else if ((delta.getFlags() & IResourceDelta.REMOVED) != 0) {
+			} else {
 				if (pm.isProjectInWarnList(p.getName(), ProjectDeleteNotification.class)) {
 					pm.removeProjectFromWarnList(p.getName(), ProjectDeleteNotification.class);
 				} else {
