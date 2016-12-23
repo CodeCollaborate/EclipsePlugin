@@ -48,7 +48,7 @@ public class CCIgnore {
 			
 			try {
 				// warn directory watching
-				IPath workspaceRelativePath = p.getFullPath().append(file.getProjectRelativePath());
+				IPath workspaceRelativePath = file.getFullPath();
 				PluginManager.getInstance().putFileInWarnList(workspaceRelativePath.toString(), FileCreateResponse.class);
 				
 				file.create(in, true, new NullProgressMonitor());

@@ -344,7 +344,7 @@ public class PluginManager {
 			
 			// new file (workspace-relative path)
 			IPath newPathToFile = new Path(project.getName()).append(
-					new Path(meta.getRelativePath())).append(new Path(n.newName));
+					meta.getRelativePath()).append(n.newName);
 			
 			if (renameFile(file, newPathToFile, project.getProjectID())) {
 				meta.setFilename(n.newName);
@@ -387,7 +387,7 @@ public class PluginManager {
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
 			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
 			IFile file = p.getFile(meta.getFilePath());
-			String fullPath = file.getFullPath().toString();
+			String workspaceRelativePath = file.getFullPath().toString();
 			
 			if (file.exists()) {
 				if (documentManager.getEditor(file.getLocation().toString()) != null) {
@@ -403,33 +403,33 @@ public class PluginManager {
 					return;
 				}
 				try {
-					putFileInWarnList(fullPath, FileDeleteNotification.class);
+					putFileInWarnList(workspaceRelativePath, FileDeleteNotification.class);
 					file.delete(true, new NullProgressMonitor());
 					mm.fileDeleted(resId);
 				} catch (CoreException e) {
 					e.printStackTrace();
-					removeFileFromWarnList(fullPath, FileDeleteNotification.class);
+					removeFileFromWarnList(workspaceRelativePath, FileDeleteNotification.class);
 					showErrorAndUnsubscribe(project.getProjectID());
 				}
 			} else {
-				System.out.println("Tried to delete file that does not exist: " + fullPath);
+				System.out.println("Tried to delete file that does not exist: " + workspaceRelativePath);
 			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change", dataManager.getPatchManager());
 	}
 		
-	private boolean renameFile(IFile file, IPath newFullPath, long projId) {
+	private boolean renameFile(IFile file, IPath newWorkspaceRelativePath, long projId) {
 		if (file.exists()) {
 			try {
 				NullProgressMonitor monitor = new NullProgressMonitor();
-				putFileInWarnList(newFullPath.toString(), FileRenameNotification.class);
+				putFileInWarnList(newWorkspaceRelativePath.toString(), FileRenameNotification.class);
 				// removing first segment to make it project relative
-				file.move(newFullPath.removeFirstSegments(1), true, monitor);
+				file.move(newWorkspaceRelativePath.removeFirstSegments(1), true, monitor);
 				return true;
 			} catch (Exception e) {
 				e.printStackTrace();
-				removeFileFromWarnList(newFullPath.toString(), FileRenameNotification.class);
+				removeFileFromWarnList(newWorkspaceRelativePath.toString(), FileRenameNotification.class);
 				showErrorAndUnsubscribe(projId);
 			}
 		} else {

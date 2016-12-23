@@ -65,51 +65,51 @@ public class DocumentManager implements INotificationHandler {
 	/**
 	 * Path of file that is currently active/open
 	 * 
-	 * @param filePath
+	 * @param absolutePath
 	 *            File path of active file
 	 */
-	public void setCurrFile(String filePath) {
-		if (filePath == null) {
+	public void setCurrFile(String absolutePath) {
+		if (absolutePath == null) {
 			this.currFile = null;
 			return;
 		}
-		this.currFile = filePath;
+		this.currFile = absolutePath;
 	}
 
 	/**
 	 * FilePath of editor that was just opened
 	 * 
-	 * @param filePath
+	 * @param absolutePath
 	 *            File path of opened editor
 	 * @param editor
 	 *            Editor that is opened for the given file
 	 */
-	public void openedEditor(String filePath, ITextEditor editor) {
-		this.openEditors.put(filePath, editor);
+	public void openedEditor(String absolutePath, ITextEditor editor) {
+		this.openEditors.put(absolutePath, editor);
 	}
 
 	/**
 	 * Call when a document is closed.
 	 * 
-	 * @param filePath
+	 * @param absolutePath
 	 *            filePath of file that was closed.
 	 */
-	public void closedDocument(String filePath) {
-		if (filePath == null || filePath.equals(this.currFile)) {
+	public void closedDocument(String absolutePath) {
+		if (absolutePath == null || absolutePath.equals(this.currFile)) {
 			setCurrFile(null);
 		}
-		this.openEditors.remove(filePath);
+		this.openEditors.remove(absolutePath);
 	}
 
 	/**
 	 * Gets the editor for the given file
 	 * 
-	 * @param filePath
+	 * @param absolutePath
 	 *            path of file that is open
 	 * @return ITextEditor instance for given filePath
 	 */
-	public ITextEditor getEditor(String filePath) {
-		return this.openEditors.get(filePath);
+	public ITextEditor getEditor(String absolutePath) {
+		return this.openEditors.get(absolutePath);
 	}
 
 	/**
@@ -189,7 +189,7 @@ public class DocumentManager implements INotificationHandler {
 				.getProjectMetadata(projectRootPath.toString());
 		
 		IPath fileRelativePathWithName = new Path(fileMeta.getFilePath());
-		IPath projectRelativePath = new Path('/' + projMeta.getName());
+		IPath projectRelativePath = new Path(projMeta.getName());
 		String workspaceRelativePath = projectRelativePath.append(fileRelativePathWithName).toString();
 		
 		this.applyPatch(n.getResourceID(), absolutePath, workspaceRelativePath.toString(), patches);

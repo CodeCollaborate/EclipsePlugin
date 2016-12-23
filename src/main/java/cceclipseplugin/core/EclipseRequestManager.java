@@ -114,7 +114,7 @@ public class EclipseRequestManager extends RequestManager {
 							IFolder newFolder = p.getFolder(currentFolder);
 							try {
 								if (!newFolder.exists()) {
-									IPath workspaceRelativePath = p.getFullPath().append(relPath);
+									IPath workspaceRelativePath = p.getFullPath().append(relPath).append(file.getFilename());
 									pm.putFileInWarnList(workspaceRelativePath.toString(), FileCreateNotification.class);
 									newFolder.create(true, true, progressMonitor);
 								}

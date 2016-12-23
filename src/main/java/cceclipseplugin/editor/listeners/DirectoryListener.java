@@ -77,7 +77,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		PluginManager pm = PluginManager.getInstance();
 		MetadataManager mm = pm.getMetadataManager();
 		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().toString());
-		String workspaceRelativePath = f.getProjectRelativePath().toString();
+		String workspaceRelativePath = f.getFullPath().toString();
 		
 		System.out.println( "	Filename: " + f.getName() + "	File flag: " + delta.getFlags());
 		
@@ -86,7 +86,6 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
 				
 				IPath relativeMovedToPath = delta.getMovedToPath().removeFirstSegments(1);
-				// replace \\ with /?
 				if (!relativeMovedToPath.toString().equals(f.getProjectRelativePath().toString())) {
 					
 					RequestManager rm = pm.getRequestManager();
