@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -44,7 +43,6 @@ import websocket.models.Project;
 import websocket.models.Request;
 import websocket.models.notifications.FileCreateNotification;
 import websocket.models.notifications.ProjectDeleteNotification;
-import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
 import websocket.models.requests.ProjectCreateRequest;
@@ -116,7 +114,8 @@ public class EclipseRequestManager extends RequestManager {
 							IFolder newFolder = p.getFolder(currentFolder);
 							try {
 								if (!newFolder.exists()) {
-									pm.putFileInWarnList(relPath.toString(), FileCreateNotification.class);
+									IPath workspaceRelativePath = p.getFullPath().append(relPath);
+									pm.putFileInWarnList(workspaceRelativePath.toString(), FileCreateNotification.class);
 									newFolder.create(true, true, progressMonitor);
 								}
 							} catch (Exception e1) {
@@ -133,7 +132,7 @@ public class EclipseRequestManager extends RequestManager {
 					}
 					
 					relPath = (Path) relPath.append(file.getFilename());
-					String relPathNormalized = Paths.get(relPath.toString()).normalize().toString();
+					IPath workspaceRelativePath = p.getFullPath().append(relPath);
 					System.out.println("Making file " + relPath.toString());
 					IFile newFile = p.getFile(relPath);
 					try {
@@ -144,24 +143,20 @@ public class EclipseRequestManager extends RequestManager {
 						}
 						fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
-							pm.putFileInWarnList(relPathNormalized, FileChangeResponse.class);
+							pm.putFileInWarnList(workspaceRelativePath.toString(), FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);
 							
 							in.close();
 						} else {
 							// warn directory watching before creating the file
-							pm.putFileInWarnList(relPathNormalized, FileCreateResponse.class);
+							pm.putFileInWarnList(workspaceRelativePath.toString(), FileCreateResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.create(in, false, progressMonitor);
 							in.close();
 						}
-						FileMetadata meta = new FileMetadata();
-						meta.setFileID(file.getFileID());
-						meta.setFilename(file.getFilename());
-						meta.setRelativePath(file.getRelativePath());
-						meta.setVersion(file.getFileVersion());
-						pm.getMetadataManager().putFileMetadata(newFile.getFullPath().toString(), 
+						FileMetadata meta = new FileMetadata(file);
+						pm.getMetadataManager().putFileMetadata(workspaceRelativePath.toString(), 
 								ccp.getProjectID(), meta);
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -338,7 +333,6 @@ public class EclipseRequestManager extends RequestManager {
 	
 	private List<IFile> recursivelyGetFiles(IContainer f, CCIgnore ignoreFile) {
 		ArrayList<IFile> files = new ArrayList<>();
-		ArrayList<IFolder> folders = new ArrayList<>();
 		IResource[] members = null;
 		
 		try {
