@@ -73,7 +73,7 @@ public class DocumentManager implements INotificationHandler {
 			this.currFile = null;
 			return;
 		}
-		this.currFile = Paths.get(filePath).toString();
+		this.currFile = filePath;
 	}
 
 	/**
@@ -85,7 +85,7 @@ public class DocumentManager implements INotificationHandler {
 	 *            Editor that is opened for the given file
 	 */
 	public void openedEditor(String filePath, ITextEditor editor) {
-		this.openEditors.put(Paths.get(filePath).toString(), editor);
+		this.openEditors.put(filePath, editor);
 	}
 
 	/**
@@ -168,8 +168,8 @@ public class DocumentManager implements INotificationHandler {
 			return;
 		}
 
-		String projectRootPath = PluginManager.getInstance().getMetadataManager().getProjectLocation(projectID);
-		String filepath = Paths.get(projectRootPath, fileMeta.getFilePath()).normalize().toString();
+		IPath projectRootPath = new Path(PluginManager.getInstance().getMetadataManager().getProjectLocation(projectID));
+		String absolutePath = projectRootPath.append(fileMeta.getFilePath()).toString();
 
 		// TODO(wongb): Build patch reorder buffer, making sure that they are applied in
 		// order.
@@ -184,16 +184,20 @@ public class DocumentManager implements INotificationHandler {
 			}
 			return;
 		}
-
-		this.applyPatch(n.getResourceID(), filepath, patches);
-
+		
 		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
-				.getProjectMetadata(ResourcesPlugin.getWorkspace().getRoot().getLocation().toString() + "/");
+				.getProjectMetadata(projectRootPath.toString());
+		
+		IPath fileRelativePathWithName = new Path(fileMeta.getFilePath());
+		IPath projectRelativePath = new Path('/' + projMeta.getName());
+		String workspaceRelativePath = projectRelativePath.append(fileRelativePathWithName).toString();
+		
+		this.applyPatch(n.getResourceID(), absolutePath, workspaceRelativePath.toString(), patches);
 
 		synchronized (fileMeta) {
 			fileMeta.setVersion(changeNotif.fileVersion);
 		}
-		PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta, projectRootPath,
+		PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta, projectRootPath.toString(),
 				CoreStringConstants.CONFIG_FILE_NAME);
 
 	}
@@ -204,18 +208,18 @@ public class DocumentManager implements INotificationHandler {
 	 * 
 	 * @param fileId
 	 *            fileId to patch; this is mainly used for passing to clientCore
-	 * @param filePath
+	 * @param absolutePath
 	 *            absolute file path; used as key in editorMap, and patches.
 	 * @param patches
 	 *            the list of patches to apply, in order.
 	 */
-	public void applyPatch(long fileId, String filePath, List<Patch> patches) {
+	public void applyPatch(long fileId, String absolutePath, String workspaceRelativePath, List<Patch> patches) {
 		String currFile = this.currFile;
 
 		Display.getDefault().asyncExec(new Runnable() {
 			@Override
 			public void run() {
-				ITextEditor editor = getEditor(filePath);
+				ITextEditor editor = getEditor(absolutePath);
 				// Get reference to open document
 				AbstractDocument document = getDocumentForEditor(editor);
 				if (editor != null && document != null) {
@@ -244,7 +248,7 @@ public class DocumentManager implements INotificationHandler {
 
 							// If patching an active file, add it to the patch
 							// list to ignore.
-							if (currFile.equals(filePath)) {
+							if (currFile.equals(absolutePath)) {
 								appliedDiffs.add(diff);
 							}
 
@@ -255,7 +259,7 @@ public class DocumentManager implements INotificationHandler {
 								} else {
 									document.replace(diff.getStartIndex(), diff.getLength(), "");
 								}
-								PluginManager.getInstance().putFileInWarnList(filePath, FileChangeRequest.class);
+								PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
 								editor.doSave(new NullProgressMonitor());
 							} catch (BadLocationException e) {
 								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
@@ -269,10 +273,10 @@ public class DocumentManager implements INotificationHandler {
 					// writing.
 
 					IWorkspace workspace = ResourcesPlugin.getWorkspace();
-					IPath ipath = Path.fromOSString(filePath);
+					IPath ipath = new Path(absolutePath);
 					IFile file = workspace.getRoot().getFileForLocation(ipath);
 					if (!file.exists()) {
-						System.out.println("Cannot apply patches to non-existent file: " + filePath);
+						System.out.println("Cannot apply patches to non-existent file: " + absolutePath);
 						return;
 					}			
 					
@@ -285,7 +289,7 @@ public class DocumentManager implements INotificationHandler {
 					}
 					PluginManager m = PluginManager.getInstance();
 					String newContents = m.getDataManager().getPatchManager().applyPatch(contents, patches);
-					m.putFileInWarnList(file.getProjectRelativePath().toString(), FileChangeRequest.class);
+					m.putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
 					try {
 						file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
 					} catch (CoreException e) {
