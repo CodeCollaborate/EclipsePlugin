@@ -120,6 +120,12 @@ public class DirectoryListener extends AbstractDirectoryListener {
 				}
 				
 			} else if ((delta.getFlags() & IResourceDelta.CONTENT) != 0) {
+				
+				if ((delta.getFlags() & IResourceDelta.REPLACED) != 0) {
+					System.out.println(String.format("File contents were replaced for %s", path));
+					return;
+				}
+				
 				EclipseRequestManager rm = pm.getRequestManager();
 				if (fileMeta != null) {
 					if (pm.isFileInWarnList(path, FileChangeRequest.class)) {
