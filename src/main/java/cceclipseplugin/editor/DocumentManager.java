@@ -210,6 +210,8 @@ public class DocumentManager implements INotificationHandler {
 	 *            fileId to patch; this is mainly used for passing to clientCore
 	 * @param absolutePath
 	 *            absolute file path; used as key in editorMap, and patches.
+	 * @param workspaceRelativePath
+	 * 			  workspace relative file path that includes the filename        
 	 * @param patches
 	 *            the list of patches to apply, in order.
 	 */
