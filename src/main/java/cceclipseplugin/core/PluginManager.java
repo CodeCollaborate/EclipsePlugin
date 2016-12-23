@@ -1,7 +1,6 @@
 package cceclipseplugin.core;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -144,17 +143,17 @@ public class PluginManager {
 				if (project.getName().equalsIgnoreCase("RemoteSystemsTempFiles")) {
 					continue;
 				}
-				String projRoot = project.getLocation().toString();
+				IPath projRoot = project.getLocation();
 				try {
-					metadataManager.readProjectMetadataFromFile(projRoot, CoreStringConstants.CONFIG_FILE_NAME);
+					metadataManager.readProjectMetadataFromFile(projRoot.toString(), CoreStringConstants.CONFIG_FILE_NAME);
 					System.out.println("Loaded metadata from "
-							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+							+ projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString());
 				} catch (IllegalArgumentException e) {
 					System.out.println("No such config file: "
-							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+							+ projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString());
 				} catch (IllegalStateException e) {
 					System.out.println("Incorrect config file format: "
-							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+							+ projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString());
 				}
 			}
 		}
@@ -462,7 +461,7 @@ public class PluginManager {
 				meta.setFilename(meta.getFilename());
 				meta.setRelativePath(meta.getRelativePath());
 				meta.setVersion(0);
-				mm.putFileMetadata(file.getFullPath().toString().replace("\\", "/"), projectId, meta);
+				mm.putFileMetadata(file.getFullPath().toString(), projectId, meta);
 			} else {
 				showErrorAndUnsubscribe(projectId);
 			}
