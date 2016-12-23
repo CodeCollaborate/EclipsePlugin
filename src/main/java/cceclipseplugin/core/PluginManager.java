@@ -285,8 +285,7 @@ public class PluginManager {
 				System.out.println("Received Project.Delete notification for non-existent project.");
 				return;
 			}
-			IProject iproject = ResourcesPlugin.getWorkspace().getRoot()
-					.getProject(getMetadataManager().getProjectMetadata(resId).getName());
+			IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(meta.getName());
 			IFile metaFile = iproject.getFile(CoreStringConstants.CONFIG_FILE_NAME);
 			getMetadataManager().projectDeleted(resId);
 			if (metaFile.exists()) {
@@ -324,7 +323,7 @@ public class PluginManager {
 			pmeta.setFiles(fmetas);
 			mm.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
 			mm.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
-			String path = Paths.get(n.file.getRelativePath(), n.file.getFilename()).toString();
+			String path = new Path(pmeta.getName()).append(new Path(meta.getFilePath())).toString();
 			putFileInWarnList(path, n.getClass());
 			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor, true);
 		});
