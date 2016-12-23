@@ -1,5 +1,6 @@
 package cceclipseplugin.editor.listeners;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,9 +52,17 @@ public class DocumentChangeListener implements IDocumentListener {
 		IFile file = editor.getEditorInput().getAdapter(IFile.class);
 		IProject proj = file.getProject();
 		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
-		FileMetadata fileMeta = mm.getFileMetadata(file.getLocation().toString());
+		String fullPath = file.getFullPath().toString();
+		FileMetadata fileMeta = mm.getFileMetadata(fullPath);
 		if (projMeta == null || fileMeta == null || !ss.getSubscribedIds().contains(projMeta.getProjectID())
 				|| fileMeta.getFilename().contains(CoreStringConstants.CONFIG_FILE_NAME)) {
+			// TODO: Remove these debug statements
+			if (fileMeta == null) {
+				System.out.println("file metadata was null");
+			}
+			if (projMeta == null) {
+				System.out.println("project metadata was null");
+			}
 			return;
 		}
 
@@ -86,6 +95,7 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		// If no diffs left; abort
 		if (newDiffs.isEmpty()) {
+			System.out.println("No new diffs, aborting.");
 			return;
 		}
 

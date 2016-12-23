@@ -2,7 +2,6 @@ package cceclipseplugin.editor.listeners;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -77,7 +76,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		IFile f = (IFile) delta.getResource();
 		PluginManager pm = PluginManager.getInstance();
 		MetadataManager mm = pm.getMetadataManager();
-		FileMetadata fileMeta = mm.getFileMetadata(f.getLocation().toString());
+		FileMetadata fileMeta = mm.getFileMetadata(f.getFullPath().toString());
 		String path = f.getProjectRelativePath().toString();
 		
 		System.out.println( "	Filename: " + f.getName() + "	File flag: " + delta.getFlags());
@@ -87,7 +86,6 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
 				
 				IPath relativeMovedToPath = delta.getMovedToPath().removeFirstSegments(1);
-				IPath fullMovedToPath = f.getProject().getFullPath().append(relativeMovedToPath);
 				
 				if (!relativeMovedToPath.toString().equals(f.getProjectRelativePath().toString())) {
 					
@@ -100,11 +98,10 @@ public class DirectoryListener extends AbstractDirectoryListener {
 						} else {
 							// get metadata again but with the old path because old one should be null 
 							// if the new path was used to find it
-							String absPath = Paths.get(f.getProject().getLocation().toString(), 
-									delta.getProjectRelativePath().toString()).normalize().toString();
-							fileMeta = mm.getFileMetadata(absPath);
+							String movedToPathString = delta.getMovedToPath().toString();
+							fileMeta = mm.getFileMetadata(movedToPathString);
 							rm.moveFile(fileMeta.getFileID(), 
-									f.getLocation().toString(), 
+									f.getFullPath().toString(), 
 									relativeMovedToPath.removeLastSegments(1).toString());
 						}
 						System.out.println("sent file move request; moving from " +
@@ -147,33 +144,29 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		} else if (delta.getKind() == IResourceDelta.ADDED) {
 			if ((delta.getFlags() & IResourceDelta.MOVED_FROM) != 0) {
 				// do same as rename stuff
-				IPath relativeMovedFromPath = delta.getMovedFromPath().removeFirstSegments(1);
+				IPath fullMovedFromPath = delta.getMovedFromPath();
 				
-				if (!relativeMovedFromPath.toString().equals(f.getProjectRelativePath().toString())) {
+				if (!fullMovedFromPath.toString().equals(f.getFullPath().toString())) {
 					
 					RequestManager rm = pm.getRequestManager();
 					
-					if (f.getName().equals(relativeMovedFromPath.lastSegment())) {
+					if (f.getName().equals(fullMovedFromPath.lastSegment())) {
 						// send File.Move request
 						if (pm.isFileInWarnList(path, FileMoveNotification.class)) {
 							pm.removeFileFromWarnList(path, FileMoveNotification.class);
 						} else {
-							String absPath = Paths.get(f.getProject().getLocation().toString(), 
-									relativeMovedFromPath.toString()).normalize().toString().replace("\\", "/");
-							fileMeta = mm.getFileMetadata(absPath);
-							System.out.println("Getting metadata from file : " + absPath);
-							rm.moveFile(fileMeta.getFileID(), 
-									f.getLocation().toString(), 
+							String movedFromPathString = fullMovedFromPath.toString().replace("\\", "/");
+							fileMeta = mm.getFileMetadata(movedFromPathString);
+							System.out.println("Getting metadata from file : " + movedFromPathString);
+							rm.moveFile(fileMeta.getFileID(), movedFromPathString, 
 									f.getProjectRelativePath().removeLastSegments(1).toString());
 							System.out.println("sent file move request; moving from " +
-									f.getProjectRelativePath().toString() + " to " + relativeMovedFromPath);	
+									f.getFullPath().toString() + " to " + movedFromPathString);	
 						}					
 					} else {
 						// send File.Rename request
 						String newName = f.getProjectRelativePath().lastSegment();
-						String absPath = Paths.get(f.getProject().getLocation().toString(), 
-								relativeMovedFromPath.toString()).normalize().toString().replace("\\", "/");
-						fileMeta = mm.getFileMetadata(absPath);
+						fileMeta = mm.getFileMetadata(fullMovedFromPath.toString().replace("\\", "/"));
 						if (pm.isFileInWarnList(path, FileRenameNotification.class)) {
 							pm.removeFileFromWarnList(path, FileRenameNotification.class);
 						} else {
@@ -202,7 +195,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 	
 							EclipseRequestManager rm = pm.getRequestManager();
 							
-							rm.createFile(f.getName(), f.getFullPath().removeLastSegments(1).toString(),
+							rm.createFile(f.getName(), f.getFullPath().toString(),
 									f.getProjectRelativePath().removeLastSegments(1).toString(), pMeta.getProjectID(), fileBytes);						
 							System.out.println("sent file create request: " + f.getName());
 						}

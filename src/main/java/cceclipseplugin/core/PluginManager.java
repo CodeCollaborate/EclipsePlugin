@@ -462,7 +462,7 @@ public class PluginManager {
 				meta.setFilename(meta.getFilename());
 				meta.setRelativePath(meta.getRelativePath());
 				meta.setVersion(0);
-				mm.putFileMetadata(meta.getFilePath(), projectId, meta);
+				mm.putFileMetadata(file.getFullPath().toString().replace("\\", "/"), projectId, meta);
 			} else {
 				showErrorAndUnsubscribe(projectId);
 			}

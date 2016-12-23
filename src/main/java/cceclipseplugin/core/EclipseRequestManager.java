@@ -161,7 +161,7 @@ public class EclipseRequestManager extends RequestManager {
 						meta.setFilename(file.getFilename());
 						meta.setRelativePath(file.getRelativePath());
 						meta.setVersion(file.getFileVersion());
-						pm.getMetadataManager().putFileMetadata(newFile.getLocation().toString(), 
+						pm.getMetadataManager().putFileMetadata(newFile.getFullPath().toString(), 
 								ccp.getProjectID(), meta);
 					} catch (Exception e) {
 						e.printStackTrace();
