@@ -32,7 +32,7 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 			IEditorPart editor = ref.getEditor(false);
 
 			if (editor instanceof ITextEditor) {
-				String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getRawLocation().toString();
+				String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getLocation().toString();
 				this.documentMgr.openedEditor(filePath, (ITextEditor) editor);
 
 				if (editor == activePage.getActiveEditor()) {
@@ -49,7 +49,7 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	public void partOpened(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
-			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getRawLocation().toString();
+			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getLocation().toString();
 
 			this.documentMgr.openedEditor(filePath, editor);
 			System.out.println("Opened document " + editor.getTitle());
@@ -68,7 +68,7 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 			if (!f.exists()) {
 				return;
 			}
-			String filePath = f.getRawLocation().toString();
+			String filePath = f.getLocation().toString();
 			this.documentMgr.closedDocument(filePath);
 			System.out.println("Closed document " + editor.getTitle());
 		}
@@ -84,7 +84,7 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
 			AbstractDocument document = (AbstractDocument) editor.getDocumentProvider()
 					.getDocument(editor.getEditorInput());
-			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getRawLocation().toString();
+			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getLocation().toString();
 
 			currListener = new DocumentChangeListener();
 			this.documentMgr.setCurrFile(filePath);
