@@ -1,7 +1,6 @@
 package cceclipseplugin.core;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -144,17 +143,17 @@ public class PluginManager {
 				if (project.getName().equalsIgnoreCase("RemoteSystemsTempFiles")) {
 					continue;
 				}
-				String projRoot = project.getLocation().toString();
+				IPath projRoot = project.getLocation();
 				try {
-					metadataManager.readProjectMetadataFromFile(projRoot, CoreStringConstants.CONFIG_FILE_NAME);
+					metadataManager.readProjectMetadataFromFile(projRoot.toString(), CoreStringConstants.CONFIG_FILE_NAME);
 					System.out.println("Loaded metadata from "
-							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+							+ projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString());
 				} catch (IllegalArgumentException e) {
 					System.out.println("No such config file: "
-							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+							+ projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString());
 				} catch (IllegalStateException e) {
 					System.out.println("Incorrect config file format: "
-							+ Paths.get(projRoot, CoreStringConstants.CONFIG_FILE_NAME).toString());
+							+ projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString());
 				}
 			}
 		}
@@ -285,8 +284,7 @@ public class PluginManager {
 				System.out.println("Received Project.Delete notification for non-existent project.");
 				return;
 			}
-			IProject iproject = ResourcesPlugin.getWorkspace().getRoot()
-					.getProject(getMetadataManager().getProjectMetadata(resId).getName());
+			IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(meta.getName());
 			IFile metaFile = iproject.getFile(CoreStringConstants.CONFIG_FILE_NAME);
 			getMetadataManager().projectDeleted(resId);
 			if (metaFile.exists()) {
@@ -324,7 +322,7 @@ public class PluginManager {
 			pmeta.setFiles(fmetas);
 			mm.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
 			mm.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
-			String path = Paths.get(n.file.getRelativePath(), n.file.getFilename()).toString();
+			String path = new Path(pmeta.getName()).append(new Path(meta.getFilePath())).toString();
 			putFileInWarnList(path, n.getClass());
 			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor, true);
 		});
@@ -341,14 +339,14 @@ public class PluginManager {
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
 			
 			// old file
-			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
 			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
-			IFile file = p.getFile(pathToFile);
+			IFile file = p.getFile(meta.getFilePath());
 			
-			// new file
-			String newPathToFile = Paths.get(meta.getFilePath(), n.newName).normalize().toString();
+			// new file (workspace-relative path)
+			IPath newPathToFile = new Path(project.getName()).append(
+					meta.getRelativePath()).append(n.newName);
 			
-			if (renameFile(file, new Path(newPathToFile), project.getProjectID())) {
+			if (renameFile(file, newPathToFile, project.getProjectID())) {
 				meta.setFilename(n.newName);
 			}
 		});
@@ -365,14 +363,14 @@ public class PluginManager {
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
 			
 			// old file
-			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
 			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
-			IFile file = p.getFile(pathToFile);
+			IFile file = p.getFile(meta.getFilePath());
 			
-			// new file
-			String newPathToFile = Paths.get(n.newPath, meta.getFilename()).normalize().toString();
+			// new file (workspace-relative path)
+			IPath newPathToFile = new Path(project.getName()).append(
+					new Path(n.newPath)).append(new Path(meta.getFilename()));
 			
-			if (renameFile(file, new Path(newPathToFile), project.getProjectID())) {
+			if (renameFile(file, newPathToFile, project.getProjectID())) {
 				meta.setRelativePath(n.newPath);
 			}
 		});
@@ -387,12 +385,12 @@ public class PluginManager {
 				return;
 			}
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
-			String pathToFile = Paths.get(meta.getFilePath(), meta.getFilename()).normalize().toString();
 			IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
-			IFile file = p.getFile(pathToFile);
+			IFile file = p.getFile(meta.getFilePath());
+			String workspaceRelativePath = file.getFullPath().toString();
 			
 			if (file.exists()) {
-				if (documentManager.getEditor(pathToFile) != null) {
+				if (documentManager.getEditor(file.getLocation().toString()) != null) {
 					Display.getDefault().asyncExec(() -> {
 						String message = String.format(DialogStrings.DeleteWarningDialog_Message, file.getName());
 						OkCancelDialog dialog = OkCancelDialog.createDialog(message,
@@ -405,32 +403,33 @@ public class PluginManager {
 					return;
 				}
 				try {
-					putFileInWarnList(pathToFile, FileDeleteNotification.class);
+					putFileInWarnList(workspaceRelativePath, FileDeleteNotification.class);
 					file.delete(true, new NullProgressMonitor());
 					mm.fileDeleted(resId);
 				} catch (CoreException e) {
 					e.printStackTrace();
-					removeFileFromWarnList(pathToFile, FileDeleteNotification.class);
+					removeFileFromWarnList(workspaceRelativePath, FileDeleteNotification.class);
 					showErrorAndUnsubscribe(project.getProjectID());
 				}
 			} else {
-				System.out.println("Tried to delete file that does not exist: " + pathToFile);
+				System.out.println("Tried to delete file that does not exist: " + workspaceRelativePath);
 			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change", dataManager.getPatchManager());
 	}
 		
-	private boolean renameFile(IFile file, IPath newPath, long projId) {
+	private boolean renameFile(IFile file, IPath newWorkspaceRelativePath, long projId) {
 		if (file.exists()) {
 			try {
 				NullProgressMonitor monitor = new NullProgressMonitor();
-				putFileInWarnList(newPath.toString(), FileRenameNotification.class);
-				file.move(newPath, true, monitor);
+				putFileInWarnList(newWorkspaceRelativePath.toString(), FileRenameNotification.class);
+				// removing first segment to make it project relative
+				file.move(newWorkspaceRelativePath.removeFirstSegments(1), true, monitor);
 				return true;
 			} catch (Exception e) {
 				e.printStackTrace();
-				removeFileFromWarnList(newPath.toString(), FileRenameNotification.class);
+				removeFileFromWarnList(newWorkspaceRelativePath.toString(), FileRenameNotification.class);
 				showErrorAndUnsubscribe(projId);
 			}
 		} else {
@@ -462,7 +461,7 @@ public class PluginManager {
 				meta.setFilename(meta.getFilename());
 				meta.setRelativePath(meta.getRelativePath());
 				meta.setVersion(0);
-				mm.putFileMetadata(meta.getFilePath(), projectId, meta);
+				mm.putFileMetadata(file.getFullPath().toString(), projectId, meta);
 			} else {
 				showErrorAndUnsubscribe(projectId);
 			}

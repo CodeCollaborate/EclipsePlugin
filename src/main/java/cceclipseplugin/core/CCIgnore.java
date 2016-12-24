@@ -12,7 +12,10 @@ import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IWorkspaceRoot;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 
@@ -38,14 +41,15 @@ public class CCIgnore {
 	 * @return Returns a reference to the loaded 
 	 */
 	public static CCIgnore createForProject(IProject p) {
-		IFile file = p.getFile(new Path(Paths.get(FILENAME).normalize().toString()));
+		IFile file = p.getFile(new Path(FILENAME));
 		
 		if (!file.exists()) {
 			InputStream in = new ByteArrayInputStream(DEFAULT_CONTENTS.getBytes());
 			
 			try {
 				// warn directory watching
-				PluginManager.getInstance().putFileInWarnList(file.getProjectRelativePath().toString(), FileCreateResponse.class);
+				IPath workspaceRelativePath = file.getFullPath();
+				PluginManager.getInstance().putFileInWarnList(workspaceRelativePath.toString(), FileCreateResponse.class);
 				
 				file.create(in, true, new NullProgressMonitor());
 				in.close();
@@ -70,7 +74,7 @@ public class CCIgnore {
 	 * @param p
 	 */
 	public void loadCCIgnore(IProject p) {
-		IFile f = p.getFile(Paths.get(FILENAME).normalize().toString());
+		IFile f = p.getFile(FILENAME);
 		if (f.exists()) {
 			try {
 				ignoredFiles.clear();
@@ -99,7 +103,7 @@ public class CCIgnore {
 	private void serverCleanUp(IProject p) {
 		EclipseRequestManager rm = PluginManager.getInstance().getRequestManager();
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
-		List<FileMetadata> fileMetas = mm.getProjectMetadata(p.getLocation().toString()).getFiles();
+		List<FileMetadata> fileMetas = mm.getProjectMetadata(p.getLocation().toString().replace("\\", "/")).getFiles();
 		
 		if (fileMetas == null) {
 			return;

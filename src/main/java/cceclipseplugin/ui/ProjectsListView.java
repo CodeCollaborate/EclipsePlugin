@@ -37,7 +37,8 @@ public class ProjectsListView extends ListView {
 	}
 
 	private void initContextMenu() {
-		List list = this.getListWithButtons().getList();
+		HListWithVButtons lwb = this.getListWithButtons();
+		List list = lwb.getList();
 		Menu menu = new Menu(list);
 		list.setMenu(menu);
 		menu.addMenuListener(new MenuAdapter() {
@@ -63,6 +64,11 @@ public class ProjectsListView extends ListView {
 				} else {
 					ProjectListMenuItemFactory.makeSubscribeItem(menu, selectedProj);
 				}
+			}
+		});
+		list.addListener(SWT.Selection, (event) -> {
+			if (list.getSelectionIndices().length != 0) {
+				lwb.getButtonBar().getMinusButton().setEnabled(true);
 			}
 		});
 	}
