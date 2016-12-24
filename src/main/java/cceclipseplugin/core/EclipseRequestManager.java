@@ -251,6 +251,7 @@ public class EclipseRequestManager extends RequestManager {
 				}
 				
 				if (ccDiff != null) {
+					ccDiff.convertToLF(oldContents);
 					ccDiffs.add(ccDiff);
 				}
 			}
