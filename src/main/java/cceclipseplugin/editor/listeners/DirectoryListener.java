@@ -127,9 +127,12 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			} else if ((delta.getFlags() & IResourceDelta.CONTENT) != 0) {
 				
 				// don't diff this if this is the actively open file
-				if (pm.getDocumentManager().getCurrFile().equals(f.getLocation().toString())) {
-					System.out.println("Save did not trigger diffing for active document.");
-					return;
+				String currFile = pm.getDocumentManager().getCurrFile();
+				if (currFile != null) {					
+					if (currFile.equals(f.getLocation().toString())) {
+						System.out.println("Save did not trigger diffing for active document.");
+						return;
+					}
 				}
 				
 				if ((delta.getFlags() & IResourceDelta.REPLACED) != 0) {
