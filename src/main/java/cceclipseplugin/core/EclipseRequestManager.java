@@ -203,21 +203,21 @@ public class EclipseRequestManager extends RequestManager {
 		Request req = new FilePullRequest(fMeta.getFileID()).getRequest(response -> {
 			if (response.getStatus() == 200) {
 				try {
-					byte[] oldContents = ((FilePullResponse) response.getData()).getFileBytes();
+					byte[] serverContents = ((FilePullResponse) response.getData()).getFileBytes();
 					InputStream in = file.getContents();
-					byte[] newContents = inputStreamToByteArray(in);
-					String newStringContents = new String(newContents);
-					newStringContents = newStringContents.replace("\r\n", "\n");
+					byte[] localContents = inputStreamToByteArray(in);
+					String localStringContents = new String(localContents);
+					localStringContents = localStringContents.replace("\r\n", "\n");
 					in.close();
 					// applying patches
-					String oldStringContents = new String(oldContents);
+					String serverStringContents = new String(serverContents);
 					List<Patch> patches = new ArrayList<>();
 					for (String stringPatch : ((FilePullResponse) response.getData()).getChanges()) {
 						patches.add(new Patch(stringPatch));
 					}
-					oldStringContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(oldStringContents, patches);
+					serverStringContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(serverStringContents, patches);
 					
-					List<Diff> diffs = generateStringDiffs(oldStringContents, newStringContents);
+					List<Diff> diffs = generateStringDiffs(serverStringContents, localStringContents);
 					
 					if (diffs != null && !diffs.isEmpty()) {
 						this.sendFileChanges(fMeta.getFileID(), new Patch[] { new Patch((int) fMeta.getVersion(), diffs)});
@@ -281,10 +281,14 @@ public class EclipseRequestManager extends RequestManager {
 		for (IFile f : ifiles) {
 			String path = f.getProjectRelativePath().removeLastSegments(1).toString(); // remove filename from path
 			try (InputStream in = f.getContents();) {
+				String contents = new String(inputStreamToByteArray(in));
+				if (contents.contains("\r\n")) {
+					contents = contents.replace("\r\n", "\n");
+				}
 				Request req = (new FileCreateRequest(f.getName(), 
 						path, 
 						project.getProjectID(),
-						inputStreamToByteArray(in))).getRequest(
+						contents.getBytes())).getRequest(
 								response -> {
 									int fileCreateStatusCode = response.getStatus();
 									if (fileCreateStatusCode == 200) {
