@@ -52,7 +52,7 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 			if (!ss.getSubscribedIds().contains(pMeta.getProjectID())) {
 				System.out.println("Not subscribed, ignoring resource change for project \"" + res.getLocation().toString() + "\"");
 				return;
-			}			
+			}
 			
 			ignoreFile.loadCCIgnore((IProject) res);
 			

@@ -73,6 +73,8 @@ public class EclipseRequestManager extends RequestManager {
 		try {
 			pm.putProjectInWarnList(p.getName(), ProjectDeleteNotification.class);
 			if (eclipseProject.exists()) {
+				// using false for the "deleteContent" flag so that this doesn't aggressively delete files out
+				// from underneath the user upon subscribing (and file deletes were being propagated to the server)
 				eclipseProject.delete(false, true, progressMonitor);
 			}
 			pm.putProjectInWarnList(p.getName(), ProjectCreateRequest.class);
