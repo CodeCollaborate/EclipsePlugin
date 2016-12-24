@@ -206,6 +206,8 @@ public class EclipseRequestManager extends RequestManager {
 					byte[] oldContents = ((FilePullResponse) response.getData()).getFileBytes();
 					InputStream in = file.getContents();
 					byte[] newContents = inputStreamToByteArray(in);
+					String newStringContents = new String(newContents);
+					newStringContents = newStringContents.replace("\r\n", "\n");
 					in.close();
 					// applying patches
 					String oldStringContents = new String(oldContents);
@@ -215,7 +217,7 @@ public class EclipseRequestManager extends RequestManager {
 					}
 					oldStringContents = PluginManager.getInstance().getDataManager().getPatchManager().applyPatch(oldStringContents, patches);
 					
-					List<Diff> diffs = generateStringDiffs(oldStringContents, new String(newContents));
+					List<Diff> diffs = generateStringDiffs(oldStringContents, newStringContents);
 					
 					if (diffs != null && !diffs.isEmpty()) {
 						this.sendFileChanges(fMeta.getFileID(), new Patch[] { new Patch((int) fMeta.getVersion(), diffs)});
