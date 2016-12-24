@@ -23,6 +23,7 @@ import websocket.models.notifications.ProjectDeleteNotification;
 import websocket.models.notifications.ProjectRenameNotification;
 import websocket.models.requests.FileChangeRequest;
 import websocket.models.responses.FileCreateResponse;
+import websocket.models.responses.ProjectCreateResponse;
 
 public class DirectoryListener extends AbstractDirectoryListener {
 	
@@ -56,6 +57,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			} else {
 				if (pm.isProjectInWarnList(p.getName(), ProjectDeleteNotification.class)) {
 					pm.removeProjectFromWarnList(p.getName(), ProjectDeleteNotification.class);
+					return true;
 				} else {
 					System.out.println("deleting project");
 					// Project was deleted from disk
@@ -65,6 +67,10 @@ public class DirectoryListener extends AbstractDirectoryListener {
 				}
 			}
 		} else if (delta.getKind() == IResourceDelta.ADDED) {
+			if (pm.isProjectInWarnList(p.getName(), ProjectCreateResponse.class)) {
+				pm.removeProjectFromWarnList(p.getName(), ProjectCreateResponse.class);
+			}
+			
 			return true;
 		}
 		

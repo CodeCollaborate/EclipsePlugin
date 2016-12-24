@@ -41,7 +41,6 @@ import websocket.WSManager;
 import websocket.models.File;
 import websocket.models.Project;
 import websocket.models.Request;
-import websocket.models.notifications.FileCreateNotification;
 import websocket.models.notifications.ProjectDeleteNotification;
 import websocket.models.requests.FileCreateRequest;
 import websocket.models.requests.FilePullRequest;
@@ -72,7 +71,7 @@ public class EclipseRequestManager extends RequestManager {
 		try {
 			pm.putProjectInWarnList(p.getName(), ProjectDeleteNotification.class);
 			if (eclipseProject.exists()) {
-				eclipseProject.delete(true, true, progressMonitor);
+				eclipseProject.delete(false, true, progressMonitor);
 			}
 			pm.putProjectInWarnList(p.getName(), ProjectCreateRequest.class);
 			eclipseProject.create(progressMonitor);
@@ -114,8 +113,6 @@ public class EclipseRequestManager extends RequestManager {
 							IFolder newFolder = p.getFolder(currentFolder);
 							try {
 								if (!newFolder.exists()) {
-									IPath workspaceRelativePath = p.getFullPath().append(relPath).append(file.getFilename());
-									pm.putFileInWarnList(workspaceRelativePath.toString(), FileCreateNotification.class);
 									newFolder.create(true, true, progressMonitor);
 								}
 							} catch (Exception e1) {
