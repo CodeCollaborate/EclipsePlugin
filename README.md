@@ -1,5 +1,6 @@
-# EclipsePlugin
+# CodeCollaborate Eclipse Plugin
 
+Checkout [our wiki](../../wiki) for installation and configuration instructions!  
 
 ## License
 
