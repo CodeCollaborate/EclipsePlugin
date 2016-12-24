@@ -114,6 +114,7 @@ public class DocumentChangeListener implements IDocumentListener {
 						PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
 								projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
 					}, null);
+//			editor.doSave(null);
 		} catch (ConnectException e) {
 			System.out.println("Failed to send change request.");
 			e.printStackTrace();

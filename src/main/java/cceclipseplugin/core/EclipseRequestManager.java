@@ -15,6 +15,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -23,6 +24,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.PlatformUI;
 
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.DialogStrings;
@@ -263,11 +265,13 @@ public class EclipseRequestManager extends RequestManager {
 
 	@Override
 	public void finishCreateProject(Project project) {
-		IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(project.getName());
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IProject iproject = workspace.getRoot().getProject(project.getName());
 		ProjectMetadata meta = new ProjectMetadata();
 		meta.setName(project.getName());
 		meta.setProjectID(project.getProjectID());
 		
+		Display.getDefault().syncExec(() -> PlatformUI.getWorkbench().saveAllEditors(false));	
 		CCIgnore ignoreFile = CCIgnore.createForProject(iproject);
 		
 		List<IFile> ifiles = recursivelyGetFiles(iproject, ignoreFile);
