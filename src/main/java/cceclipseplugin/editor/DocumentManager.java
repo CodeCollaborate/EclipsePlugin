@@ -218,7 +218,7 @@ public class DocumentManager implements INotificationHandler {
 	public void applyPatch(long fileId, String absolutePath, String workspaceRelativePath, List<Patch> patches) {
 		String currFile = this.currFile;
 
-		Display.getDefault().asyncExec(new Runnable() {
+		new Thread() {
 			@Override
 			public void run() {
 				ITextEditor editor = getEditor(absolutePath);
@@ -254,20 +254,26 @@ public class DocumentManager implements INotificationHandler {
 								appliedDiffs.add(diff);
 							}
 
-							try {
-								// Apply the change to the document
-								if (diff.isInsertion()) {
-									document.replace(diff.getStartIndex(), 0, diff.getChanges());
-								} else {
-									document.replace(diff.getStartIndex(), diff.getLength(), "");
+							// Apply the change to the document
+							Display.getDefault().asyncExec(new Runnable() {
+								@Override
+								public void run() {
+									try {
+										if (diff.isInsertion()) {
+											document.replace(diff.getStartIndex(), 0, diff.getChanges());
+										} else {
+											document.replace(diff.getStartIndex(), diff.getLength(), "");
+										}
+									} catch (BadLocationException e) {
+										System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
+												document.get().length(), document.get());
+										e.printStackTrace();
+									}
+
+									PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
+									editor.doSave(new NullProgressMonitor());
 								}
-								PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
-								editor.doSave(new NullProgressMonitor());
-							} catch (BadLocationException e) {
-								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
-										document.get().length(), document.get());
-								e.printStackTrace();
-							}
+							});
 						}
 					}
 				} else {
@@ -302,6 +308,6 @@ public class DocumentManager implements INotificationHandler {
 					// filePath, patches);
 				}
 			}
-		});
+		}.start();
 	}
 }
