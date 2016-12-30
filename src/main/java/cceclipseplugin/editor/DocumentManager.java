@@ -39,7 +39,7 @@ import websocket.models.requests.FileChangeRequest;
 
 /**
  * Manages documents, finds editors as needed.
- * 
+ *
  * @author Benedict
  *
  */
@@ -55,7 +55,7 @@ public class DocumentManager implements INotificationHandler {
 
 	/**
 	 * Gets file path of current file
-	 * 
+	 *
 	 * @return current file's path
 	 */
 	public String getCurrFile() {
@@ -64,7 +64,7 @@ public class DocumentManager implements INotificationHandler {
 
 	/**
 	 * Path of file that is currently active/open
-	 * 
+	 *
 	 * @param absolutePath
 	 *            File path of active file
 	 */
@@ -78,7 +78,7 @@ public class DocumentManager implements INotificationHandler {
 
 	/**
 	 * FilePath of editor that was just opened
-	 * 
+	 *
 	 * @param absolutePath
 	 *            File path of opened editor
 	 * @param editor
@@ -90,7 +90,7 @@ public class DocumentManager implements INotificationHandler {
 
 	/**
 	 * Call when a document is closed.
-	 * 
+	 *
 	 * @param absolutePath
 	 *            filePath of file that was closed.
 	 */
@@ -103,7 +103,7 @@ public class DocumentManager implements INotificationHandler {
 
 	/**
 	 * Gets the editor for the given file
-	 * 
+	 *
 	 * @param absolutePath
 	 *            path of file that is open
 	 * @return ITextEditor instance for given filePath
@@ -114,7 +114,7 @@ public class DocumentManager implements INotificationHandler {
 
 	/**
 	 * Get the queue of diffs that were just applied.
-	 * 
+	 *
 	 * @return The queue of diffs that was applied.
 	 */
 	public Queue<Diff> getAppliedDiffs() {
@@ -123,7 +123,7 @@ public class DocumentManager implements INotificationHandler {
 
 	/**
 	 * Gets the active document for a given editor
-	 * 
+	 *
 	 * @param editor
 	 *            the editor to retrieve the document from
 	 * @return the document which was retrieved.
@@ -146,7 +146,7 @@ public class DocumentManager implements INotificationHandler {
 	/**
 	 * Notification handler for document manager. Parses generic notification to
 	 * FileChangeNotification.
-	 * 
+	 *
 	 * @param n
 	 *            Notification of file changes.
 	 */
@@ -184,14 +184,14 @@ public class DocumentManager implements INotificationHandler {
 			}
 			return;
 		}
-		
+
 		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
 				.getProjectMetadata(projectRootPath.toString());
-		
+
 		IPath fileRelativePathWithName = new Path(fileMeta.getFilePath());
 		IPath projectRelativePath = new Path(projMeta.getName());
 		String workspaceRelativePath = projectRelativePath.append(fileRelativePathWithName).toString();
-		
+
 		this.applyPatch(n.getResourceID(), absolutePath, workspaceRelativePath.toString(), patches);
 
 		synchronized (fileMeta) {
@@ -205,62 +205,63 @@ public class DocumentManager implements INotificationHandler {
 	/**
 	 * If the document is open, patch it in memory. Otherwise, send it back to
 	 * client core for file patching.
-	 * 
+	 *
 	 * @param fileId
 	 *            fileId to patch; this is mainly used for passing to clientCore
 	 * @param absolutePath
 	 *            absolute file path; used as key in editorMap, and patches.
 	 * @param workspaceRelativePath
-	 * 			  workspace relative file path that includes the filename        
+	 * 			  workspace relative file path that includes the filename
 	 * @param patches
 	 *            the list of patches to apply, in order.
 	 */
 	public void applyPatch(long fileId, String absolutePath, String workspaceRelativePath, List<Patch> patches) {
 		String currFile = this.currFile;
+		ITextEditor editor = getEditor(absolutePath);
 
-		Display.getDefault().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				ITextEditor editor = getEditor(absolutePath);
-				// Get reference to open document
-				AbstractDocument document = getDocumentForEditor(editor);
-				if (editor != null && document != null) {
+		// Get reference to open document
+		AbstractDocument document = getDocumentForEditor(editor);
+		if (editor != null && document != null) {
 
-					// Get text in document.
-					String newDocument = document.get();
+			// Get text in document.
+			String newDocument = document.get();
 
-					// If CRLFs are found, apply patches in CRLF mode.
-					boolean useCRLF = newDocument.contains("\r\n");
+			// If CRLFs are found, apply patches in CRLF mode.
+			boolean useCRLF = newDocument.contains("\r\n");
 
-					for (Patch patch : patches) {
+			for (Patch patch : patches) {
 
-						if (useCRLF) {
-							patch = patch.convertToCRLF(newDocument);
-						}
+				if (useCRLF) {
+					patch = patch.convertToCRLF(newDocument);
+				}
 
-						for (Diff diff : patch.getDiffs()) {
+				for (Diff diff : patch.getDiffs()) {
 
-							// Throw errors if we are trying to insert between
-							// \r and \n
-							if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
-									&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
-									&& document.get().charAt(diff.getStartIndex()) == '\n') {
-								throw new IllegalArgumentException("Tried to insert between \\r and \\n");
-							}
+					// Throw errors if we are trying to insert between
+					// \r and \n
+					if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
+							&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
+							&& document.get().charAt(diff.getStartIndex()) == '\n') {
+						throw new IllegalArgumentException("Tried to insert between \\r and \\n");
+					}
 
-							// If patching an active file, add it to the patch
-							// list to ignore.
-							if (currFile.equals(absolutePath)) {
-								appliedDiffs.add(diff);
-							}
+					// If patching an active file, add it to the patch
+					// list to ignore.
+					if (currFile.equals(absolutePath)) {
+						appliedDiffs.add(diff);
+					}
 
+					// Apply the change to the document
+					Display.getDefault().asyncExec(new Runnable() {
+						@Override
+						public void run() {
 							try {
-								// Apply the change to the document
 								if (diff.isInsertion()) {
 									document.replace(diff.getStartIndex(), 0, diff.getChanges());
 								} else {
 									document.replace(diff.getStartIndex(), diff.getLength(), "");
 								}
+
 								PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
 								editor.doSave(new NullProgressMonitor());
 							} catch (BadLocationException e) {
@@ -269,39 +270,39 @@ public class DocumentManager implements INotificationHandler {
 								e.printStackTrace();
 							}
 						}
-					}
-				} else {
-					// If file is not open in an editor, enqueue the patch for
-					// writing.
-
-					IWorkspace workspace = ResourcesPlugin.getWorkspace();
-					IPath ipath = new Path(absolutePath);
-					IFile file = workspace.getRoot().getFileForLocation(ipath);
-					if (!file.exists()) {
-						System.out.println("Cannot apply patches to non-existent file: " + absolutePath);
-						return;
-					}			
-					
-					String contents = null;
-					try (Scanner s = new Scanner(file.getContents())) {
-						contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
-					} catch (CoreException e) {
-						System.out.println("Cannot read file");
-						return;
-					}
-					PluginManager m = PluginManager.getInstance();
-					String newContents = m.getDataManager().getPatchManager().applyPatch(contents, patches);
-					m.putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
-					try {
-						file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
-					} catch (CoreException e) {
-						System.out.println("Fail to update files on disk");
-					}
-
-					// PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
-					// filePath, patches);
+					});
 				}
 			}
-		});
+		} else {
+			// If file is not open in an editor, enqueue the patch for
+			// writing.
+
+			IWorkspace workspace = ResourcesPlugin.getWorkspace();
+			IPath ipath = new Path(absolutePath);
+			IFile file = workspace.getRoot().getFileForLocation(ipath);
+			if (!file.exists()) {
+				System.out.println("Cannot apply patches to non-existent file: " + absolutePath);
+				return;
+			}
+
+			String contents = null;
+			try (Scanner s = new Scanner(file.getContents())) {
+				contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
+			} catch (CoreException e) {
+				System.out.println("Cannot read file");
+				return;
+			}
+			PluginManager m = PluginManager.getInstance();
+			String newContents = m.getDataManager().getPatchManager().applyPatch(contents, patches);
+			m.putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
+			try {
+				file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
+			} catch (CoreException e) {
+				System.out.println("Fail to update files on disk");
+			}
+
+			// PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
+			// filePath, patches);
+		}
 	}
 }
