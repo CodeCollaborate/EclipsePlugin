@@ -264,14 +264,14 @@ public class DocumentManager implements INotificationHandler {
 										} else {
 											document.replace(diff.getStartIndex(), diff.getLength(), "");
 										}
+
+										PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
+										editor.doSave(new NullProgressMonitor());
 									} catch (BadLocationException e) {
 										System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
 												document.get().length(), document.get());
 										e.printStackTrace();
 									}
-
-									PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
-									editor.doSave(new NullProgressMonitor());
 								}
 							});
 						}
