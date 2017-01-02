@@ -51,8 +51,7 @@ public class UsersListView extends ListView {
 				String message = "You must be subscribed to " + 
 						projName + " to view users.";
 				getListWithButtons().getList().add(message);
-				getListWithButtons().getButtonBar().getPlusButton().setEnabled(false);
-				getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
+				getListWithButtons().setEnabled(false);
 			}
 		});
 	}
@@ -126,6 +125,16 @@ public class UsersListView extends ListView {
 				removeUserDialog.open();
 			}
 		});
+		
+		// reload button pressed
+		bar.getReloadButton().addListener(SWT.Selection, new Listener() {
+
+			@Override
+			public void handleEvent(Event arg0) {
+				PluginManager.getInstance().getRequestManager().fetchProjects();
+			}
+			
+		});
 
 		// user list selection
 		List list = this.getListWithButtons().getList();
@@ -166,6 +175,7 @@ public class UsersListView extends ListView {
 				}
 			}
 			getListWithButtons().getButtonBar().getPlusButton().setEnabled(true);
+			getListWithButtons().getButtonBar().getReloadButton().setEnabled(true);
 		});
 	}
 	
