@@ -48,7 +48,8 @@ public class DocumentChangeListener implements IDocumentListener {
 		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
 		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
 
-		ITextEditor editor = docMgr.getEditor(docMgr.getCurrFile());
+		String currFile = docMgr.getCurrFile();
+		ITextEditor editor = docMgr.getEditor(currFile);
 		IFile file = editor.getEditorInput().getAdapter(IFile.class);
 		IProject proj = file.getProject();
 		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
@@ -82,12 +83,17 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		List<Diff> newDiffs = new ArrayList<>();
 		diffLoop: for (int i = 0; i < diffs.size(); i++) {
-			while (!docMgr.getAppliedDiffs().isEmpty()) {
-				Diff appliedDiff = docMgr.getAppliedDiffs().poll();
-				System.out.printf("DEBUG SEND-ON-NOTIF: %s ?= %s; %b\n", diffs.get(i).toString(),
-						appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
-				if (diffs.get(i).equals(appliedDiff)) {
-					continue diffLoop;
+			synchronized(docMgr.getAppliedDiffs(currFile)){
+				for(int j = 0; j < docMgr.getAppliedDiffs(currFile).size(); j++){
+					Diff appliedDiff = docMgr.getAppliedDiffs(currFile).get(j);
+					System.out.printf("DEBUG SEND-ON-NOTIF: %s ?= %s; %b\n", diffs.get(i).toString(),
+							appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
+					if(appliedDiff.equals(diffs.get(i))){
+						for(int k = j-1; k >= 0; k--){
+							docMgr.getAppliedDiffs(currFile).removeFirst();
+						}
+						continue diffLoop;
+					}
 				}
 			}
 			newDiffs.add(diffs.get(i).convertToLF(currDocument));

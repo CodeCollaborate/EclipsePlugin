@@ -56,7 +56,7 @@ public class DocumentManager implements INotificationHandler {
 
 	private String currFile = null;
 	private HashMap<String, ITextEditor> openEditors = new HashMap<>();
-	private Queue<Diff> appliedDiffs = new LinkedList<>();
+	private HashMap<String, LinkedList<Diff>> appliedDiffs = new HashMap<>();
 
 	public DocumentManager() {
 
@@ -181,8 +181,11 @@ public class DocumentManager implements INotificationHandler {
 	 *
 	 * @return The queue of diffs that was applied.
 	 */
-	public Queue<Diff> getAppliedDiffs() {
-		return appliedDiffs;
+	public LinkedList<Diff> getAppliedDiffs(String filepath) {
+		if(!appliedDiffs.containsKey(filepath)){
+			appliedDiffs.put(filepath, new LinkedList<>());
+		}
+		return appliedDiffs.get(filepath);
 	}
 
 	/**
@@ -238,16 +241,16 @@ public class DocumentManager implements INotificationHandler {
 		// TODO(wongb): Build patch reorder buffer, making sure that they are applied in
 		// order.
 		// This is a temporary fix.
-		if (changeNotif.fileVersion <= fileMeta.getVersion()) {
-			try {
-				System.out.printf(
-						"ChangeNotification version was less than or equal to current version: %d <= %d; Notification: ",
-						changeNotif.fileVersion, fileMeta.getVersion(), new ObjectMapper().writeValueAsString(n));
-			} catch (JsonProcessingException e) {
-				e.printStackTrace();
-			}
-			return;
-		}
+//		if (changeNotif.fileVersion <= fileMeta.getVersion()) {
+//			try {
+//				System.out.printf(
+//						"ChangeNotification version was less than or equal to current version: %d <= %d; Notification: ",
+//						changeNotif.fileVersion, fileMeta.getVersion(), new ObjectMapper().writeValueAsString(n));
+//			} catch (JsonProcessingException e) {
+//				e.printStackTrace();
+//			}
+//			return;
+//		}
 
 		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
 				.getProjectMetadata(projectRootPath.toString());
@@ -309,17 +312,22 @@ public class DocumentManager implements INotificationHandler {
 						throw new IllegalArgumentException("Tried to insert between \\r and \\n");
 					}
 
-					// If patching an active file, add it to the patch
-					// list to ignore.
-					if (currFile.equals(absolutePath)) {
-						appliedDiffs.add(diff);
-					}
+
 
 					// Apply the change to the document
 					Display.getDefault().asyncExec(new Runnable() {
 						@Override
 						public void run() {
 							try {
+								// If patching an active file, add it to the patch
+								// list to ignore.
+								if (currFile.equals(absolutePath)) {
+									if(!appliedDiffs.containsKey(absolutePath)){
+										appliedDiffs.put(absolutePath, new LinkedList<>());
+									}
+									appliedDiffs.get(absolutePath).add(diff);
+								}
+								
 								if (diff.isInsertion()) {
 									document.replace(diff.getStartIndex(), 0, diff.getChanges());
 								} else {
