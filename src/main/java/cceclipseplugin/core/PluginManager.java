@@ -77,7 +77,7 @@ public class PluginManager {
 
 	// PLUGIN SETTINGS
 	// TODO: move to configuration file
-	final private String WS_ADDRESS = "ws://cody.csse.rose-hulman.edu:8000/ws/";
+	final private String WS_ADDRESS = "wss://codecollaborate.obsessiveorange.com:8000/ws/";
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
 
