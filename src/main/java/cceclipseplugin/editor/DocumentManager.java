@@ -27,15 +27,23 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.ui.UIRequestErrorHandler;
+import cceclipseplugin.ui.dialogs.MessageDialog;
 import constants.CoreStringConstants;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
 import websocket.INotificationHandler;
+import websocket.models.File;
 import websocket.models.Notification;
+import websocket.models.Request;
 import websocket.models.notifications.FileChangeNotification;
 import websocket.models.requests.FileChangeRequest;
+import websocket.models.requests.FilePullRequest;
+import websocket.models.responses.FileChangeResponse;
+import websocket.models.responses.FileCreateResponse;
+import websocket.models.responses.FilePullResponse;
 
 /**
  * Manages documents, finds editors as needed.
@@ -99,6 +107,54 @@ public class DocumentManager implements INotificationHandler {
 			setCurrFile(null);
 		}
 		this.openEditors.remove(absolutePath);
+		this.sendFilePullRequest(absolutePath);
+	}
+	
+	private void sendFilePullRequest(String absolutePath) {
+		PluginManager pm = PluginManager.getInstance();
+		
+		String workspaceRoot = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
+		java.io.File rootFile = new java.io.File(workspaceRoot);
+		java.io.File absoluteFile = new java.io.File(absolutePath);
+		String workspaceRelativePathString = "/" + rootFile.toURI().relativize(absoluteFile.toURI()).toString();
+		IPath relativePath = new Path(workspaceRelativePathString);
+		
+		FileMetadata file = pm.getMetadataManager().getFileMetadata(workspaceRelativePathString);
+		if (file == null) {
+			return; // not a tracked file
+		}
+		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
+			if (response.getStatus() == 200) {
+				byte[] fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
+				String fileContents = new String(fileBytes);
+				List<Patch> patches = new ArrayList<>();
+				for (String stringPatch : ((FilePullResponse) response.getData()).getChanges()) {
+					patches.add(new Patch(stringPatch));
+				}
+				IFile newFile = ResourcesPlugin.getWorkspace().getRoot().getFile(relativePath);
+				fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
+				
+				NullProgressMonitor progressMonitor = new NullProgressMonitor();
+				try {
+					if (newFile.exists()) {
+						pm.putFileInWarnList(relativePath.toString(), FileChangeResponse.class);
+						ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
+						newFile.setContents(in, false, false, progressMonitor);
+						in.close();
+					} else {
+						// warn directory watching before creating the file
+						pm.putFileInWarnList(relativePath.toString(), FileCreateResponse.class);
+						ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
+						newFile.create(in, false, progressMonitor);
+						in.close();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Failed to pull file on resource close. Please resubscribe to the project."));
+				}
+			}
+		}, new UIRequestErrorHandler("Couldn't send file pull request after file close: " + absolutePath));
+		pm.getWSManager().sendAuthenticatedRequest(req);
 	}
 
 	/**
