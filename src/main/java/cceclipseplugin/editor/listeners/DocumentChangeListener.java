@@ -2,6 +2,7 @@ package cceclipseplugin.editor.listeners;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.core.resources.IFile;
@@ -83,14 +84,15 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		List<Diff> newDiffs = new ArrayList<>();
 		diffLoop: for (int i = 0; i < diffs.size(); i++) {
-			synchronized(docMgr.getAppliedDiffs(currFile)){
-				for(int j = 0; j < docMgr.getAppliedDiffs(currFile).size(); j++){
-					Diff appliedDiff = docMgr.getAppliedDiffs(currFile).get(j);
+			LinkedList<Diff> appliedDiffs = docMgr.getAppliedDiffs(currFile);
+			synchronized(appliedDiffs){
+				for(int j = 0; j < appliedDiffs.size(); j++){
+					Diff appliedDiff = appliedDiffs.get(j);
 					System.out.printf("DEBUG SEND-ON-NOTIF: %s ?= %s; %b\n", diffs.get(i).toString(),
 							appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
 					if(appliedDiff.equals(diffs.get(i))){
 						for(int k = j-1; k >= 0; k--){
-							docMgr.getAppliedDiffs(currFile).removeFirst();
+							appliedDiffs.removeFirst();
 						}
 						continue diffLoop;
 					}

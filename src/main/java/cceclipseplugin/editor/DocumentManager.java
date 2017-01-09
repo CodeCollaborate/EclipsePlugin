@@ -186,9 +186,9 @@ public class DocumentManager implements INotificationHandler {
 	}
 
 	/**
-	 * Get the queue of diffs that were just applied.
+	 * Get the queue of diffs that were just applied for the given filepath.
 	 *
-	 * @return The queue of diffs that was applied.
+	 * @return The queue of diffs that was applied for the given filepath.
 	 */
 	public LinkedList<Diff> getAppliedDiffs(String filepath) {
 		if(!appliedDiffs.containsKey(filepath)){
