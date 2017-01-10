@@ -8,6 +8,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.NullProgressMonitor;
 
 import cceclipseplugin.core.EclipseRequestManager;
 import cceclipseplugin.core.PluginManager;
@@ -88,6 +89,16 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		System.out.println( "	Filename: " + f.getName() + "	File flag: " + delta.getFlags());
 		
 		if (delta.getKind() == IResourceDelta.CHANGED) {
+			if (fileMeta == null) {
+				System.out.println("No metadata found for file change event, deleting file locally");
+				try {
+					f.delete(true, new NullProgressMonitor());
+				} catch (CoreException e) {
+					System.err.println("Error deleting untracked file from project.");
+					e.printStackTrace();
+				}
+				return;
+			}
 			
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
 				
@@ -141,12 +152,10 @@ public class DirectoryListener extends AbstractDirectoryListener {
 				}
 				
 				EclipseRequestManager rm = pm.getRequestManager();
-				if (fileMeta != null) {
-					if (pm.isFileInWarnList(workspaceRelativePath, FileChangeRequest.class)) {
-						pm.removeFileFromWarnList(workspaceRelativePath, FileChangeRequest.class);
-					} else {
-						rm.pullDiffSendChanges(fileMeta);
-					}
+				if (pm.isFileInWarnList(workspaceRelativePath, FileChangeRequest.class)) {
+					pm.removeFileFromWarnList(workspaceRelativePath, FileChangeRequest.class);
+				} else {
+					rm.pullDiffSendChanges(fileMeta);
 				}
 			}
 			
@@ -156,6 +165,10 @@ public class DirectoryListener extends AbstractDirectoryListener {
 				if (pm.isFileInWarnList(workspaceRelativePath, FileDeleteNotification.class)) {
 					pm.removeFileFromWarnList(workspaceRelativePath, FileDeleteNotification.class);
 				} else {
+					if (fileMeta == null) {
+						System.out.println("No metadata found, ignoring file");
+						return;
+					}
 					pm.getRequestManager().deleteFile(fileMeta.getFileID());
 					System.out.println("sent file delete request");
 				}
@@ -163,6 +176,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			
 		} else if (delta.getKind() == IResourceDelta.ADDED) {
 			if ((delta.getFlags() & IResourceDelta.MOVED_FROM) != 0) {
+				
 				// do same as rename stuff
 				IPath fullMovedFromPath = delta.getMovedFromPath();
 				
@@ -176,7 +190,13 @@ public class DirectoryListener extends AbstractDirectoryListener {
 							pm.removeFileFromWarnList(workspaceRelativePath, FileMoveNotification.class);
 						} else {
 							String movedFromPathString = fullMovedFromPath.toString().replace("\\", "/");
+							
 							fileMeta = mm.getFileMetadata(movedFromPathString);
+							if (fileMeta == null) {
+								System.out.println("No metadata found, ignoring file");
+								return;
+							}
+							
 							System.out.println("Getting metadata from file : " + movedFromPathString);
 							rm.moveFile(fileMeta.getFileID(), movedFromPathString, 
 									f.getProjectRelativePath().removeLastSegments(1).toString());
@@ -186,7 +206,13 @@ public class DirectoryListener extends AbstractDirectoryListener {
 					} else {
 						// send File.Rename request
 						String newName = f.getProjectRelativePath().lastSegment();
+						
 						fileMeta = mm.getFileMetadata(fullMovedFromPath.toString().replace("\\", "/"));
+						if (fileMeta == null) {
+							System.out.println("No metadata found, ignoring file");
+							return;
+						}
+						
 						if (pm.isFileInWarnList(workspaceRelativePath, FileRenameNotification.class)) {
 							pm.removeFileFromWarnList(workspaceRelativePath, FileRenameNotification.class);
 						} else {
