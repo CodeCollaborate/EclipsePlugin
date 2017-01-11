@@ -52,6 +52,7 @@ public class HListWithVButtons extends Composite {
 	
 	@Override
 	public void setEnabled(boolean b) {
+		buttonBar.getReloadButton().setEnabled(b);
 		buttonBar.getPlusButton().setEnabled(b);
 		if (b && list.getItemCount() <= 0) {
 			buttonBar.getMinusButton().setEnabled(!b);
