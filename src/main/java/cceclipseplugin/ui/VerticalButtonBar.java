@@ -10,6 +10,7 @@ public class VerticalButtonBar extends Composite {
 	
 	private Button plusButton;
 	private Button minusButton;
+	private Button reloadButton;
 	
 	public VerticalButtonBar(Composite parent, int style) {
 		super(parent, style);
@@ -38,6 +39,14 @@ public class VerticalButtonBar extends Composite {
 		minusButton.setLayoutData(data2);
 		minusButton.setText("-");
 		minusButton.setEnabled(false);
+		
+		reloadButton = new Button(this, SWT.NONE);
+		GridData reloadData = new GridData(SWT.CENTER, SWT.CENTER, false, false, 1, 1);
+		reloadData.heightHint = 25;
+		reloadData.widthHint = 25;
+		reloadButton.setLayoutData(reloadData);
+		reloadButton.setText("\u21BA");
+		reloadButton.setEnabled(false);
 	}
 	
 	public Button getPlusButton() {
@@ -46,5 +55,9 @@ public class VerticalButtonBar extends Composite {
 	
 	public Button getMinusButton() {
 		return minusButton;
+	}
+	
+	public Button getReloadButton() {
+		return reloadButton;
 	}
 }

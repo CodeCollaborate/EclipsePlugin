@@ -15,7 +15,6 @@ import org.eclipse.swt.widgets.Shell;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.dialogs.AddNewUserDialog;
-import cceclipseplugin.ui.dialogs.MessageDialog;
 import cceclipseplugin.ui.dialogs.RemoveUserDialog;
 import dataMgmt.SessionStorage;
 import websocket.models.Permission;
@@ -51,8 +50,10 @@ public class UsersListView extends ListView {
 				String message = "You must be subscribed to " + 
 						projName + " to view users.";
 				getListWithButtons().getList().add(message);
-				getListWithButtons().getButtonBar().getPlusButton().setEnabled(false);
-				getListWithButtons().getButtonBar().getMinusButton().setEnabled(false);
+				VerticalButtonBar bar = getListWithButtons().getButtonBar();
+				bar.getPlusButton().setEnabled(false);
+				bar.getMinusButton().setEnabled(false);
+				bar.getReloadButton().setEnabled(false);
 			}
 		});
 	}
@@ -127,6 +128,16 @@ public class UsersListView extends ListView {
 			}
 		});
 
+		// reload button
+		bar.getReloadButton().addListener(SWT.Selection, new Listener() {
+
+			@Override
+			public void handleEvent(Event arg0) {
+				refreshSelected(listView);
+			}
+
+		});
+
 		// user list selection
 		List list = this.getListWithButtons().getList();
 		list.addListener(SWT.Selection, new Listener() {
@@ -157,15 +168,17 @@ public class UsersListView extends ListView {
 			HashMap<String, Permission> permissions = project.getPermissions();
 			if (permissions != null) {
 				for (String key : permissions.keySet()) {
+					@SuppressWarnings("unused")
 					Permission permy = permissions.get(key);
-					// TODO: add permision level strings to the list (or table, in
-					// the future)
+					// TODO: add permision level strings to the list (or table, in the future)
 					if (!list.isDisposed()) {
 						list.add(key);
 					}
 				}
 			}
-			getListWithButtons().getButtonBar().getPlusButton().setEnabled(true);
+			VerticalButtonBar bar = getListWithButtons().getButtonBar();
+			bar.getPlusButton().setEnabled(true);
+			bar.getReloadButton().setEnabled(true);
 		});
 	}
 	
