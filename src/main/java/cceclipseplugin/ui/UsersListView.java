@@ -126,16 +126,6 @@ public class UsersListView extends ListView {
 			}
 		});
 		
-		// reload button pressed
-		bar.getReloadButton().addListener(SWT.Selection, new Listener() {
-
-			@Override
-			public void handleEvent(Event arg0) {
-				PluginManager.getInstance().getRequestManager().fetchProjects();
-			}
-			
-		});
-
 		// user list selection
 		List list = this.getListWithButtons().getList();
 		list.addListener(SWT.Selection, new Listener() {
