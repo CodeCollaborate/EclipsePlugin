@@ -50,7 +50,10 @@ public class UsersListView extends ListView {
 				String message = "You must be subscribed to " + 
 						projName + " to view users.";
 				getListWithButtons().getList().add(message);
-				getListWithButtons().setEnabled(false);
+				VerticalButtonBar bar = getListWithButtons().getButtonBar();
+				bar.getPlusButton().setEnabled(false);
+				bar.getMinusButton().setEnabled(false);
+				bar.getReloadButton().setEnabled(false);
 			}
 		});
 	}
@@ -173,8 +176,9 @@ public class UsersListView extends ListView {
 					}
 				}
 			}
-			getListWithButtons().getButtonBar().getPlusButton().setEnabled(true);
-			getListWithButtons().getButtonBar().getReloadButton().setEnabled(true);
+			VerticalButtonBar bar = getListWithButtons().getButtonBar();
+			bar.getPlusButton().setEnabled(true);
+			bar.getReloadButton().setEnabled(true);
 		});
 	}
 	

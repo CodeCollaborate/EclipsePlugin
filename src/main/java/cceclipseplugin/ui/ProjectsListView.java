@@ -100,7 +100,7 @@ public class ProjectsListView extends ListView {
 	private void initButtonListeners() {
 		List list = getListWithButtons().getList();
 		VerticalButtonBar bar = this.getListWithButtons().getButtonBar();
-		
+
 		// plus button
 		bar.getPlusButton().addListener(SWT.Selection, new Listener() {
 
@@ -111,7 +111,7 @@ public class ProjectsListView extends ListView {
 				getShell().getDisplay().asyncExec(()-> dialog.open());
 			}
 		});
-		
+
 		// minus button
 		bar.getMinusButton().addListener(SWT.Selection, new Listener() {
 
@@ -130,7 +130,7 @@ public class ProjectsListView extends ListView {
 				delete.open();
 			}
 		});
-		
+
 		// reload button
 		bar.getReloadButton().addListener(SWT.Selection, new Listener() {
 
@@ -138,7 +138,7 @@ public class ProjectsListView extends ListView {
 			public void handleEvent(Event arg0) {
 				PluginManager.getInstance().getRequestManager().fetchProjects();
 			}
-			
+
 		});
 	}
 
