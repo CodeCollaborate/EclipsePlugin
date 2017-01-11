@@ -453,7 +453,7 @@ public class PluginManager {
 		mm.fileDeleted(oldId);
 		
 		// send file create request
-		Request request = new FileCreateRequest(file.getName(), meta.getFilePath(), projectId, fileBytes).getRequest(response -> {
+		Request request = new FileCreateRequest(file.getName(), meta.getRelativePath(), projectId, fileBytes).getRequest(response -> {
 			if (response.getStatus() == 200) {
 				FileCreateResponse resp = (FileCreateResponse) response.getData();
 				long fileId = resp.getFileID();
