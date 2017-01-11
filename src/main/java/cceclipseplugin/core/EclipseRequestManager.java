@@ -71,10 +71,10 @@ public class EclipseRequestManager extends RequestManager {
 		
 		// create & open a new project, deleting the old one if it exists
 		try {
-			pm.putProjectInWarnList(p.getName(), ProjectDeleteNotification.class);
 			if (eclipseProject.exists()) {
 				// using false for the "deleteContent" flag so that this doesn't aggressively delete files out
 				// from underneath the user upon subscribing (and file deletes were being propagated to the server)
+				pm.putProjectInWarnList(p.getName(), ProjectDeleteNotification.class);
 				eclipseProject.delete(false, true, progressMonitor);
 			}
 			pm.putProjectInWarnList(p.getName(), ProjectCreateRequest.class);
@@ -91,11 +91,12 @@ public class EclipseRequestManager extends RequestManager {
 		List<FileMetadata> fileMetadatas = new ArrayList<>();
 		for (File f : files) {
 			fileMetadatas.add(new FileMetadata(f));
-			pullFileAndCreate(eclipseProject, p, f, progressMonitor, false);
+			pullFileAndCreate(eclipseProject, p, f, progressMonitor, true);
 		}
+		
 		pmeta.setFiles(fileMetadatas);
 		metaMgr.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
-		metaMgr.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
+		metaMgr.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);	
 	}
 	
 	public void pullFileAndCreate(IProject p, Project ccp, File file, IProgressMonitor progressMonitor, boolean unsubscribeOnFailure) {
@@ -172,6 +173,7 @@ public class EclipseRequestManager extends RequestManager {
 						showErrorAndUnsubscribe(ccp.getProjectID());
 					}
 				}
+				
 		}, () -> {
 			if (unsubscribeOnFailure) {
 				showErrorAndUnsubscribe(ccp.getProjectID());
