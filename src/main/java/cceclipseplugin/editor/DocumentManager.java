@@ -1,6 +1,7 @@
 package cceclipseplugin.editor;
 
 import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -117,11 +118,18 @@ public class DocumentManager implements INotificationHandler {
 		java.io.File rootFile = new java.io.File(workspaceRoot);
 		java.io.File absoluteFile = new java.io.File(absolutePath);
 		String workspaceRelativePathString = "/" + rootFile.toURI().relativize(absoluteFile.toURI()).toString();
+		try {
+			workspaceRelativePathString = java.net.URLDecoder.decode(workspaceRelativePathString, "UTF-8");
+		} catch (UnsupportedEncodingException e1) {
+			System.out.println("Error parsing file relative path");
+			e1.printStackTrace();
+		}
 		IPath relativePath = new Path(workspaceRelativePathString);
 		
 		FileMetadata file = pm.getMetadataManager().getFileMetadata(workspaceRelativePathString);
 		if (file == null) {
-			return; // not a tracked file
+			System.out.println("Closed an untracked file: " + workspaceRelativePathString);
+			return;
 		}
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
 			if (response.getStatus() == 200) {
