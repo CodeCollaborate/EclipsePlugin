@@ -3,8 +3,6 @@ package cceclipseplugin.ui;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
-import org.eclipse.core.runtime.preferences.InstanceScope;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MenuAdapter;
 import org.eclipse.swt.events.MenuEvent;
@@ -16,11 +14,8 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
-import org.osgi.service.prefs.Preferences;
 
-import cceclipseplugin.Activator;
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.dialogs.AddProjectDialog;
 import cceclipseplugin.ui.dialogs.DeleteProjectDialog;
 import cceclipseplugin.ui.dialogs.MessageDialog;

@@ -45,7 +45,7 @@ public class VerticalButtonBar extends Composite {
 		reloadData.heightHint = 25;
 		reloadData.widthHint = 25;
 		reloadButton.setLayoutData(reloadData);
-		reloadButton.setText("↺");
+		reloadButton.setText("\u21BA");
 		reloadButton.setEnabled(false);
 	}
 	
