@@ -498,7 +498,7 @@ public class PluginManager {
 				Display.getDefault().asyncExec(() -> {
 					if (event.getOldValue() == null || !event.getOldValue().equals(event.getNewValue())) {
 						if (Window.OK == OkCancelDialog
-								.createDialog("Do you want to auto-subscribe to subscribed projets from the last session?\n"
+								.createDialog("Do you want to auto-subscribe to subscribed projects from the last session?\n"
 											+ "This will overwrite any local changes made since the last online session.")
 								.open()) {
 							autoSubscribeForSession = true;

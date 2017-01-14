@@ -22,6 +22,7 @@ import org.eclipse.core.runtime.Path;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
+import dataMgmt.models.ProjectMetadata;
 import websocket.models.responses.FileCreateResponse;
 
 public class CCIgnore {
@@ -103,7 +104,11 @@ public class CCIgnore {
 	private void serverCleanUp(IProject p) {
 		EclipseRequestManager rm = PluginManager.getInstance().getRequestManager();
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
-		List<FileMetadata> fileMetas = mm.getProjectMetadata(p.getLocation().toString().replace("\\", "/")).getFiles();
+		ProjectMetadata pMeta = mm.getProjectMetadata(p.getLocation().toString().replace("\\", "/"));
+		if (pMeta == null) {
+			return;
+		}
+		List<FileMetadata> fileMetas = pMeta.getFiles();
 		
 		if (fileMetas == null) {
 			return;
