@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Scanner;
+import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IWorkspace;
@@ -31,6 +32,7 @@ import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import constants.CoreStringConstants;
+import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
@@ -113,6 +115,7 @@ public class DocumentManager implements INotificationHandler {
 	
 	private void sendFilePullRequest(String absolutePath) {
 		PluginManager pm = PluginManager.getInstance();
+		MetadataManager mm = pm.getMetadataManager();
 		
 		String workspaceRoot = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
 		java.io.File rootFile = new java.io.File(workspaceRoot);
@@ -126,9 +129,15 @@ public class DocumentManager implements INotificationHandler {
 		}
 		IPath relativePath = new Path(workspaceRelativePathString);
 		
-		FileMetadata file = pm.getMetadataManager().getFileMetadata(workspaceRelativePathString);
+		FileMetadata file = mm.getFileMetadata(workspaceRelativePathString);
 		if (file == null) {
 			System.out.println("Closed an untracked file: " + workspaceRelativePathString);
+			return;
+		}
+		long projId = mm.getProjectIDForFileID(file.getFileID());
+		Set<Long> subProjIds = pm.getDataManager().getSessionStorage().getSubscribedIds();
+		if (!subProjIds.contains(projId)) {
+			System.out.println("Closed a file in an unsubscribed project");
 			return;
 		}
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
