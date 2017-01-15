@@ -12,6 +12,7 @@ import java.util.concurrent.Semaphore;
 
 import org.eclipse.core.internal.filebuffers.SynchronizableDocument;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -36,6 +37,8 @@ import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
 import websocket.IFileChangeNotificationHandler;
+import websocket.INotificationHandler;
+import websocket.models.File;
 import websocket.models.Notification;
 import websocket.models.Request;
 import websocket.models.notifications.FileChangeNotification;
@@ -139,7 +142,6 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 			e1.printStackTrace();
 		}
 		IPath relativePath = new Path(workspaceRelativePathString);
-		
 		FileMetadata file = mm.getFileMetadata(workspaceRelativePathString);
 		if (file == null) {
 			System.out.println("Closed an untracked file: " + workspaceRelativePathString);
