@@ -28,8 +28,22 @@ import websocket.models.responses.FileCreateResponse;
 public class CCIgnore {
 	
 	public static String FILENAME = ".ccignore";
-	public static String DEFAULT_CONTENTS = "CodeCollaborateConfig.json\nbin\n";
-	
+	public static String DEFAULT_CONTENTS =
+            ".ccconfig\n" +
+            ".idea\n" +
+            ".gradle\n" +
+            "\n" +
+            "bin\n" +
+            "build\n" +
+            "target\n" +
+            "out\n" +
+            "\n" +
+            "*.o\n" +
+            "*.a\n" +
+            "*.so\n" +
+            "*.exe\n" +
+            "*.swp";
+
 	private Set<String> ignoredFiles = new HashSet<>();
 	
 	/**
@@ -83,7 +97,14 @@ public class CCIgnore {
 				BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 				String line;
 				while ((line = reader.readLine()) != null) {
+					if (line.startsWith("#") || line.startsWith("//"))
+						continue;
+					
 					String path = Paths.get(line).normalize().toString();
+					
+					if (path == "")
+						continue;
+					
 					ignoredFiles.add(path);
 				}
 				reader.close();
