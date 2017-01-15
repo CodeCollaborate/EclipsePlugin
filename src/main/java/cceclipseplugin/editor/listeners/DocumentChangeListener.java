@@ -68,64 +68,71 @@ public class DocumentChangeListener implements IDocumentListener {
 			return;
 		}
 
-		// Create removal diffs if needed
-		if (event.getLength() > 0) {
-			Diff diff = new Diff(false, event.getOffset(),
-					currDocument.substring(event.getOffset(), event.getOffset() + event.getLength()));
-			diffs.add(diff);
-		}
-		// Create insertion diffs if needed
-		if (!event.getText().isEmpty()) {
-			Diff patch = new Diff(true, event.getOffset(), event.getText());
-			diffs.add(patch);
-		}
+		synchronized (DataManager.getInstance().getPatchManager().getLockForFile(fileMeta.getFileID())) {
+			// Create removal diffs if needed
+			if (event.getLength() > 0) {
+				Diff diff = new Diff(false, event.getOffset(),
+						currDocument.substring(event.getOffset(), event.getOffset() + event.getLength()));
+				diffs.add(diff);
+			}
+			// Create insertion diffs if needed
+			if (!event.getText().isEmpty()) {
+				Diff patch = new Diff(true, event.getOffset(), event.getText());
+				diffs.add(patch);
+			}
 
-		// If diffs were not incoming, applied diffs, convert to LF
-
-		List<Diff> newDiffs = new ArrayList<>();
-		diffLoop: for (int i = 0; i < diffs.size(); i++) {
-			LinkedList<Diff> appliedDiffs = docMgr.getAppliedDiffs(currFile);
-			synchronized(appliedDiffs){
-				for(int j = 0; j < appliedDiffs.size(); j++){
-					Diff appliedDiff = appliedDiffs.get(j);
-					System.out.printf("DEBUG SEND-ON-NOTIF: %s ?= %s; %b\n", diffs.get(i).toString(),
-							appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
-					if(appliedDiff.equals(diffs.get(i))){
-						for(int k = j-1; k >= 0; k--){
-							appliedDiffs.removeFirst();
+			// If diffs were not incoming, applied diffs, convert to LF
+			List<Diff> newDiffs = new ArrayList<>();
+			diffLoop: for (int i = 0; i < diffs.size(); i++) {
+				LinkedList<Diff> appliedDiffs = docMgr.getAppliedDiffs(currFile);
+				synchronized (appliedDiffs) {
+					int offset = 0;
+					// Find first diff that matches, if any.
+					for (int j = 0; j < appliedDiffs.size(); j++) {
+						Diff appliedDiff = appliedDiffs.get(j);
+						System.out.printf("DEBUG SEND-ON-NOTIF: %s ?= %s; %b\n", diffs.get(i).toString(),
+								appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
+						// If found matching diff, remove all previous diffs.
+						if (appliedDiff.equals(diffs.get(i))) {
+							for (int k = j-offset; k >= 0; k--) {
+								appliedDiffs.removeFirst();
+								offset++;
+							}
+							continue diffLoop;
 						}
-						continue diffLoop;
 					}
 				}
+				newDiffs.add(diffs.get(i).convertToLF(currDocument));
 			}
-			newDiffs.add(diffs.get(i).convertToLF(currDocument));
-		}
 
-		// If no diffs left; abort
-		if (newDiffs.isEmpty()) {
-			System.out.println("No new diffs, aborting.");
-			return;
-		}
+			// If no diffs left; abort
+			if (newDiffs.isEmpty()) {
+				System.out.println("No new diffs, aborting.");
+				return;
+			}
 
-		// Create the patch
-		Patch patch = new Patch(fileMeta.getVersion(), newDiffs);
+			// Create the patch
+			Patch patch = new Patch(fileMeta.getVersion(), newDiffs);
 
-		System.out.println("DocumentManager sending change request");
+			System.out.println("DocumentManager sending change request");
 
-		try {
-			String projRootPath = proj.getLocation().toString();
-			DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(), fileMeta.getVersion(),
-					new Patch[] { patch }, response -> {
-						synchronized (fileMeta) {
-							fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
-						}
-						PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
-								projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
-					}, null);
-//			editor.doSave(null);
-		} catch (ConnectException e) {
-			System.out.println("Failed to send change request.");
-			e.printStackTrace();
+			try {
+				String projRootPath = proj.getLocation().toString();
+				DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(), fileMeta.getVersion(),
+						new Patch[] { patch }, response -> {
+							synchronized (fileMeta) {
+								fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
+							}
+							PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
+									projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
+						}, null);
+				System.out.println("DocumentChange-NewModificationStamp: " + (event.getModificationStamp()+1));
+				DataManager.getInstance().getPatchManager().setModificationStamp(fileMeta.getFileID(), event.getModificationStamp()+1);
+				// editor.doSave(null);
+			} catch (ConnectException e) {
+				System.out.println("Failed to send change request.");
+				e.printStackTrace();
+			}
 		}
 	}
 
