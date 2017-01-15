@@ -2,15 +2,15 @@ package cceclipseplugin.editor;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 
+import org.eclipse.core.internal.filebuffers.SynchronizableDocument;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -25,20 +25,17 @@ import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import constants.CoreStringConstants;
+import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
 import dataMgmt.models.ProjectMetadata;
 import patching.Diff;
 import patching.Patch;
-import websocket.INotificationHandler;
-import websocket.models.File;
+import websocket.IFileChangeNotificationHandler;
 import websocket.models.Notification;
 import websocket.models.Request;
 import websocket.models.notifications.FileChangeNotification;
@@ -54,7 +51,7 @@ import websocket.models.responses.FilePullResponse;
  * @author Benedict
  *
  */
-public class DocumentManager implements INotificationHandler {
+public class DocumentManager implements IFileChangeNotificationHandler {
 
 	private String currFile = null;
 	private HashMap<String, ITextEditor> openEditors = new HashMap<>();
@@ -97,6 +94,20 @@ public class DocumentManager implements INotificationHandler {
 	 */
 	public void openedEditor(String absolutePath, ITextEditor editor) {
 		this.openEditors.put(absolutePath, editor);
+
+		IFile file = editor.getEditorInput().getAdapter(IFile.class);
+		String fullPath = file.getFullPath().toString();
+		FileMetadata fileMeta = DataManager.getInstance().getMetadataManager().getFileMetadata(fullPath);
+		if (fileMeta == null) {
+			// TODO: Remove these debug statements
+			if (fileMeta == null) {
+				System.out.println("file metadata was null");
+			}
+			return;
+		}
+
+		((SynchronizableDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput()))
+				.setLockObject(DataManager.getInstance().getPatchManager().getLockForFile(fileMeta.getFileID()));
 	}
 
 	/**
@@ -112,7 +123,7 @@ public class DocumentManager implements INotificationHandler {
 		this.openEditors.remove(absolutePath);
 		this.sendFilePullRequest(absolutePath);
 	}
-	
+
 	private void sendFilePullRequest(String absolutePath) {
 		PluginManager pm = PluginManager.getInstance();
 		MetadataManager mm = pm.getMetadataManager();
@@ -150,7 +161,7 @@ public class DocumentManager implements INotificationHandler {
 				}
 				IFile newFile = ResourcesPlugin.getWorkspace().getRoot().getFile(relativePath);
 				fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
-				
+
 				NullProgressMonitor progressMonitor = new NullProgressMonitor();
 				try {
 					if (newFile.exists()) {
@@ -167,7 +178,8 @@ public class DocumentManager implements INotificationHandler {
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
-					Display.getDefault().asyncExec(() -> MessageDialog.createDialog("Failed to pull file on resource close. Please resubscribe to the project."));
+					Display.getDefault().asyncExec(() -> MessageDialog
+							.createDialog("Failed to pull file on resource close. Please resubscribe to the project."));
 				}
 			}
 		}, new UIRequestErrorHandler("Couldn't send file pull request after file close: " + absolutePath));
@@ -191,7 +203,7 @@ public class DocumentManager implements INotificationHandler {
 	 * @return The queue of diffs that was applied for the given filepath.
 	 */
 	public LinkedList<Diff> getAppliedDiffs(String filepath) {
-		if(!appliedDiffs.containsKey(filepath)){
+		if (!appliedDiffs.containsKey(filepath)) {
 			appliedDiffs.put(filepath, new LinkedList<>());
 		}
 		return appliedDiffs.get(filepath);
@@ -226,7 +238,7 @@ public class DocumentManager implements INotificationHandler {
 	 * @param n
 	 *            Notification of file changes.
 	 */
-	public void handleNotification(Notification n) {
+	public Long handleNotification(Notification n, long expectedModificationStamp) {
 		// Convert to correct notification types
 		FileChangeNotification changeNotif = (FileChangeNotification) n.getData();
 
@@ -241,25 +253,29 @@ public class DocumentManager implements INotificationHandler {
 		Long projectID = PluginManager.getInstance().getMetadataManager().getProjectIDForFileID(fileMeta.getFileID());
 		if (projectID == null) {
 			// Early out if no such projectID found.
-			return;
+			return -1l;
 		}
 
-		IPath projectRootPath = new Path(PluginManager.getInstance().getMetadataManager().getProjectLocation(projectID));
+		IPath projectRootPath = new Path(
+				PluginManager.getInstance().getMetadataManager().getProjectLocation(projectID));
 		String absolutePath = projectRootPath.append(fileMeta.getFilePath()).toString();
 
-		// TODO(wongb): Build patch reorder buffer, making sure that they are applied in
+		// TODO(wongb): Build patch reorder buffer, making sure that they are
+		// applied in
 		// order.
 		// This is a temporary fix.
-//		if (changeNotif.fileVersion <= fileMeta.getVersion()) {
-//			try {
-//				System.out.printf(
-//						"ChangeNotification version was less than or equal to current version: %d <= %d; Notification: ",
-//						changeNotif.fileVersion, fileMeta.getVersion(), new ObjectMapper().writeValueAsString(n));
-//			} catch (JsonProcessingException e) {
-//				e.printStackTrace();
-//			}
-//			return;
-//		}
+		// if (changeNotif.fileVersion <= fileMeta.getVersion()) {
+		// try {
+		// System.out.printf(
+		// "ChangeNotification version was less than or equal to current
+		// version: %d <= %d; Notification: ",
+		// changeNotif.fileVersion, fileMeta.getVersion(), new
+		// ObjectMapper().writeValueAsString(n));
+		// } catch (JsonProcessingException e) {
+		// e.printStackTrace();
+		// }
+		// return;
+		// }
 
 		ProjectMetadata projMeta = PluginManager.getInstance().getMetadataManager()
 				.getProjectMetadata(projectRootPath.toString());
@@ -268,13 +284,16 @@ public class DocumentManager implements INotificationHandler {
 		IPath projectRelativePath = new Path(projMeta.getName());
 		String workspaceRelativePath = projectRelativePath.append(fileRelativePathWithName).toString();
 
-		this.applyPatch(n.getResourceID(), absolutePath, workspaceRelativePath.toString(), patches);
+		Long result = this.applyPatch(n.getResourceID(), expectedModificationStamp, absolutePath, workspaceRelativePath.toString(), patches);
 
-		synchronized (fileMeta) {
-			fileMeta.setVersion(changeNotif.fileVersion);
+		if (result != null) {
+			synchronized (fileMeta) {
+				fileMeta.setVersion(changeNotif.fileVersion);
+			}
+			PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
+					projectRootPath.toString(), CoreStringConstants.CONFIG_FILE_NAME);
 		}
-		PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta, projectRootPath.toString(),
-				CoreStringConstants.CONFIG_FILE_NAME);
+		return result;
 
 	}
 
@@ -287,73 +306,116 @@ public class DocumentManager implements INotificationHandler {
 	 * @param absolutePath
 	 *            absolute file path; used as key in editorMap, and patches.
 	 * @param workspaceRelativePath
-	 * 			  workspace relative file path that includes the filename
+	 *            workspace relative file path that includes the filename
 	 * @param patches
 	 *            the list of patches to apply, in order.
 	 */
-	public void applyPatch(long fileId, String absolutePath, String workspaceRelativePath, List<Patch> patches) {
+	public Long applyPatch(long fileId, long expectedModificationStamp, String absolutePath, String workspaceRelativePath,
+			List<Patch> patches) {
 		String currFile = this.currFile;
 		ITextEditor editor = getEditor(absolutePath);
 
 		// Get reference to open document
 		AbstractDocument document = getDocumentForEditor(editor);
+		
+		Long[] result = new Long[1];
+		Semaphore sem = new Semaphore(0);
+		
 		if (editor != null && document != null) {
+			
+			Display.getDefault().asyncExec(new Runnable(){
+				@Override
+				public void run() {
+					synchronized (((SynchronizableDocument) document).getLockObject()) {
+						// If modification stamp does not match,
+						if (expectedModificationStamp != -1
+								&& document.getModificationStamp() != expectedModificationStamp) {
+							System.out.println(
+									"Document changed between notification arrival and attempt to append. Retrying");
+							System.out.println("Got modification stamp " + document.getModificationStamp() + "; wanted "
+									+ expectedModificationStamp);
+							result[0] = null;
+							sem.release();
+							return;
+						}
 
-			// Get text in document.
-			String newDocument = document.get();
+						// Get text in document.
+						String newDocument = document.get();
 
-			// If CRLFs are found, apply patches in CRLF mode.
-			boolean useCRLF = newDocument.contains("\r\n");
-
-			for (Patch patch : patches) {
-
-				if (useCRLF) {
-					patch = patch.convertToCRLF(newDocument);
-				}
-
-				for (Diff diff : patch.getDiffs()) {
-
-					// Throw errors if we are trying to insert between
-					// \r and \n
-					if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
-							&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
-							&& document.get().charAt(diff.getStartIndex()) == '\n') {
-						throw new IllegalArgumentException("Tried to insert between \\r and \\n");
-					}
+						// If CRLFs are found, apply patches in CRLF mode.
+						boolean useCRLF = newDocument.contains("\r\n");
 
 
+						for (Patch patch : patches) {
 
-					// Apply the change to the document
-					Display.getDefault().asyncExec(new Runnable() {
-						@Override
-						public void run() {
-							try {
-								// If patching an active file, add it to the patch
-								// list to ignore.
-								if (currFile.equals(absolutePath)) {
-									if(!appliedDiffs.containsKey(absolutePath)){
-										appliedDiffs.put(absolutePath, new LinkedList<>());
+							if (useCRLF) {
+								patch = patch.convertToCRLF(newDocument);
+							}
+
+							for (Diff diff : patch.getDiffs()) {
+
+								// Throw errors if we are trying to insert
+								// between
+								// \r and \n
+								if (diff.getStartIndex() > 0 && diff.getStartIndex() < document.get().length()
+										&& document.get().charAt(diff.getStartIndex() - 1) == '\r'
+										&& document.get().charAt(diff.getStartIndex()) == '\n') {
+									throw new IllegalArgumentException("Tried to insert between \\r and \\n");
+								}
+
+								// Apply the change to the document
+								try {
+									// If patching an active file, add it to the
+									// patch
+									// list to ignore.
+									if (currFile.equals(absolutePath)) {
+										if (!appliedDiffs.containsKey(absolutePath)) {
+											appliedDiffs.put(absolutePath, new LinkedList<>());
+										}
+										appliedDiffs.get(absolutePath).add(diff);
 									}
-									appliedDiffs.get(absolutePath).add(diff);
-								}
-								
-								if (diff.isInsertion()) {
-									document.replace(diff.getStartIndex(), 0, diff.getChanges());
-								} else {
-									document.replace(diff.getStartIndex(), diff.getLength(), "");
+
+									System.out.println("Applying diff: " + diff);
+
+									if (diff.isInsertion()) {
+										document.replace(diff.getStartIndex(), 0, diff.getChanges());
+									} else {
+										document.replace(diff.getStartIndex(), diff.getLength(), "");
+									}
+
+									System.out.println("Releasing sem");
+
+
+									PluginManager.getInstance().putFileInWarnList(workspaceRelativePath,
+											FileChangeRequest.class);
+									editor.doSave(new NullProgressMonitor());
+								} catch (BadLocationException e) {
+									System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
+											document.get().length(), document.get());
+									e.printStackTrace();
 								}
 
-								PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
-								editor.doSave(new NullProgressMonitor());
-							} catch (BadLocationException e) {
-								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
-										document.get().length(), document.get());
-								e.printStackTrace();
 							}
 						}
-					});
+						result[0] = document.getModificationStamp();
+						sem.release();
+					}
 				}
+			});
+
+			try {
+				System.out.println("Waiting for sem");
+				
+				// TODO: Make this a tryAcquire with a timeout, to recover from problems.
+				sem.acquire();
+
+				System.out.println("Done waiting for sem");
+			} catch (InterruptedException e) {
+				System.err.println("Failed to apply all patches");
 			}
+
+			System.out.println("DocumentManager-NewModificationStamp: " + result[0]);
+			return result[0];
 		} else {
 			// If file is not open in an editor, enqueue the patch for
 			// writing.
@@ -363,7 +425,7 @@ public class DocumentManager implements INotificationHandler {
 			IFile file = workspace.getRoot().getFileForLocation(ipath);
 			if (!file.exists()) {
 				System.out.println("Cannot apply patches to non-existent file: " + absolutePath);
-				return;
+				return -1l;
 			}
 
 			String contents = null;
@@ -371,7 +433,7 @@ public class DocumentManager implements INotificationHandler {
 				contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
 			} catch (CoreException e) {
 				System.out.println("Cannot read file");
-				return;
+				return -1l;
 			}
 			PluginManager m = PluginManager.getInstance();
 			String newContents = m.getDataManager().getPatchManager().applyPatch(contents, patches);
@@ -380,10 +442,13 @@ public class DocumentManager implements INotificationHandler {
 				file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
 			} catch (CoreException e) {
 				System.out.println("Fail to update files on disk");
+				return -1l;
 			}
 
 			// PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
 			// filePath, patches);
+
+			return -1l;
 		}
 	}
 }
