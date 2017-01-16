@@ -316,6 +316,10 @@ public class PluginManager {
 			IProject eclipseProject = root.getProject(p.getName());
 			IProgressMonitor monitor = new NullProgressMonitor();
 
+			if (n.file.getFileVersion() == 0) {
+				System.err.println(String.format("Create notification for %s had version 0.", n.file.getFilename()));
+			}
+			
 			meta = new FileMetadata(n.file);
 			List<FileMetadata> fmetas = pmeta.getFiles();
 			fmetas.add(meta);
@@ -460,7 +464,7 @@ public class PluginManager {
 				meta.setFileID(fileId);
 				meta.setFilename(meta.getFilename());
 				meta.setRelativePath(meta.getRelativePath());
-				meta.setVersion(0);
+				meta.setVersion(1);
 				mm.putFileMetadata(file.getFullPath().toString(), projectId, meta);
 			} else {
 				showErrorAndUnsubscribe(projectId);

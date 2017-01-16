@@ -109,6 +109,10 @@ public class DocumentChangeListener implements IDocumentListener {
 			DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(), fileMeta.getVersion(),
 					new Patch[] { patch }, response -> {
 						synchronized (fileMeta) {
+							long version = ((FileChangeResponse) response.getData()).getFileVersion();
+							if (version == 0) {
+								System.err.println("File version returned from server was 0.");
+							}
 							fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
 						}
 						PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
