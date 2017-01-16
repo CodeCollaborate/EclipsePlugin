@@ -325,7 +325,7 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 		
 		if (editor != null && document != null) {
 			
-			Display.getDefault().asyncExec(new Runnable(){
+			Display.getDefault().syncExec(new Runnable(){
 				@Override
 				public void run() {
 					synchronized (((SynchronizableDocument) document).getLockObject()) {
@@ -337,7 +337,7 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 							System.out.println("Got modification stamp " + document.getModificationStamp() + "; wanted "
 									+ expectedModificationStamp);
 							result[0] = null;
-							sem.release();
+//							sem.release();
 							return;
 						}
 
@@ -400,21 +400,21 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 							}
 						}
 						result[0] = document.getModificationStamp();
-						sem.release();
+//						sem.release();
 					}
 				}
 			});
 
-			try {
-				System.out.println("Waiting for sem");
-				
-				// TODO: Make this a tryAcquire with a timeout, to recover from problems.
-				sem.acquire();
-
-				System.out.println("Done waiting for sem");
-			} catch (InterruptedException e) {
-				System.err.println("Failed to apply all patches");
-			}
+//			try {
+//				System.out.println("Waiting for sem");
+//				
+//				// TODO: Make this a tryAcquire with a timeout, to recover from problems.
+//				sem.acquire();
+//
+//				System.out.println("Done waiting for sem");
+//			} catch (InterruptedException e) {
+//				System.err.println("Failed to apply all patches");
+//			}
 
 			System.out.println("DocumentManager-NewModificationStamp: " + result[0]);
 			return result[0];

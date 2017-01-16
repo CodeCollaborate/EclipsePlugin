@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.eclipse.core.internal.filebuffers.SynchronizableDocument;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.jface.text.DocumentEvent;
@@ -125,8 +126,8 @@ public class DocumentChangeListener implements IDocumentListener {
 							PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
 									projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
 						}, null);
-				System.out.println("DocumentChange-NewModificationStamp: " + (event.getModificationStamp()+1));
-				DataManager.getInstance().getPatchManager().setModificationStamp(fileMeta.getFileID(), event.getModificationStamp()+1);
+//				System.out.println("DocumentChange-NewModificationStamp: " + (event.getModificationStamp()+1));
+//				DataManager.getInstance().getPatchManager().setModificationStamp(fileMeta.getFileID(), event.getModificationStamp()+1);
 				// editor.doSave(null);
 			} catch (ConnectException e) {
 				System.out.println("Failed to send change request.");
@@ -143,5 +144,23 @@ public class DocumentChangeListener implements IDocumentListener {
 	 */
 	@Override
 	public void documentChanged(DocumentEvent event) {
+
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
+		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
+
+		String currFile = docMgr.getCurrFile();
+		ITextEditor editor = docMgr.getEditor(currFile);
+		IFile file = editor.getEditorInput().getAdapter(IFile.class);
+		IProject proj = file.getProject();
+		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
+		String fullPath = file.getFullPath().toString();
+		FileMetadata fileMeta = mm.getFileMetadata(fullPath);
+		if (projMeta == null || fileMeta == null || !ss.getSubscribedIds().contains(projMeta.getProjectID())
+				|| fileMeta.getFilename().contains(CoreStringConstants.CONFIG_FILE_NAME)) {
+			return;
+		}
+		System.out.println("DocumentChange-NewModificationStamp: " + ((SynchronizableDocument) event.getDocument()).getModificationStamp());
+		DataManager.getInstance().getPatchManager().setModificationStamp(fileMeta.getFileID(), ((SynchronizableDocument) event.getDocument()).getModificationStamp());
 	}
 }
