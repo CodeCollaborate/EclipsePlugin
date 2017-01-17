@@ -109,8 +109,9 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 			return;
 		}
 
-		((SynchronizableDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput()))
-				.setLockObject(DataManager.getInstance().getPatchManager().getLockForFile(fileMeta.getFileID()));
+		DataManager.getInstance().getPatchManager().setModificationStamp(fileMeta.getFileID(),
+				((SynchronizableDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput()))
+						.getModificationStamp());
 	}
 
 	/**

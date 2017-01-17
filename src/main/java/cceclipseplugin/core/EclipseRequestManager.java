@@ -25,6 +25,7 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.texteditor.ITextEditor;
 
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.DialogStrings;
@@ -145,6 +146,13 @@ public class EclipseRequestManager extends RequestManager {
 						}
 						fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
+							// Force close, to make sure changelistener doesn't fire.
+							ITextEditor editor = PluginManager.getInstance().getDocumentManager().getEditor(p.getLocation().append(relPath).toString());
+							if(editor != null){
+								System.out.println("Closed editor for file " + p.getLocation().append(relPath).toString());
+								editor.close(false);								
+							}
+							
 							pm.putFileInWarnList(workspaceRelativePath.toString(), FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);

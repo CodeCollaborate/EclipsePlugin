@@ -67,8 +67,8 @@ public class DocumentChangeListener implements IDocumentListener {
 			}
 			return;
 		}
-
-		synchronized (DataManager.getInstance().getPatchManager().getLockForFile(fileMeta.getFileID())) {
+		
+		synchronized (((SynchronizableDocument)event.getDocument()).getLockObject()) {
 			// Create removal diffs if needed
 			if (event.getLength() > 0) {
 				Diff diff = new Diff(false, event.getOffset(),
