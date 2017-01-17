@@ -104,7 +104,7 @@ public class CCIgnore {
 					
 					String path = Paths.get(line).normalize().toString();
 					
-					if (path == "")
+					if (path.equals(""))
 						continue;
 					
 					ignoredFiles.add(path);
