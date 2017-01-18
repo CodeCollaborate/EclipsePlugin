@@ -322,7 +322,6 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 		AbstractDocument document = getDocumentForEditor(editor);
 		
 		Long[] result = new Long[1];
-		Semaphore sem = new Semaphore(0);
 		
 		if (editor != null && document != null) {
 			
@@ -338,7 +337,6 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 							System.out.println("Got modification stamp " + document.getModificationStamp() + "; wanted "
 									+ expectedModificationStamp);
 							result[0] = null;
-//							sem.release();
 							return;
 						}
 
@@ -386,9 +384,6 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 										document.replace(diff.getStartIndex(), diff.getLength(), "");
 									}
 
-									System.out.println("Releasing sem");
-
-
 									PluginManager.getInstance().putFileInWarnList(workspaceRelativePath,
 											FileChangeRequest.class);
 									editor.doSave(new NullProgressMonitor());
@@ -401,23 +396,9 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 							}
 						}
 						result[0] = document.getModificationStamp();
-//						sem.release();
 					}
 				}
 			});
-
-//			try {
-//				System.out.println("Waiting for sem");
-//				
-//				// TODO: Make this a tryAcquire with a timeout, to recover from problems.
-//				sem.acquire();
-//
-//				System.out.println("Done waiting for sem");
-//			} catch (InterruptedException e) {
-//				System.err.println("Failed to apply all patches");
-//			}
-
-			System.out.println("DocumentManager-NewModificationStamp: " + result[0]);
 			return result[0];
 		} else {
 			// If file is not open in an editor, enqueue the patch for
@@ -447,9 +428,6 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 				System.out.println("Fail to update files on disk");
 				return -1l;
 			}
-
-			// PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
-			// filePath, patches);
 
 			return -1l;
 		}

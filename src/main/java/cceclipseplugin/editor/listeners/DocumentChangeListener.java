@@ -90,7 +90,7 @@ public class DocumentChangeListener implements IDocumentListener {
 					// Find first diff that matches, if any.
 					for (int j = 0; j < appliedDiffs.size(); j++) {
 						Diff appliedDiff = appliedDiffs.get(j);
-						System.out.printf("DEBUG SEND-ON-NOTIF: %s ?= %s; %b\n", diffs.get(i).toString(),
+						System.out.printf("isNotification: %s ?= %s; %b\n", diffs.get(i).toString(),
 								appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
 						// If found matching diff, remove all previous diffs.
 						if (appliedDiff.equals(diffs.get(i))) {
@@ -114,7 +114,7 @@ public class DocumentChangeListener implements IDocumentListener {
 			// Create the patch
 			Patch patch = new Patch(fileMeta.getVersion(), newDiffs);
 
-			System.out.println("DocumentManager sending change request");
+			System.out.println("DocumentManager sending change request, with patch " + patch.toString());
 
 			try {
 				String projRootPath = proj.getLocation().toString();
@@ -126,9 +126,6 @@ public class DocumentChangeListener implements IDocumentListener {
 							PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
 									projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
 						}, null);
-//				System.out.println("DocumentChange-NewModificationStamp: " + (event.getModificationStamp()+1));
-//				DataManager.getInstance().getPatchManager().setModificationStamp(fileMeta.getFileID(), event.getModificationStamp()+1);
-				// editor.doSave(null);
 			} catch (ConnectException e) {
 				System.out.println("Failed to send change request.");
 				e.printStackTrace();
