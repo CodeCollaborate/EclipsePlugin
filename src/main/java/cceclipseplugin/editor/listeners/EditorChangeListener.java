@@ -1,6 +1,7 @@
 package cceclipseplugin.editor.listeners;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.text.AbstractDocument;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IEditorPart;
@@ -13,6 +14,7 @@ import org.eclipse.ui.texteditor.ITextEditor;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
+import cceclipseplugin.log.Logger;
 
 /**
  * Listens to changes in eclipse parts, notifies DocumentManager when new
@@ -52,7 +54,7 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getLocation().toString();
 
 			this.documentMgr.openedEditor(filePath, editor);
-			System.out.println("Opened document " + editor.getTitle());
+			Logger.getInstance().log(IStatus.INFO, String.format("Opened document %s", editor.getTitle()));
 		}
 	}
 
@@ -70,7 +72,7 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 			}
 			String filePath = f.getLocation().toString();
 			this.documentMgr.closedDocument(filePath);
-			System.out.println("Closed document " + editor.getTitle());
+			Logger.getInstance().log(IStatus.INFO, String.format("Closed document %s", editor.getTitle()));
 		}
 
 	}

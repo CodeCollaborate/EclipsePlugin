@@ -2,6 +2,7 @@ package cceclipseplugin.ui;
 
 import java.beans.PropertyChangeListener;
 
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.viewers.ListViewer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -15,6 +16,7 @@ import org.eclipse.ui.part.ViewPart;
 
 import cceclipseplugin.constants.StringConstants;
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.log.Logger;
 import dataMgmt.SessionStorage;
 import websocket.WSConnection;
 import websocket.WSConnection.State;
@@ -94,7 +96,7 @@ public class ControlPanel extends ViewPart {
 	private void initializeStatusBar() {
 		WSManager wsManager = PluginManager.getInstance().getWSManager();
 		State s = wsManager.getConnectionState();
-		System.out.println("STATE: "+s);
+		Logger.getInstance().log(IStatus.INFO, String.format("STATE: %s", s.toString()));
 		switch (s) {
 		case CLOSE:
 			statusBar.setStatus(StringConstants.CLOSE_MESSAGE);

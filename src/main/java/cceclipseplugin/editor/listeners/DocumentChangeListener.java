@@ -6,12 +6,14 @@ import java.util.List;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocumentListener;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
+import cceclipseplugin.log.Logger;
 import constants.CoreStringConstants;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
@@ -58,16 +60,16 @@ public class DocumentChangeListener implements IDocumentListener {
 				|| fileMeta.getFilename().contains(CoreStringConstants.CONFIG_FILE_NAME)) {
 			// TODO: Remove these debug statements
 			if (fileMeta == null) {
-				System.out.println("file metadata was null");
+				Logger.getInstance().log(IStatus.WARNING, "File metadata was null");
 			}
 			if (projMeta == null) {
-				System.out.println("project metadata was null");
+				Logger.getInstance().log(IStatus.WARNING, "Project metadata was null");
 			}
 			return;
 		}
 
 		if (fileMeta.getVersion() == 0) {
-			System.err.println("File version was 0");
+			Logger.getInstance().log(IStatus.ERROR, "File version was 0");
 		}
 		
 		// Create removal diffs if needed
@@ -99,14 +101,14 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		// If no diffs left; abort
 		if (newDiffs.isEmpty()) {
-			System.out.println("No new diffs, aborting.");
+			Logger.getInstance().log(IStatus.INFO, "No new diffs, aborting");
 			return;
 		}
 
 		// Create the patch
 		Patch patch = new Patch(fileMeta.getVersion(), newDiffs);
 
-		System.out.println("DocumentManager sending change request");
+		Logger.getInstance().log(IStatus.INFO, "DocumentManager sending change request");;
 
 		try {
 			String projRootPath = proj.getLocation().toString();
@@ -115,7 +117,7 @@ public class DocumentChangeListener implements IDocumentListener {
 						synchronized (fileMeta) {
 							long version = ((FileChangeResponse) response.getData()).getFileVersion();
 							if (version == 0) {
-								System.err.println("File version returned from server was 0.");
+								Logger.getInstance().log(IStatus.ERROR, "File version returned from server was 0");
 							}
 							fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
 						}
@@ -124,8 +126,7 @@ public class DocumentChangeListener implements IDocumentListener {
 					}, null);
 //			editor.doSave(null);
 		} catch (ConnectException e) {
-			System.out.println("Failed to send change request.");
-			e.printStackTrace();
+			Logger.getInstance().logException(IStatus.ERROR, "Failed to send change request", e);
 		}
 	}
 

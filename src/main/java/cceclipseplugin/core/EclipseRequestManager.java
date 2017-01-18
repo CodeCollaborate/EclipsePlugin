@@ -21,11 +21,13 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
 
+import cceclipseplugin.log.Logger;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.DialogStrings;
 import cceclipseplugin.ui.dialogs.MessageDialog;
@@ -109,14 +111,14 @@ public class EclipseRequestManager extends RequestManager {
 					byte[] fileBytes = ((FilePullResponse) response.getData()).getFileBytes();
 					
 					Path relPath = new Path(file.getRelativePath());
-					System.out.println("Processing path " + relPath.toString());
+					Logger.getInstance().log(IStatus.INFO, String.format("Processing path %s", relPath.toString()));
 					if (!relPath.toString().equals("") && !relPath.toString().equals(".")) {
 						
 						Path currentFolder = Path.EMPTY;
 						for (int i = 0; i < relPath.segmentCount(); i++) {
 							// iterate through path segments and create if they don't exist
 							currentFolder = (Path) currentFolder.append(relPath.segment(i));
-							System.out.println("Making folder " + currentFolder.toString());
+							Logger.getInstance().log(IStatus.INFO, String.format("Making folder %s", currentFolder.toString()));
 							
 							IFolder newFolder = p.getFolder(currentFolder);
 							try {
@@ -124,8 +126,7 @@ public class EclipseRequestManager extends RequestManager {
 									newFolder.create(true, true, progressMonitor);
 								}
 							} catch (Exception e1) {
-								System.out.println("Could not create folder for " + currentFolder.toString());
-								e1.printStackTrace();
+								Logger.getInstance().logException(IStatus.ERROR, String.format("Could not create folder for %s", currentFolder.toString()), e1);
 								if (unsubscribeOnFailure) {
 									showErrorAndUnsubscribe(ccp.getProjectID());
 								}
@@ -138,7 +139,7 @@ public class EclipseRequestManager extends RequestManager {
 					
 					relPath = (Path) relPath.append(file.getFilename());
 					IPath workspaceRelativePath = p.getFullPath().append(relPath);
-					System.out.println("Making file " + relPath.toString());
+					Logger.getInstance().log(IStatus.INFO, String.format("Making file %s", relPath.toString()));
 					IFile newFile = p.getFile(relPath);
 					try {
 						String fileContents = new String(fileBytes);
@@ -208,7 +209,7 @@ public class EclipseRequestManager extends RequestManager {
 		long projectID = mm.getProjectIDForFileID(fileID);
 		ProjectMetadata pMeta = mm.getProjectMetadata(projectID);
 		IPath filePath = new Path(fMeta.getFilePath());
-		System.out.println("pulldiffsendchanges for " + filePath);
+		Logger.getInstance().log(IStatus.INFO, String.format("pulldiffsendchanges for %s", filePath));
 		IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(pMeta.getName());
 		IFile file = project.getFile(filePath);
 		
@@ -234,7 +235,7 @@ public class EclipseRequestManager extends RequestManager {
 					if (diffs != null && !diffs.isEmpty()) {
 						this.sendFileChanges(fMeta.getFileID(), new Patch[] { new Patch((int) fMeta.getVersion(), diffs)});
 					} else {
-						System.out.println("File either failed to pull or no diffs were found.");
+						Logger.getInstance().log(IStatus.INFO, "File either failed to pull or no diffs were found.");
 					}
 					
 				} catch (Exception e) {
@@ -369,14 +370,14 @@ public class EclipseRequestManager extends RequestManager {
 			if (m instanceof IFile) {
 				String path = ((IFile) m).getProjectRelativePath().toString();
 				if (ignoreFile.containsEntry(path)) {
-					System.out.println(String.format("File %s was ignored when scanning for files.", path));
+					Logger.getInstance().log(IStatus.INFO, String.format("File %s was ignored when scanning for files.", path));
 				} else {
 					files.add((IFile) m);
 				}
 			} else if (m instanceof IFolder) {
 				String path = ((IFolder) m).getProjectRelativePath().toString();
 				if (ignoreFile.containsEntry(path)) {
-					System.out.println(String.format("Folder %s was ignored when scanning for files.", path));
+					Logger.getInstance().log(IStatus.INFO, String.format("Folder %s was ignored when scanning for files.", path));
 				} else {
 					files.addAll(recursivelyGetFiles((IFolder) m, ignoreFile));
 				}

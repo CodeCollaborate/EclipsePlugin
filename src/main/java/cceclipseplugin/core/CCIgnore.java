@@ -15,10 +15,15 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IWorkspaceRoot;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Status;
 
+import cceclipseplugin.Activator;
+import cceclipseplugin.log.Logger;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
@@ -47,6 +52,11 @@ public class CCIgnore {
             "*.swp";
 
 	private Set<String> ignoredFiles = new HashSet<>();
+	private ILog logger;
+	
+	public CCIgnore() {
+		logger = Activator.getDefault().getLog();
+	}
 	
 	/**
 	 * Creates a new .ccignore file for the given project on disk. This 
@@ -141,7 +151,7 @@ public class CCIgnore {
 			for (String ignored : ignoredFiles) {
 				if (path.startsWith(ignored) || path.equals(ignored)) {
 					// send delete request for fileID
-					System.out.println(String.format("Cleaning up %s from server", path));
+					Logger.getInstance().log(IStatus.INFO, String.format("Cleaning up %s from server", path));
 					rm.deleteFile(fm.getFileID());
 				}
 			}

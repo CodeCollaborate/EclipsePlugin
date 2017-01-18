@@ -16,6 +16,7 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.AbstractDocument;
@@ -29,6 +30,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.log.Logger;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import constants.CoreStringConstants;
@@ -124,20 +126,19 @@ public class DocumentManager implements INotificationHandler {
 		try {
 			workspaceRelativePathString = java.net.URLDecoder.decode(workspaceRelativePathString, "UTF-8");
 		} catch (UnsupportedEncodingException e1) {
-			System.out.println("Error parsing file relative path");
-			e1.printStackTrace();
+			Logger.getInstance().logException(IStatus.ERROR, "Error parsing file relative path", e1);
 		}
 		IPath relativePath = new Path(workspaceRelativePathString);
 		
 		FileMetadata file = mm.getFileMetadata(workspaceRelativePathString);
 		if (file == null) {
-			System.out.println("Closed an untracked file: " + workspaceRelativePathString);
+			Logger.getInstance().log(IStatus.WARNING, String.format("Closed an untracked file: %s", workspaceRelativePathString));
 			return;
 		}
 		long projId = mm.getProjectIDForFileID(file.getFileID());
 		Set<Long> subProjIds = pm.getDataManager().getSessionStorage().getSubscribedIds();
 		if (!subProjIds.contains(projId)) {
-			System.out.println("Closed a file in an unsubscribed project");
+			Logger.getInstance().log(IStatus.INFO, "Closed a file in an unsubscribed project");
 			return;
 		}
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
@@ -211,7 +212,7 @@ public class DocumentManager implements INotificationHandler {
 		if (provider != null && input != null) {
 			return (AbstractDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput());
 		} else {
-			System.out.println("Error getting document for editor");
+			Logger.getInstance().log(IStatus.ERROR, "Error getting document for editor");
 			return null;
 		}
 	}
@@ -338,9 +339,12 @@ public class DocumentManager implements INotificationHandler {
 								PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
 								editor.doSave(new NullProgressMonitor());
 							} catch (BadLocationException e) {
-								System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
-										document.get().length(), document.get());
-								e.printStackTrace();
+								Logger.getInstance().logException(IStatus.ERROR, 
+										String.format("Bad Location; Patch: %s, Len: %d, Text: %s\n", 
+												diff.toString(), 
+												document.get().length(), 
+												document.get()), 
+										e);
 							}
 						}
 					});
@@ -354,7 +358,7 @@ public class DocumentManager implements INotificationHandler {
 			IPath ipath = new Path(absolutePath);
 			IFile file = workspace.getRoot().getFileForLocation(ipath);
 			if (!file.exists()) {
-				System.out.println("Cannot apply patches to non-existent file: " + absolutePath);
+				Logger.getInstance().log(IStatus.WARNING, String.format("Cannot apply patches to non-existent file: %s", absolutePath.toString()));
 				return;
 			}
 
@@ -362,7 +366,7 @@ public class DocumentManager implements INotificationHandler {
 			try (Scanner s = new Scanner(file.getContents())) {
 				contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
 			} catch (CoreException e) {
-				System.out.println("Cannot read file");
+				Logger.getInstance().logException(IStatus.ERROR, "Cannot read file", e);
 				return;
 			}
 			PluginManager m = PluginManager.getInstance();
@@ -371,7 +375,7 @@ public class DocumentManager implements INotificationHandler {
 			try {
 				file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
 			} catch (CoreException e) {
-				System.out.println("Fail to update files on disk");
+				Logger.getInstance().logException(IStatus.ERROR, "Fail to update files on disk", e);
 			}
 
 			// PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,
