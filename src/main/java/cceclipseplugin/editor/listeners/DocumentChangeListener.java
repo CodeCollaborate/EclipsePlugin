@@ -66,6 +66,10 @@ public class DocumentChangeListener implements IDocumentListener {
 			return;
 		}
 
+		if (fileMeta.getVersion() == 0) {
+			System.err.println("File version was 0");
+		}
+		
 		// Create removal diffs if needed
 		if (event.getLength() > 0) {
 			Diff diff = new Diff(false, event.getOffset(),
