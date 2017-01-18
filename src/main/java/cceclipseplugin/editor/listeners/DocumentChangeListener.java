@@ -118,7 +118,7 @@ public class DocumentChangeListener implements IDocumentListener {
 
 			try {
 				String projRootPath = proj.getLocation().toString();
-				DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(), fileMeta.getVersion(),
+				DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(), 
 						new Patch[] { patch }, response -> {
 							synchronized (fileMeta) {
 								fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
