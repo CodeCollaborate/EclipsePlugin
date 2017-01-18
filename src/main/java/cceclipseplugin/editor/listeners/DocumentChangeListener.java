@@ -67,20 +67,24 @@ public class DocumentChangeListener implements IDocumentListener {
 			}
 			return;
 		}
-		
-		synchronized (((SynchronizableDocument)event.getDocument()).getLockObject()) {
-			// Create removal diffs if needed
-			if (event.getLength() > 0) {
-				Diff diff = new Diff(false, event.getOffset(),
-						currDocument.substring(event.getOffset(), event.getOffset() + event.getLength()));
-				diffs.add(diff);
-			}
-			// Create insertion diffs if needed
-			if (!event.getText().isEmpty()) {
-				Diff patch = new Diff(true, event.getOffset(), event.getText());
-				diffs.add(patch);
-			}
 
+		if (fileMeta.getVersion() == 0) {
+			System.err.println("File version was 0");
+		}
+
+		// Create removal diffs if needed
+		if (event.getLength() > 0) {
+			Diff diff = new Diff(false, event.getOffset(),
+					currDocument.substring(event.getOffset(), event.getOffset() + event.getLength()));
+			diffs.add(diff);
+		}
+		// Create insertion diffs if needed
+		if (!event.getText().isEmpty()) {
+			Diff patch = new Diff(true, event.getOffset(), event.getText());
+			diffs.add(patch);
+		}
+
+		synchronized (((SynchronizableDocument)event.getDocument()).getLockObject()) {
 			// If diffs were not incoming, applied diffs, convert to LF
 			List<Diff> newDiffs = new ArrayList<>();
 			diffLoop: for (int i = 0; i < diffs.size(); i++) {
@@ -116,21 +120,25 @@ public class DocumentChangeListener implements IDocumentListener {
 
 			System.out.println("DocumentManager sending change request, with patch " + patch.toString());
 
-			try {
-				String projRootPath = proj.getLocation().toString();
-				DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(), 
-						new Patch[] { patch }, response -> {
-							synchronized (fileMeta) {
-								fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
-							}
-							PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
-									projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
-						}, null);
-			} catch (ConnectException e) {
-				System.out.println("Failed to send change request.");
-				e.printStackTrace();
-			}
-		}
+            try {
+                String projRootPath = proj.getLocation().toString();
+                DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(),
+                        new Patch[] { patch }, response -> {
+                            synchronized (fileMeta) {
+                                long version = ((FileChangeResponse) response.getData()).getFileVersion();
+                                if (version == 0) {
+                                    System.err.println("File version returned from server was 0.");
+                                }
+                                fileMeta.setVersion(version);
+                            }
+                            PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
+                                    projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
+                        }, null);
+            } catch (ConnectException e) {
+                System.out.println("Failed to send change request.");
+                e.printStackTrace();
+            }
+        }
 	}
 
 	/**

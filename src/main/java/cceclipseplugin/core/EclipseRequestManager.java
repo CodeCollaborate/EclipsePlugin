@@ -91,6 +91,9 @@ public class EclipseRequestManager extends RequestManager {
 		pmeta.setProjectID(id);
 		List<FileMetadata> fileMetadatas = new ArrayList<>();
 		for (File f : files) {
+			if (f.getFileVersion() == 0) {
+				System.err.println(String.format("File %s was pulled with version 0.", f.getFilename()));
+			}
 			fileMetadatas.add(new FileMetadata(f));
 			pullFileAndCreate(eclipseProject, p, f, progressMonitor, true);
 		}
@@ -165,9 +168,14 @@ public class EclipseRequestManager extends RequestManager {
 							newFile.create(in, false, progressMonitor);
 							in.close();
 						}
-						FileMetadata meta = new FileMetadata(file);
-						pm.getMetadataManager().putFileMetadata(workspaceRelativePath.toString(), 
-								ccp.getProjectID(), meta);
+						
+						if (file.getFileVersion() == 0) {
+							System.err.println(String.format("File %s was pulled with version 0.", file.getFilename()));
+						}
+						// was already happening in both places where this method was being called
+//						FileMetadata meta = new FileMetadata(file);
+//						pm.getMetadataManager().putFileMetadata(workspaceRelativePath.toString(), 
+//								ccp.getProjectID(), meta);
 					} catch (Exception e) {
 						e.printStackTrace();
 						if (unsubscribeOnFailure) {
@@ -336,6 +344,9 @@ public class EclipseRequestManager extends RequestManager {
                 if (r.files != null) {
                     List<FileMetadata> fmetas = new ArrayList<>();
                     for (int i = 0; i < r.files.length; i++) {
+                    	if (r.files[i].getFileVersion() == 0) {
+                    		System.err.println(String.format("Version from file lookup for %s was 0.", r.files[i].getFilename()));
+                    	}
                     	fmetas.add(new FileMetadata(r.files[i]));
                     }
                     meta.setFiles(fmetas);
