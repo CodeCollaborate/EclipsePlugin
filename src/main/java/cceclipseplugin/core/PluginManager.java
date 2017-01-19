@@ -402,25 +402,33 @@ public class PluginManager {
 						// Restore is the "ok" option, because it should not be the default option
 						if (dialog.open() == Window.OK) {
 							tryRestoreFile(resId, file, meta, project.getProjectID());
+						} else {
+							deleteFile(workspaceRelativePath, file, resId, project);
 						}
 					});
 					return;
 				}
-				try {
-					putFileInWarnList(workspaceRelativePath, FileDeleteNotification.class);
-					file.delete(true, new NullProgressMonitor());
-					mm.fileDeleted(resId);
-				} catch (CoreException e) {
-					e.printStackTrace();
-					removeFileFromWarnList(workspaceRelativePath, FileDeleteNotification.class);
-					showErrorAndUnsubscribe(project.getProjectID());
-				}
+				deleteFile(workspaceRelativePath, file, resId, project);
 			} else {
 				System.out.println("Tried to delete file that does not exist: " + workspaceRelativePath);
 			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change", dataManager.getPatchManager());
+	}
+	
+	private boolean deleteFile(String workspaceRelativePath, IFile file, long resId, Project project) {
+		try {
+			putFileInWarnList(workspaceRelativePath, FileDeleteNotification.class);
+			file.delete(true, new NullProgressMonitor());
+			getMetadataManager().fileDeleted(resId);
+			return true;
+		} catch (CoreException e) {
+			e.printStackTrace();
+			removeFileFromWarnList(workspaceRelativePath, FileDeleteNotification.class);
+			showErrorAndUnsubscribe(project.getProjectID());
+			return false;
+		}
 	}
 		
 	private boolean renameFile(IFile file, IPath newWorkspaceRelativePath, long projId) {
@@ -457,7 +465,7 @@ public class PluginManager {
 		mm.fileDeleted(oldId);
 		
 		// send file create request
-		Request request = new FileCreateRequest(file.getName(), meta.getFilePath(), projectId, fileBytes).getRequest(response -> {
+		Request request = new FileCreateRequest(file.getName(), meta.getRelativePath(), projectId, fileBytes).getRequest(response -> {
 			if (response.getStatus() == 200) {
 				FileCreateResponse resp = (FileCreateResponse) response.getData();
 				long fileId = resp.getFileID();
