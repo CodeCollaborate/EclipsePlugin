@@ -39,12 +39,12 @@ public class CCIgnore {
             "build\n" +
             "target\n" +
             "out\n";
-//            "\n" +
-//            "*.o\n" +
-//            "*.a\n" +
-//            "*.so\n" +
-//            "*.exe\n" +
-//            "*.swp";
+            "\n" +
+            "*.o\n" +
+            "*.a\n" +
+            "*.so\n" +
+            "*.exe\n" +
+            "*.swp";
 
 	private Set<String> ignoredFiles = new HashSet<>();
 	private boolean initialized = false;
