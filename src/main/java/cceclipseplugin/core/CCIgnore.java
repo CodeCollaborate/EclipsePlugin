@@ -38,7 +38,7 @@ public class CCIgnore {
             "bin\n" +
             "build\n" +
             "target\n" +
-            "out\n";
+            "out\n" +
             "\n" +
             "*.o\n" +
             "*.a\n" +
@@ -108,7 +108,6 @@ public class CCIgnore {
 					if (line.equals(""))
 						continue;
 					
-					System.out.println("ADDING TO CCIGNORE: " + line);
 					ignoredFiles.add(line);
 				}
 				reader.close();
