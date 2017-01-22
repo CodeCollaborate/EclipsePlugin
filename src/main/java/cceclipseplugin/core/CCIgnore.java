@@ -5,6 +5,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.file.FileSystems;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
@@ -12,8 +14,6 @@ import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IWorkspaceRoot;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
@@ -38,15 +38,16 @@ public class CCIgnore {
             "bin\n" +
             "build\n" +
             "target\n" +
-            "out\n";
-//            "\n" +
-//            "*.o\n" +
-//            "*.a\n" +
-//            "*.so\n" +
-//            "*.exe\n" +
-//            "*.swp";
+            "out\n" +
+            "\n" +
+            "*.o\n" +
+            "*.a\n" +
+            "*.so\n" +
+            "*.exe\n" +
+            "*.swp";
 
 	private Set<String> ignoredFiles = new HashSet<>();
+	private boolean initialized = false;
 	
 	/**
 	 * Creates a new .ccignore file for the given project on disk. This 
@@ -99,17 +100,18 @@ public class CCIgnore {
 				BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 				String line;
 				while ((line = reader.readLine()) != null) {
+					// ignore comments
 					if (line.startsWith("#") || line.startsWith("//"))
 						continue;
 					
-					String path = Paths.get(line).normalize().toString();
-					
-					if (path.equals(""))
+					// ignore empty lines
+					if (line.equals(""))
 						continue;
 					
-					ignoredFiles.add(path);
+					ignoredFiles.add(line);
 				}
 				reader.close();
+				initialized = true;
 				(new Thread(() -> serverCleanUp(p))).start();
 			} catch (CoreException | IOException e) {
 				e.printStackTrace();
@@ -125,6 +127,10 @@ public class CCIgnore {
 	 * 
 	 */
 	private void serverCleanUp(IProject p) {
+		if (!initialized) {
+			return;
+		}
+
 		EclipseRequestManager rm = PluginManager.getInstance().getRequestManager();
 		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
 		ProjectMetadata pMeta = mm.getProjectMetadata(p.getLocation().toString().replace("\\", "/"));
@@ -138,12 +144,10 @@ public class CCIgnore {
 		}
 		for (FileMetadata fm : fileMetas) {
 			String path =  Paths.get(fm.getRelativePath(), fm.getFilename()).normalize().toString();
-			for (String ignored : ignoredFiles) {
-				if (path.startsWith(ignored) || path.equals(ignored)) {
-					// send delete request for fileID
-					System.out.println(String.format("Cleaning up %s from server", path));
-					rm.deleteFile(fm.getFileID());
-				}
+			if (containsEntry(path)) {
+				// send delete request for fileID
+				System.out.println(String.format("Cleaning up %s from server", path));
+				rm.deleteFile(fm.getFileID());
 			}
 		}
 	}
@@ -156,8 +160,26 @@ public class CCIgnore {
 	 * @return Returns true if the encapsulated set contains the given entry.
 	 */
 	public boolean containsEntry(String e) {
-		String path = Paths.get(e).normalize().toString();
-		return ignoredFiles.contains(path);
+		if (!initialized) {
+			System.out.println("WARNING: ccignore queried before it was initialized");
+			return false;
+		}
+
+		java.nio.file.Path path = Paths.get(e).normalize();
+		for (String rule : this.ignoredFiles) {
+			if (rule.equals(path.toString())) {
+				return true;
+			}
+
+			PathMatcher glob = FileSystems.getDefault().getPathMatcher("glob:" + rule);
+			// need to also match with "**/" to follow .gitignore's path glob-ing standard
+			PathMatcher globRecursive = FileSystems.getDefault().getPathMatcher("glob:" + "**/" + rule);
+			if (glob.matches(path) || globRecursive.matches(path)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 }

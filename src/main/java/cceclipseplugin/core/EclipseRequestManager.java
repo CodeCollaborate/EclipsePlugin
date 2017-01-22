@@ -373,7 +373,6 @@ public class EclipseRequestManager extends RequestManager {
 		}
 		
 		for(IResource m : members) {
-			
 			if (m instanceof IFile) {
 				String path = ((IFile) m).getProjectRelativePath().toString();
 				if (ignoreFile.containsEntry(path)) {
