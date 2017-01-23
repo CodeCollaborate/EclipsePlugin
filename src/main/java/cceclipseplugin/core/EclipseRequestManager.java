@@ -99,6 +99,8 @@ public class EclipseRequestManager extends RequestManager {
 				System.err.println(String.format("File %s was pulled with version 0.", f.getFilename()));
 			}
 			fileMetadatas.add(new FileMetadata(f));
+			// note that this \/ path is wrong b/c it needs the project name on the front and then it needs to be normalized
+			// pm.putFileInWarnList(f.getRelativePath().toString() + "/" + f.getFilename(), FileChangeRequest.class);
 			pullFileAndCreate(eclipseProject, p, f, progressMonitor, true);
 		}
 		
