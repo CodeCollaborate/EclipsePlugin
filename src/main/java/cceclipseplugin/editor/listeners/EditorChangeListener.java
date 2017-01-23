@@ -49,6 +49,12 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	public void partOpened(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
+
+			// editor is not a text editor, we don't support realtime changes for it
+			if (!(editor.getEditorInput() instanceof IFileEditorInput)) {
+				return;
+			}
+
 			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getLocation().toString();
 
 			this.documentMgr.openedEditor(filePath, editor);
@@ -84,6 +90,12 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
 			AbstractDocument document = (AbstractDocument) editor.getDocumentProvider()
 					.getDocument(editor.getEditorInput());
+
+			// editor is not a text editor, we don't support realtime changes for it
+			if (!(editor.getEditorInput() instanceof IFileEditorInput)) {
+				return;
+			}
+
 			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getLocation().toString();
 
 			currListener = new DocumentChangeListener();
