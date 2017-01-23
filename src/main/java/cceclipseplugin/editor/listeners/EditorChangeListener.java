@@ -70,6 +70,12 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	public void partClosed(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
 			ITextEditor editor = (ITextEditor) ref.getPart(false);
+
+			// editor is not an IFileEditorInput editor, we don't support realtime changes for it
+			if (!(editor.getEditorInput() instanceof IFileEditorInput)) {
+				return;
+			}
+
 			IFile f = ((IFileEditorInput) editor.getEditorInput()).getFile();
 			if (!f.exists()) {
 				return;
