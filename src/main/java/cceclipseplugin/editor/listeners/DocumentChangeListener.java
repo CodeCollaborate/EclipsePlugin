@@ -1,19 +1,18 @@
 package cceclipseplugin.editor.listeners;
 
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocumentListener;
 import org.eclipse.ui.texteditor.ITextEditor;
 
 import cceclipseplugin.core.PluginManager;
 import cceclipseplugin.editor.DocumentManager;
-import cceclipseplugin.log.Logger;
 import constants.CoreStringConstants;
 import dataMgmt.DataManager;
 import dataMgmt.MetadataManager;
@@ -33,6 +32,8 @@ import websocket.models.responses.FileChangeResponse;
  */
 public class DocumentChangeListener implements IDocumentListener {
 
+	private final Logger logger = LogManager.getLogger("documentChangeListener");
+	
 	/**
 	 * Called when document is about to be changed.
 	 * 
@@ -60,16 +61,16 @@ public class DocumentChangeListener implements IDocumentListener {
 				|| fileMeta.getFilename().contains(CoreStringConstants.CONFIG_FILE_NAME)) {
 			// TODO: Remove these debug statements
 			if (fileMeta == null) {
-				Logger.getInstance().log(IStatus.WARNING, "File metadata was null");
+				logger.warn("File metadata was null");
 			}
 			if (projMeta == null) {
-				Logger.getInstance().log(IStatus.WARNING, "Project metadata was null");
+				logger.warn("Project metadata was null");
 			}
 			return;
 		}
 
 		if (fileMeta.getVersion() == 0) {
-			Logger.getInstance().log(IStatus.ERROR, "File version was 0");
+			logger.error("File version was 0");
 		}
 		
 		// Create removal diffs if needed
@@ -101,14 +102,14 @@ public class DocumentChangeListener implements IDocumentListener {
 
 		// If no diffs left; abort
 		if (newDiffs.isEmpty()) {
-			Logger.getInstance().log(IStatus.INFO, "No new diffs, aborting");
+			logger.debug("No new diffs, aborting");
 			return;
 		}
 
 		// Create the patch
 		Patch patch = new Patch(fileMeta.getVersion(), newDiffs);
 
-		Logger.getInstance().log(IStatus.INFO, "DocumentManager sending change request");;
+		logger.debug("DocumentManager sending change request");;
 
 		try {
 			String projRootPath = proj.getLocation().toString();
@@ -117,7 +118,7 @@ public class DocumentChangeListener implements IDocumentListener {
 						synchronized (fileMeta) {
 							long version = ((FileChangeResponse) response.getData()).getFileVersion();
 							if (version == 0) {
-								Logger.getInstance().log(IStatus.ERROR, "File version returned from server was 0");
+								logger.error("File version returned from server was 0");
 							}
 							fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
 						}
@@ -126,7 +127,7 @@ public class DocumentChangeListener implements IDocumentListener {
 					}, null);
 //			editor.doSave(null);
 		} catch (ConnectException e) {
-			Logger.getInstance().logException(IStatus.ERROR, "Failed to send change request", e);
+			logger.error("Failed to send change request", e);
 		}
 	}
 

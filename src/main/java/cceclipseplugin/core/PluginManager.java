@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceChangeEvent;
@@ -16,7 +18,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -34,7 +35,6 @@ import org.osgi.service.prefs.Preferences;
 import cceclipseplugin.Activator;
 import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.editor.listeners.EditorChangeListener;
-import cceclipseplugin.log.Logger;
 import cceclipseplugin.editor.listeners.DirectoryListener;
 import cceclipseplugin.preferences.PreferenceConstants;
 import cceclipseplugin.ui.DialogInvalidResponseHandler;
@@ -82,6 +82,9 @@ public class PluginManager {
 	final private String WS_ADDRESS = "wss://codecollaborate.obsessiveorange.com:8000/ws/";
 	final private boolean RECONNECT = true;
 	final private int MAX_RETRY_COUNT = 3;
+	
+	// LOGGING
+	private final Logger logger = LogManager.getLogger("pluginManager");
 
 	// LISTENERS
 	private EditorChangeListener editorChangeListener;
@@ -148,18 +151,18 @@ public class PluginManager {
 				IPath projRoot = project.getLocation();
 				try {
 					metadataManager.readProjectMetadataFromFile(projRoot.toString(), CoreStringConstants.CONFIG_FILE_NAME);
-					Logger.getInstance().log(IStatus.INFO, String.format("Loaded metadata from %s",
+					logger.debug(String.format("Loaded metadata from %s",
 							projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString()));
 				} catch (IllegalArgumentException e) {
-					Logger.getInstance().logException(IStatus.ERROR, String.format("No such config file: %s",
+					logger.error(String.format("No such config file: %s",
 							projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString()), e);
 				} catch (IllegalStateException e) {
-					Logger.getInstance().logException(IStatus.ERROR, String.format("Incorrect config file format: %s",
+					logger.error(String.format("Incorrect config file format: %s",
 							projRoot.append(CoreStringConstants.CONFIG_FILE_NAME).toString()), e);
 				}
 			}
 		}
-		Logger.getInstance().log(IStatus.INFO, "Enumerated all files");
+		logger.debug("Enumerated all files");
 		
 		registerWSHooks();
 		registerResourceListeners();
@@ -251,7 +254,7 @@ public class PluginManager {
 			Request projectLookupRequest = new ProjectLookupRequest(projects).getRequest(response -> {
 				ProjectLookupResponse r = (ProjectLookupResponse) response.getData();
 				if (r.getProjects() == null || r.getProjects().length != 1) {
-					Logger.getInstance().log(IStatus.WARNING, "Couldn't read project from lookup");
+					logger.warn("Couldn't read project from lookup");
 				} else {
 					Project p = r.getProjects()[0];
 					storage.setProject(p);
@@ -283,7 +286,7 @@ public class PluginManager {
 			storage.removeProjectById(resId);
 			ProjectMetadata meta = getMetadataManager().getProjectMetadata(resId);
 			if (meta == null) {
-				Logger.getInstance().log(IStatus.WARNING, "Received Project.Delete notification for non-existent project.");
+				logger.warn("Received Project.Delete notification for non-existent project.");
 				return;
 			}
 			IProject iproject = ResourcesPlugin.getWorkspace().getRoot().getProject(meta.getName());
@@ -305,7 +308,7 @@ public class PluginManager {
 			long resId = notification.getResourceID();
 			ProjectMetadata pmeta = mm.getProjectMetadata(resId);
 			if (pmeta == null) {
-				Logger.getInstance().log(IStatus.WARNING, "Received File.Create notification for project with no metadata.");
+				logger.warn("Received File.Create notification for project with no metadata.");
 				return;
 			}
 			FileCreateNotification n = ((FileCreateNotification) notification.getData());
@@ -338,7 +341,7 @@ public class PluginManager {
 			MetadataManager mm = dataManager.getMetadataManager();
 			FileMetadata meta = mm.getFileMetadata(resId);
 			if (meta == null) {
-				Logger.getInstance().log(IStatus.WARNING, "Received File.Rename notification for non-existent file.");
+				logger.warn("Received File.Rename notification for non-existent file.");
 				return;
 			}
 			FileRenameNotification n = ((FileRenameNotification) notification.getData());
@@ -362,7 +365,7 @@ public class PluginManager {
 			MetadataManager mm = dataManager.getMetadataManager();
 			FileMetadata meta = mm.getFileMetadata(resId);
 			if (meta == null) {
-				Logger.getInstance().log(IStatus.WARNING, "Received File.Move notification for unsubscribed project.");
+				logger.warn("Received File.Move notification for unsubscribed project.");
 				return;
 			}
 			FileMoveNotification n = ((FileMoveNotification) notification.getData());
@@ -386,8 +389,7 @@ public class PluginManager {
 			MetadataManager mm = dataManager.getMetadataManager();
 			FileMetadata meta = mm.getFileMetadata(resId);
 			if (meta == null) {
-				Logger.getInstance().log(IStatus.WARNING,
-						"Received File.Delete notification for unsubscribed project or file that does not exist.");
+				logger.warn("Received File.Delete notification for unsubscribed project or file that does not exist.");
 				return;
 			}
 			Project project = dataManager.getSessionStorage().getProjectById(mm.getProjectIDForFileID(resId));
@@ -418,8 +420,7 @@ public class PluginManager {
 					showErrorAndUnsubscribe(project.getProjectID());
 				}
 			} else {
-				Logger.getInstance().log(IStatus.WARNING, 
-						String.format("Tried to delete file that does not exist: %s", workspaceRelativePath));
+				logger.warn(String.format("Tried to delete file that does not exist: %s", workspaceRelativePath));
 			}
 		});
 		// File.Change
@@ -440,8 +441,7 @@ public class PluginManager {
 				showErrorAndUnsubscribe(projId);
 			}
 		} else {
-			Logger.getInstance().log(IStatus.WARNING, 
-					String.format("Tried to rename file that does not exist: %s", file.getFullPath().toString()));
+			logger.warn(String.format("Tried to rename file that does not exist: %s", file.getFullPath().toString()));
 		}
 		return false;
 	}
@@ -515,8 +515,7 @@ public class PluginManager {
 							autoSubscribeForSession = false;
 							removeAllSubscribedPrefs(false);
 						}
-						Logger.getInstance().log(IStatus.WARNING,
-								String.format("Auto-subscribe for session set to %b" + autoSubscribeForSession));
+						logger.warn(String.format("Auto-subscribe for session set to %b" + autoSubscribeForSession));
 					}
 				});
 			} else if (event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
@@ -551,7 +550,7 @@ public class PluginManager {
 	 * @param id
 	 */
 	public void removeProjectIdFromPrefs(long id) {
-		Logger.getInstance().log(IStatus.INFO, String.format("Removing project %d from auto-subscribe prefs", id));
+		logger.debug(String.format("Removing project %d from auto-subscribe prefs", id));
 		Preferences pluginPrefs = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
 		Preferences projectPrefs = pluginPrefs.node(PreferenceConstants.NODE_PROJECTS);
 		try {
@@ -559,7 +558,7 @@ public class PluginManager {
 			if (projectPrefs.nodeExists(sid)) {
 				Preferences thisProjectPrefs = projectPrefs.node(sid);
 				thisProjectPrefs.removeNode();
-				Logger.getInstance().log(IStatus.INFO, String.format("Node removed for %s", sid));
+				logger.debug(String.format("Node removed for %s", sid));
 			}
 		} catch (BackingStoreException e) {
 			MessageDialog.createDialog("Could not remove project from subscribe preferences.").open();
@@ -580,9 +579,9 @@ public class PluginManager {
 		String[] projectIDs;
 		try {
 			projectIDs = projectPrefs.childrenNames();
-			Logger.getInstance().log(IStatus.INFO, String.format("Found %d auto-subscribe preferences", projectIDs.length));
+			logger.debug(String.format("Found %d auto-subscribe preferences", projectIDs.length));
 			for (int i = 0; i < projectIDs.length; i++) {
-				Logger.getInstance().log(IStatus.INFO, String.format("Read subscribe pref for project %s", projectIDs[i]));
+				logger.debug(String.format("Read subscribe pref for project %s", projectIDs[i]));
 				subscribedProjectIds.add(Long.parseLong(projectIDs[i]));
 			}
 		} catch (BackingStoreException e) {
@@ -621,7 +620,7 @@ public class PluginManager {
 	 * subscribed, it is removed.
 	 */
 	public void writeSubscribedProjects() {
-		Logger.getInstance().log(IStatus.INFO, "Writing subscribed projects to auto-subscribe preferences...");
+		logger.debug("Writing subscribed projects to auto-subscribe preferences...");
 		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
 		Set<Long> subscribedIDs = ss.getSubscribedIds();
 		List<Project> projects = ss.getProjects();
@@ -637,7 +636,7 @@ public class PluginManager {
 					if (projectPrefs.nodeExists(p.getProjectID() + "")) {
 						Preferences thisProjectPrefs = projectPrefs.node(p.getProjectID() + "");
 						thisProjectPrefs.removeNode();
-						Logger.getInstance().log(IStatus.INFO, String.format("Node removed for %d", p.getProjectID()));
+						logger.debug(String.format("Node removed for %d", p.getProjectID()));
 					}
 				} catch (BackingStoreException e) {
 					e.printStackTrace();
@@ -648,14 +647,13 @@ public class PluginManager {
 				// have to put something in it, otherwise the node will be
 				// dumped
 				thisProjectPrefs.putBoolean(PreferenceConstants.VAR_SUBSCRIBED, true);
-				Logger.getInstance().log(IStatus.INFO,
-						String.format("Wrote subscribed pref for project %d", p.getProjectID()));
+				logger.debug(String.format("Wrote subscribed pref for project %d", p.getProjectID()));
 			}
 		}
 		try {
 			pluginPrefs.flush();
 		} catch (BackingStoreException e) {
-			Logger.getInstance().logException(IStatus.ERROR, "Could not write subscribe preferences", e);
+			logger.error("Could not write subscribe preferences", e);
 			e.printStackTrace();
 		}
 	}

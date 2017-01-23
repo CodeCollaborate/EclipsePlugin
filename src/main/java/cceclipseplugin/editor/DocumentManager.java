@@ -11,6 +11,8 @@ import java.util.Queue;
 import java.util.Scanner;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -30,7 +32,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cceclipseplugin.core.PluginManager;
-import cceclipseplugin.log.Logger;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import constants.CoreStringConstants;
@@ -58,6 +59,8 @@ import websocket.models.responses.FilePullResponse;
  */
 public class DocumentManager implements INotificationHandler {
 
+	private final Logger logger = LogManager.getLogger("documentManager");
+	
 	private String currFile = null;
 	private HashMap<String, ITextEditor> openEditors = new HashMap<>();
 	private Queue<Diff> appliedDiffs = new LinkedList<>();
@@ -126,19 +129,19 @@ public class DocumentManager implements INotificationHandler {
 		try {
 			workspaceRelativePathString = java.net.URLDecoder.decode(workspaceRelativePathString, "UTF-8");
 		} catch (UnsupportedEncodingException e1) {
-			Logger.getInstance().logException(IStatus.ERROR, "Error parsing file relative path", e1);
+			logger.error("Error parsing file relative path", e1);
 		}
 		IPath relativePath = new Path(workspaceRelativePathString);
 		
 		FileMetadata file = mm.getFileMetadata(workspaceRelativePathString);
 		if (file == null) {
-			Logger.getInstance().log(IStatus.WARNING, String.format("Closed an untracked file: %s", workspaceRelativePathString));
+			logger.warn(String.format("Closed an untracked file: %s", workspaceRelativePathString));
 			return;
 		}
 		long projId = mm.getProjectIDForFileID(file.getFileID());
 		Set<Long> subProjIds = pm.getDataManager().getSessionStorage().getSubscribedIds();
 		if (!subProjIds.contains(projId)) {
-			Logger.getInstance().log(IStatus.INFO, "Closed a file in an unsubscribed project");
+			logger.debug("Closed a file in an unsubscribed project");
 			return;
 		}
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
@@ -212,7 +215,7 @@ public class DocumentManager implements INotificationHandler {
 		if (provider != null && input != null) {
 			return (AbstractDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput());
 		} else {
-			Logger.getInstance().log(IStatus.ERROR, "Error getting document for editor");
+			logger.error("Error getting document for editor");
 			return null;
 		}
 	}
@@ -339,7 +342,7 @@ public class DocumentManager implements INotificationHandler {
 								PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
 								editor.doSave(new NullProgressMonitor());
 							} catch (BadLocationException e) {
-								Logger.getInstance().logException(IStatus.ERROR, 
+								logger.error( 
 										String.format("Bad Location; Patch: %s, Len: %d, Text: %s\n", 
 												diff.toString(), 
 												document.get().length(), 
@@ -358,7 +361,7 @@ public class DocumentManager implements INotificationHandler {
 			IPath ipath = new Path(absolutePath);
 			IFile file = workspace.getRoot().getFileForLocation(ipath);
 			if (!file.exists()) {
-				Logger.getInstance().log(IStatus.WARNING, String.format("Cannot apply patches to non-existent file: %s", absolutePath.toString()));
+				logger.warn(String.format("Cannot apply patches to non-existent file: %s", absolutePath.toString()));
 				return;
 			}
 
@@ -366,7 +369,7 @@ public class DocumentManager implements INotificationHandler {
 			try (Scanner s = new Scanner(file.getContents())) {
 				contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
 			} catch (CoreException e) {
-				Logger.getInstance().logException(IStatus.ERROR, "Cannot read file", e);
+				logger.error("Cannot read file", e);
 				return;
 			}
 			PluginManager m = PluginManager.getInstance();
@@ -375,7 +378,7 @@ public class DocumentManager implements INotificationHandler {
 			try {
 				file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
 			} catch (CoreException e) {
-				Logger.getInstance().logException(IStatus.ERROR, "Fail to update files on disk", e);
+				logger.error("Fail to update files on disk", e);
 			}
 
 			// PluginManager.getInstance().getDataManager().getFileContentWriter().enqueuePatchesForWriting(fileId,

@@ -1,9 +1,11 @@
 package cceclipseplugin;
 
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
 import cceclipseplugin.core.PluginManager;
+import cceclipseplugin.log.LogListener;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -20,6 +22,10 @@ public class Activator extends AbstractUIPlugin {
 	 * The constructor
 	 */
 	public Activator() {
+		// init path for logger
+		String pluginStateLocation = getStateLocation().toString();
+		System.setProperty("logPath", pluginStateLocation);
+		Platform.addLogListener(new LogListener());
 	}
 
 	/*
