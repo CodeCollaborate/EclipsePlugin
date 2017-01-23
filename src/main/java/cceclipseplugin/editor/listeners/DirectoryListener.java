@@ -161,14 +161,18 @@ public class DirectoryListener extends AbstractDirectoryListener {
 					} else {
 						EclipseRequestManager rm = pm.getRequestManager();
 						// I'm really at a loss as to how to make sure this isn't triggering directly after the file
-						// is pulled w/out causing side effects. I thought about putting in at EclipseRequestManager:100,
-						// but I'm not sure it's a good idea because it may never get removed.
+						// is pulled w/out causing side effects. I thought about putting in at EclipseRequestManager:100, 
+                        // but I'm not sure it's a good idea because it may never get removed. 
+                        //
+                        // The problem stems from the fact that this case of IResource flags isn't specific enough to 
+                        // differentiate when the file is being written to after closing the editor vs from the pluggin 
+                        // itself.
 						//
-						// The other option is looking at IResourceDelta codes and trying to find the more specific case
-						// where a file is replaces, but we're already checking IResourceDelta.REPLACED, so I'm quite
-						// sure why that's not being flipped.
+						// I tried looking at IResourceDelta codes and trying to find the more specific case where a file 
+                        // is replaced, but we're already checking IResourceDelta.REPLACED, so I'm quite sure why that's
+                        // not being flipped.
 						//
-						// if you have an idea, please let me know - Joel (jshap70)
+						// If you have an idea, please let me know - Joel (jshap70)
 						rm.pullDiffSendChanges(fileMeta);
 					}
 				}
