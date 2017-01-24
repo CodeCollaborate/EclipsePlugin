@@ -171,9 +171,9 @@ public class DirectoryListener extends AbstractDirectoryListener {
 						// I tried looking at IResourceDelta codes and trying to find the more specific case where a file 
                         // is replaced, but we're already checking IResourceDelta.REPLACED, so I'm quite sure why that's
                         // not being flipped.
-						//
-						// If you have an idea, please let me know - Joel (jshap70)
-						rm.pullDiffSendChanges(fileMeta);
+                        //
+                        // If you have an idea, please let me know - Joel (jshap70)
+                        rm.pullDiffSendChanges(fileMeta);
 					}
 				}
 			}
@@ -265,8 +265,9 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		if (ignoreFile.containsEntry(f.getFullPath().toString())) {
 			logger.debug(String.format("file ignored by .ccignore: %s", f.getFullPath().toString()));
 			return;
-		} else {
-			try(InputStream in = f.getContents()) {
+		}
+
+        try(InputStream in = f.getContents()) {
 				byte[] fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
 				rm.createFile(f.getName(), f.getFullPath().toString(), f.getProjectRelativePath().removeLastSegments(1).toString(), pMeta.getProjectID(), fileBytes);
 				logger.debug(String.format("Sent file create request: %s", f.getName()));
@@ -275,5 +276,4 @@ public class DirectoryListener extends AbstractDirectoryListener {
 			}
 		}
 	}
-	
 }
