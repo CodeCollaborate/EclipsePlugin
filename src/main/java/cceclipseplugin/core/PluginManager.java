@@ -326,7 +326,7 @@ public class PluginManager {
 			pmeta.setFiles(fmetas);
 			mm.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
 			mm.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
-			String path = new Path(pmeta.getName()).append(new Path(meta.getFilePath())).toString();
+			String path = new Path(pmeta.getName()).append(new Path(meta.getFilePath())).makeAbsolute().toString();
 			putFileInWarnList(path, n.getClass());
 			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor, true);
 		});
@@ -348,7 +348,7 @@ public class PluginManager {
 			
 			// new file (workspace-relative path)
 			IPath newPathToFile = new Path(project.getName()).append(
-					meta.getRelativePath()).append(n.newName);
+					meta.getRelativePath()).append(n.newName).makeAbsolute();
 			
 			if (renameFile(file, newPathToFile, project.getProjectID())) {
 				meta.setFilename(n.newName);
@@ -437,7 +437,7 @@ public class PluginManager {
 				NullProgressMonitor monitor = new NullProgressMonitor();
 				putFileInWarnList(newWorkspaceRelativePath.toString(), FileRenameNotification.class);
 				// removing first segment to make it project relative
-				file.move(newWorkspaceRelativePath.removeFirstSegments(1), true, monitor);
+				file.move(new Path(newWorkspaceRelativePath.lastSegment()), true, monitor);
 				return true;
 			} catch (Exception e) {
 				e.printStackTrace();
