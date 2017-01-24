@@ -35,6 +35,7 @@ public class CCIgnore {
             ".gradle\n" +
             ".git\n" +
             ".svn\n" +
+            ".settings\n" +
             "\n" +
             "bin\n" +
             "build\n" +
