@@ -165,7 +165,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
                         // but I'm not sure it's a good idea because it may never get removed. 
                         //
                         // The problem stems from the fact that this case of IResource flags isn't specific enough to 
-                        // differentiate when the file is being written to after closing the editor vs from the pluggin 
+                        // differentiate when the file is being written to after closing the editor vs from the plugin 
                         // itself.
 						//
 						// I tried looking at IResourceDelta codes and trying to find the more specific case where a file 
