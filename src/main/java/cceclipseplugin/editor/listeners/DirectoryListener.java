@@ -128,7 +128,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 						if (pm.isFileInWarnList(workspaceRelativePath, FileRenameNotification.class)) {
 							pm.removeFileFromWarnList(workspaceRelativePath, FileRenameNotification.class);
 						} else {
-							rm.renameFile(fileMeta.getFileID(), newName);
+							rm.renameFile(fileMeta.getFileID(), f.getFullPath().makeAbsolute().toString(), newName);
 						}
 						System.out.println("sent file rename request; changing to " + newName);
 					}
@@ -216,7 +216,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 						if (pm.isFileInWarnList(workspaceRelativePath, FileRenameNotification.class)) {
 							pm.removeFileFromWarnList(workspaceRelativePath, FileRenameNotification.class);
 						} else {
-							rm.renameFile(fileMeta.getFileID(), newName);
+							rm.renameFile(fileMeta.getFileID(), f.getFullPath().makeAbsolute().toString(), newName);
 							System.out.println("sent file rename request; changing to " + newName);
 						}
 					}
