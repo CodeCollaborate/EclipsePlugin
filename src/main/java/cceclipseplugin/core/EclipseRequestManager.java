@@ -156,14 +156,14 @@ public class EclipseRequestManager extends RequestManager {
 								editor.close(false);								
 							}
 							
-							pm.putFileInWarnList(workspaceRelativePath.toString(), FileChangeResponse.class);
+							pm.putFileInWarnList(workspaceRelativePath.makeAbsolute().toString(), FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);
 							
 							in.close();
 						} else {
 							// warn directory watching before creating the file
-							pm.putFileInWarnList(workspaceRelativePath.toString(), FileCreateResponse.class);
+							pm.putFileInWarnList(workspaceRelativePath.makeAbsolute().toString(), FileCreateResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.create(in, false, progressMonitor);
 							in.close();
