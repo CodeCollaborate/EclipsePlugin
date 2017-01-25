@@ -27,6 +27,7 @@ import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.texteditor.ITextEditor;
 import org.osgi.service.prefs.BackingStoreException;
 import org.osgi.service.prefs.Preferences;
 
@@ -350,8 +351,15 @@ public class PluginManager {
 			IPath newPathToFile = new Path(project.getName()).append(
 					meta.getRelativePath()).append(n.newName).makeAbsolute();
 			
+			// Force close, to make sure changelistener doesn't fire.
+			ITextEditor editor = PluginManager.getInstance().getDocumentManager().getEditor(file.getLocation().toString());
+			if(editor != null){
+				System.out.println("Closed editor for file " + file.getLocation().toString());
+				editor.close(false);								
+			}
+			
 			if (renameFile(file, newPathToFile, project.getProjectID())) {
-				meta.setFilename(n.newName);
+				mm.fileRenamed(meta.getFileID(), newPathToFile.toString(), n.newName);
 			}
 		});
 		// File.Move
@@ -374,8 +382,15 @@ public class PluginManager {
 			IPath newPathToFile = new Path(project.getName()).append(
 					new Path(n.newPath)).append(new Path(meta.getFilename()));
 			
+			// Force close, to make sure changelistener doesn't fire.
+			ITextEditor editor = PluginManager.getInstance().getDocumentManager().getEditor(file.getLocation().toString());
+			if(editor != null){
+				System.out.println("Closed editor for file " + file.getLocation().toString());
+				editor.close(false);								
+			}
+			
 			if (renameFile(file, newPathToFile, project.getProjectID())) {
-				meta.setRelativePath(n.newPath);
+				mm.fileMoved(meta.getFileID(), newPathToFile.toString(), n.newPath);
 			}
 		});
 		// File.Delete
