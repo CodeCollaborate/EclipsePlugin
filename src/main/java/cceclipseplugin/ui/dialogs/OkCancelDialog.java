@@ -46,7 +46,12 @@ public class OkCancelDialog extends Dialog {
 	}
 	
 	public static OkCancelDialog createDialog(String msg, String okText, String cancelText, boolean swapDefaults) {
-		return new OkCancelDialog(new Shell(), msg, okText, cancelText, swapDefaults);
+		final OkCancelDialog[] dialog = new OkCancelDialog[1];
+        Display.getDefault().syncExec(() -> {
+            Shell shell = Display.getDefault().getActiveShell();
+            dialog[0] = new OkCancelDialog(shell, msg, okText, cancelText, swapDefaults);
+        });
+        return dialog[0];
 	}
 	
 	@Override

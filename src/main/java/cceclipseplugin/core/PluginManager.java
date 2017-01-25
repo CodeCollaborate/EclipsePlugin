@@ -331,7 +331,7 @@ public class PluginManager {
 			pmeta.setFiles(fmetas);
 			mm.putProjectMetadata(eclipseProject.getLocation().toString(), pmeta);
 			mm.writeProjectMetadataToFile(pmeta, eclipseProject.getLocation().toString(), CoreStringConstants.CONFIG_FILE_NAME);
-			String path = new Path(pmeta.getName()).append(new Path(meta.getFilePath())).toString();
+			String path = new Path(pmeta.getName()).append(new Path(meta.getFilePath())).makeAbsolute().toString();
 			putFileInWarnList(path, n.getClass());
 			requestManager.pullFileAndCreate(eclipseProject, p, n.file, monitor, true);
 		});
@@ -353,7 +353,7 @@ public class PluginManager {
 			
 			// new file (workspace-relative path)
 			IPath newPathToFile = new Path(project.getName()).append(
-					meta.getRelativePath()).append(n.newName);
+					meta.getRelativePath()).append(n.newName).makeAbsolute();
 			
 			if (renameFile(file, newPathToFile, project.getProjectID())) {
 				meta.setFilename(n.newName);
@@ -406,25 +406,33 @@ public class PluginManager {
 						// Restore is the "ok" option, because it should not be the default option
 						if (dialog.open() == Window.OK) {
 							tryRestoreFile(resId, file, meta, project.getProjectID());
+						} else {
+							deleteFile(workspaceRelativePath, file, resId, project);
 						}
 					});
 					return;
 				}
-				try {
-					putFileInWarnList(workspaceRelativePath, FileDeleteNotification.class);
-					file.delete(true, new NullProgressMonitor());
-					mm.fileDeleted(resId);
-				} catch (CoreException e) {
-					e.printStackTrace();
-					removeFileFromWarnList(workspaceRelativePath, FileDeleteNotification.class);
-					showErrorAndUnsubscribe(project.getProjectID());
-				}
+				deleteFile(workspaceRelativePath, file, resId, project);
 			} else {
 				logger.warn(String.format("Tried to delete file that does not exist: %s", workspaceRelativePath));
 			}
 		});
 		// File.Change
 		wsManager.registerNotificationHandler("File", "Change", dataManager.getPatchManager());
+	}
+	
+	private boolean deleteFile(String workspaceRelativePath, IFile file, long resId, Project project) {
+		try {
+			putFileInWarnList(workspaceRelativePath, FileDeleteNotification.class);
+			file.delete(true, new NullProgressMonitor());
+			getMetadataManager().fileDeleted(resId);
+			return true;
+		} catch (CoreException e) {
+			e.printStackTrace();
+			removeFileFromWarnList(workspaceRelativePath, FileDeleteNotification.class);
+			showErrorAndUnsubscribe(project.getProjectID());
+			return false;
+		}
 	}
 		
 	private boolean renameFile(IFile file, IPath newWorkspaceRelativePath, long projId) {
@@ -433,7 +441,7 @@ public class PluginManager {
 				NullProgressMonitor monitor = new NullProgressMonitor();
 				putFileInWarnList(newWorkspaceRelativePath.toString(), FileRenameNotification.class);
 				// removing first segment to make it project relative
-				file.move(newWorkspaceRelativePath.removeFirstSegments(1), true, monitor);
+				file.move(new Path(newWorkspaceRelativePath.lastSegment()), true, monitor);
 				return true;
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -461,7 +469,7 @@ public class PluginManager {
 		mm.fileDeleted(oldId);
 		
 		// send file create request
-		Request request = new FileCreateRequest(file.getName(), meta.getFilePath(), projectId, fileBytes).getRequest(response -> {
+		Request request = new FileCreateRequest(file.getName(), meta.getRelativePath(), projectId, fileBytes).getRequest(response -> {
 			if (response.getStatus() == 200) {
 				FileCreateResponse resp = (FileCreateResponse) response.getData();
 				long fileId = resp.getFileID();

@@ -1,10 +1,12 @@
 package cceclipseplugin.editor.listeners;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.core.internal.filebuffers.SynchronizableDocument;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.jface.text.DocumentEvent;
@@ -51,7 +53,8 @@ public class DocumentChangeListener implements IDocumentListener {
 		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
 		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
 
-		ITextEditor editor = docMgr.getEditor(docMgr.getCurrFile());
+		String currFile = docMgr.getCurrFile();
+		ITextEditor editor = docMgr.getEditor(currFile);
 		IFile file = editor.getEditorInput().getAdapter(IFile.class);
 		IProject proj = file.getProject();
 		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
@@ -72,7 +75,7 @@ public class DocumentChangeListener implements IDocumentListener {
 		if (fileMeta.getVersion() == 0) {
 			logger.error("File version was 0");
 		}
-		
+
 		// Create removal diffs if needed
 		if (event.getLength() > 0) {
 			Diff diff = new Diff(false, event.getOffset(),
@@ -85,50 +88,60 @@ public class DocumentChangeListener implements IDocumentListener {
 			diffs.add(patch);
 		}
 
-		// If diffs were not incoming, applied diffs, convert to LF
-
-		List<Diff> newDiffs = new ArrayList<>();
-		diffLoop: for (int i = 0; i < diffs.size(); i++) {
-			while (!docMgr.getAppliedDiffs().isEmpty()) {
-				Diff appliedDiff = docMgr.getAppliedDiffs().poll();
-				System.out.printf("DEBUG SEND-ON-NOTIF: %s ?= %s; %b\n", diffs.get(i).toString(),
-						appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
-				if (diffs.get(i).equals(appliedDiff)) {
-					continue diffLoop;
-				}
-			}
-			newDiffs.add(diffs.get(i).convertToLF(currDocument));
-		}
-
-		// If no diffs left; abort
-		if (newDiffs.isEmpty()) {
-			logger.debug("No new diffs, aborting");
-			return;
-		}
-
-		// Create the patch
-		Patch patch = new Patch(fileMeta.getVersion(), newDiffs);
-
-		logger.debug("DocumentManager sending change request");;
-
-		try {
-			String projRootPath = proj.getLocation().toString();
-			DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(), fileMeta.getVersion(),
-					new Patch[] { patch }, response -> {
-						synchronized (fileMeta) {
-							long version = ((FileChangeResponse) response.getData()).getFileVersion();
-							if (version == 0) {
-								logger.error("File version returned from server was 0");
+		synchronized (((SynchronizableDocument)event.getDocument()).getLockObject()) {
+			// If diffs were not incoming, applied diffs, convert to LF
+			List<Diff> newDiffs = new ArrayList<>();
+			diffLoop: for (int i = 0; i < diffs.size(); i++) {
+				LinkedList<Diff> appliedDiffs = docMgr.getAppliedDiffs(currFile);
+				synchronized (appliedDiffs) {
+					int offset = 0;
+					// Find first diff that matches, if any.
+					for (int j = 0; j < appliedDiffs.size(); j++) {
+						Diff appliedDiff = appliedDiffs.get(j);
+						System.out.printf("isNotification: %s ?= %s; %b\n", diffs.get(i).toString(),
+								appliedDiff.toString(), diffs.get(i).equals(appliedDiff));
+						// If found matching diff, remove all previous diffs.
+						if (appliedDiff.equals(diffs.get(i))) {
+							for (int k = j-offset; k >= 0; k--) {
+								appliedDiffs.removeFirst();
+								offset++;
 							}
-							fileMeta.setVersion(((FileChangeResponse) response.getData()).getFileVersion());
+							continue diffLoop;
 						}
-						PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
-								projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
-					}, null);
-//			editor.doSave(null);
-		} catch (ConnectException e) {
-			logger.error("Failed to send change request", e);
-		}
+					}
+				}
+				newDiffs.add(diffs.get(i).convertToLF(currDocument));
+			}
+
+			// If no diffs left; abort
+			if (newDiffs.isEmpty()) {
+				System.out.println("No new diffs, aborting.");
+				return;
+			}
+
+			// Create the patch
+			Patch patch = new Patch(fileMeta.getVersion(), newDiffs);
+
+			System.out.println("DocumentManager sending change request, with patch " + patch.toString());
+
+            try {
+                String projRootPath = proj.getLocation().toString();
+                DataManager.getInstance().getPatchManager().sendPatch(fileMeta.getFileID(),
+                        new Patch[] { patch }, response -> {
+                            synchronized (fileMeta) {
+                                long version = ((FileChangeResponse) response.getData()).getFileVersion();
+                                if (version == 0) {
+                                	logger.error("File version returned from server was 0");
+                                }
+                                fileMeta.setVersion(version);
+                            }
+                            PluginManager.getInstance().getMetadataManager().writeProjectMetadataToFile(projMeta,
+                                    projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
+                        }, null);
+            } catch (ConnectException e) {
+            	logger.error("Failed to send change request", e);
+            }
+        }
 	}
 
 	/**
@@ -139,5 +152,23 @@ public class DocumentChangeListener implements IDocumentListener {
 	 */
 	@Override
 	public void documentChanged(DocumentEvent event) {
+
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		DocumentManager docMgr = PluginManager.getInstance().getDocumentManager();
+		SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
+
+		String currFile = docMgr.getCurrFile();
+		ITextEditor editor = docMgr.getEditor(currFile);
+		IFile file = editor.getEditorInput().getAdapter(IFile.class);
+		IProject proj = file.getProject();
+		ProjectMetadata projMeta = mm.getProjectMetadata(proj.getLocation().toString());
+		String fullPath = file.getFullPath().toString();
+		FileMetadata fileMeta = mm.getFileMetadata(fullPath);
+		if (projMeta == null || fileMeta == null || !ss.getSubscribedIds().contains(projMeta.getProjectID())
+				|| fileMeta.getFilename().contains(CoreStringConstants.CONFIG_FILE_NAME)) {
+			return;
+		}
+		System.out.println("DocumentChange-NewModificationStamp: " + ((SynchronizableDocument) event.getDocument()).getModificationStamp());
+		DataManager.getInstance().getPatchManager().setModificationStamp(fileMeta.getFileID(), ((SynchronizableDocument) event.getDocument()).getModificationStamp());
 	}
 }

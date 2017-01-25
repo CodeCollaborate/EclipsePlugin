@@ -27,6 +27,7 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.texteditor.ITextEditor;
 
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.DialogStrings;
@@ -151,14 +152,21 @@ public class EclipseRequestManager extends RequestManager {
 						}
 						fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
 						if (newFile.exists()) {
-							pm.putFileInWarnList(workspaceRelativePath.toString(), FileChangeResponse.class);
+							// Force close, to make sure changelistener doesn't fire.
+							ITextEditor editor = PluginManager.getInstance().getDocumentManager().getEditor(p.getLocation().append(relPath).toString());
+							if(editor != null){
+								System.out.println("Closed editor for file " + p.getLocation().append(relPath).toString());
+								editor.close(false);								
+							}
+							
+							pm.putFileInWarnList(workspaceRelativePath.makeAbsolute().toString(), FileChangeResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.setContents(in, false, false, progressMonitor);
 							
 							in.close();
 						} else {
 							// warn directory watching before creating the file
-							pm.putFileInWarnList(workspaceRelativePath.toString(), FileCreateResponse.class);
+							pm.putFileInWarnList(workspaceRelativePath.makeAbsolute().toString(), FileCreateResponse.class);
 							ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 							newFile.create(in, false, progressMonitor);
 							in.close();
@@ -368,7 +376,6 @@ public class EclipseRequestManager extends RequestManager {
 		}
 		
 		for(IResource m : members) {
-			
 			if (m instanceof IFile) {
 				String path = ((IFile) m).getProjectRelativePath().toString();
 				if (ignoreFile.containsEntry(path)) {
