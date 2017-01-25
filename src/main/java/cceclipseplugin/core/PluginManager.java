@@ -523,7 +523,7 @@ public class PluginManager {
 							autoSubscribeForSession = false;
 							removeAllSubscribedPrefs(false);
 						}
-						logger.warn(String.format("Auto-subscribe for session set to %b" + autoSubscribeForSession));
+						logger.warn(String.format("Auto-subscribe for session set to %b", autoSubscribeForSession));
 					}
 				});
 			} else if (event.getPropertyName().equals(SessionStorage.PROJECT_LIST)) {
