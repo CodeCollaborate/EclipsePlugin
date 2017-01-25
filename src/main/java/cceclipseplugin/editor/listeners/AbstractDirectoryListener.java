@@ -56,7 +56,7 @@ public abstract class AbstractDirectoryListener implements IResourceChangeListen
 			// stop handling if not subscribed
 			SessionStorage ss = PluginManager.getInstance().getDataManager().getSessionStorage();
 			if (!ss.getSubscribedIds().contains(pMeta.getProjectID())) {
-				logger.debug(String.format("Not subscribed, ignoring resource change for project \"%\"", res.getLocation().toString()));
+				logger.debug(String.format("Not subscribed, ignoring resource change for project \"%s\"", res.getLocation().toString()));
 				return;
 			}
 			
