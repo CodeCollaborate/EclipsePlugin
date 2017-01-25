@@ -29,6 +29,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.ITextEditor;
 
+import cceclipseplugin.editor.DocumentManager;
 import cceclipseplugin.ui.UIRequestErrorHandler;
 import cceclipseplugin.ui.dialogs.DialogStrings;
 import cceclipseplugin.ui.dialogs.MessageDialog;
@@ -204,12 +205,45 @@ public class EclipseRequestManager extends RequestManager {
 	}
 	
 	@Override
-	public void finishRenameFile(FileMetadata fMeta) {
+	public void finishRenameFile(FileMetadata fMeta, String oldFilename) {
+		DocumentManager dm = PluginManager.getInstance().getDocumentManager();
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		
+		long projectID = mm.getProjectIDForFileID(fMeta.getFileID());
+		IPath projLoc = new Path(mm.getProjectLocation(projectID));
+		IPath relPath = new Path(fMeta.getRelativePath());
+		
+		IPath fileLoc = projLoc.append(relPath);
+		IPath oldAbsolutePath = fileLoc.append(oldFilename);
+		IPath newAbsolutePath = fileLoc.append(fMeta.getFilename());
+		logger.debug(String.format("Getting editor for renamed file at old location \"%s\"", oldAbsolutePath.toString()));
+		ITextEditor editor = dm.getEditor(oldAbsolutePath.toString());
+		if (editor != null) {
+			// swap if the editor is open for this file
+			logger.debug(String.format("Editor for old file being swapped to new absolute path \"%s\"", newAbsolutePath.toString()));
+			dm.documentMoved(oldAbsolutePath.toString(), newAbsolutePath.toString());
+		}
 		pullDiffSendChanges(fMeta);
 	}
 	
 	@Override
-	public void finishMoveFile(FileMetadata fMeta) {
+	public void finishMoveFile(FileMetadata fMeta, String oldRelativePath) {
+		DocumentManager dm = PluginManager.getInstance().getDocumentManager();
+		MetadataManager mm = PluginManager.getInstance().getMetadataManager();
+		
+		long projectID = mm.getProjectIDForFileID(fMeta.getFileID());
+		IPath projLoc = new Path(mm.getProjectLocation(projectID));
+		IPath relPath = new Path(fMeta.getRelativePath());
+
+		IPath oldAbsolutePath = projLoc.append(oldRelativePath).append(fMeta.getFilename());
+		IPath newAbsolutePath = projLoc.append(relPath).append(fMeta.getFilename());
+		logger.debug(String.format("Getting editor for moved file at old location \"%s\"", oldAbsolutePath.toString()));
+		ITextEditor editor = dm.getEditor(oldAbsolutePath.toString());
+		if (editor != null) {
+			// swap if the editor is open for this file
+			logger.debug(String.format("Editor for old file being swapped to new absolute path \"%s\"", newAbsolutePath.toString()));
+			dm.documentMoved(oldAbsolutePath.toString(), newAbsolutePath.toString());
+		}
 		pullDiffSendChanges(fMeta);
 	}
 	

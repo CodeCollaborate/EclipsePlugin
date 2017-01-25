@@ -132,6 +132,16 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 		this.openEditors.remove(absolutePath);
 		this.sendFilePullRequest(absolutePath);
 	}
+	
+	/**
+	 * Call when a an open document has been moved or renamed.
+	 * 
+	 * @param newAbsolutePath
+	 */
+	public void documentMoved(String oldAbsolutePath, String newAbsolutePath) {
+		ITextEditor editor = this.openEditors.get(oldAbsolutePath);
+		this.openEditors.put(newAbsolutePath, editor);
+	}
 
 	private void sendFilePullRequest(String absolutePath) {
 		PluginManager pm = PluginManager.getInstance();
