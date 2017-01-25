@@ -10,6 +10,8 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.core.internal.filebuffers.SynchronizableDocument;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -17,6 +19,7 @@ import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.text.AbstractDocument;
@@ -56,6 +59,8 @@ import websocket.models.responses.FilePullResponse;
  */
 public class DocumentManager implements IFileChangeNotificationHandler {
 
+	private final Logger logger = LogManager.getLogger("documentManager");
+	
 	private String currFile = null;
 	private HashMap<String, ITextEditor> openEditors = new HashMap<>();
 	private HashMap<String, LinkedList<Diff>> appliedDiffs = new HashMap<>();
@@ -139,19 +144,18 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 		try {
 			workspaceRelativePathString = java.net.URLDecoder.decode(workspaceRelativePathString, "UTF-8");
 		} catch (UnsupportedEncodingException e1) {
-			System.out.println("Error parsing file relative path");
-			e1.printStackTrace();
+			logger.error("Error parsing file relative path", e1);
 		}
 		IPath relativePath = new Path(workspaceRelativePathString);
 		FileMetadata file = mm.getFileMetadata(workspaceRelativePathString);
 		if (file == null) {
-			System.out.println("Closed an untracked file: " + workspaceRelativePathString);
+			logger.warn(String.format("Closed an untracked file: %s", workspaceRelativePathString));
 			return;
 		}
 		long projId = mm.getProjectIDForFileID(file.getFileID());
 		Set<Long> subProjIds = pm.getDataManager().getSessionStorage().getSubscribedIds();
 		if (!subProjIds.contains(projId)) {
-			System.out.println("Closed a file in an unsubscribed project");
+			logger.debug("Closed a file in an unsubscribed project");
 			return;
 		}
 		Request req = (new FilePullRequest(file.getFileID())).getRequest(response -> {
@@ -229,7 +233,7 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 		if (provider != null && input != null) {
 			return (AbstractDocument) editor.getDocumentProvider().getDocument(editor.getEditorInput());
 		} else {
-			System.out.println("Error getting document for editor");
+			logger.error("Error getting document for editor");
 			return null;
 		}
 	}
@@ -384,11 +388,13 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 										document.replace(diff.getStartIndex(), diff.getLength(), "");
 									}
 								} catch (BadLocationException e) {
-									System.out.printf("Bad Location; Patch: %s, Len: %d, Text: %s\n", diff.toString(),
-											document.get().length(), document.get());
-									e.printStackTrace();
+									logger.error( 
+											String.format("Bad Location; Patch: %s, Len: %d, Text: %s\n", 
+													diff.toString(), 
+													document.get().length(), 
+													document.get()), 
+											e);
 								}
-
 							}
 						}
 						result[0] = document.getModificationStamp();
@@ -411,7 +417,7 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 			IPath ipath = new Path(absolutePath);
 			IFile file = workspace.getRoot().getFileForLocation(ipath);
 			if (!file.exists()) {
-				System.out.println("Cannot apply patches to non-existent file: " + absolutePath);
+				logger.warn(String.format("Cannot apply patches to non-existent file: %s", absolutePath.toString()));
 				return -1l;
 			}
 
@@ -419,7 +425,7 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 			try (Scanner s = new Scanner(file.getContents())) {
 				contents = s.useDelimiter("\\A").hasNext() ? s.next() : "";
 			} catch (CoreException e) {
-				System.out.println("Cannot read file");
+				logger.error("Cannot read file", e);
 				return -1l;
 			}
 			PluginManager m = PluginManager.getInstance();
@@ -428,7 +434,7 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 			try {
 				file.setContents(new ByteArrayInputStream(newContents.getBytes()), true, true, null);
 			} catch (CoreException e) {
-				System.out.println("Fail to update files on disk");
+				logger.error("Fail to update files on disk", e);
 				return -1l;
 			}
 

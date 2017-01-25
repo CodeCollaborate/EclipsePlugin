@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.core.internal.filebuffers.SynchronizableDocument;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -32,6 +34,8 @@ import websocket.models.responses.FileChangeResponse;
  */
 public class DocumentChangeListener implements IDocumentListener {
 
+	private final Logger logger = LogManager.getLogger("documentChangeListener");
+	
 	/**
 	 * Called when document is about to be changed.
 	 * 
@@ -60,16 +64,16 @@ public class DocumentChangeListener implements IDocumentListener {
 				|| fileMeta.getFilename().contains(CoreStringConstants.CONFIG_FILE_NAME)) {
 			// TODO: Remove these debug statements
 			if (fileMeta == null) {
-				System.out.println("file metadata was null");
+				logger.warn("File metadata was null");
 			}
 			if (projMeta == null) {
-				System.out.println("project metadata was null");
+				logger.warn("Project metadata was null");
 			}
 			return;
 		}
 
 		if (fileMeta.getVersion() == 0) {
-			System.err.println("File version was 0");
+			logger.error("File version was 0");
 		}
 
 		// Create removal diffs if needed
@@ -127,7 +131,7 @@ public class DocumentChangeListener implements IDocumentListener {
                             synchronized (fileMeta) {
                                 long version = ((FileChangeResponse) response.getData()).getFileVersion();
                                 if (version == 0) {
-                                    System.err.println("File version returned from server was 0.");
+                                	logger.error("File version returned from server was 0");
                                 }
                                 fileMeta.setVersion(version);
                             }
@@ -135,8 +139,7 @@ public class DocumentChangeListener implements IDocumentListener {
                                     projRootPath, CoreStringConstants.CONFIG_FILE_NAME);
                         }, null);
             } catch (ConnectException e) {
-                System.out.println("Failed to send change request.");
-                e.printStackTrace();
+            	logger.error("Failed to send change request", e);
             }
         }
 	}

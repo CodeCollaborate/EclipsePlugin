@@ -12,13 +12,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Path;
-
 import cceclipseplugin.ui.dialogs.MessageDialog;
 import dataMgmt.MetadataManager;
 import dataMgmt.models.FileMetadata;
@@ -47,6 +48,7 @@ public class CCIgnore {
             "*.swp";
 
 	private Set<String> ignoredFiles = new HashSet<>();
+	private final Logger logger = LogManager.getLogger("ccignore");
 	private boolean initialized = false;
 	
 	/**
@@ -144,9 +146,10 @@ public class CCIgnore {
 		}
 		for (FileMetadata fm : fileMetas) {
 			String path =  Paths.get(fm.getRelativePath(), fm.getFilename()).normalize().toString();
+
 			if (containsEntry(path)) {
 				// send delete request for fileID
-				System.out.println(String.format("Cleaning up %s from server", path));
+				logger.debug(String.format("Cleaning up %s from server", path));
 				rm.deleteFile(fm.getFileID());
 			}
 		}
