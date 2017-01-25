@@ -118,7 +118,7 @@ public class PluginManager {
 		return instance;
 	}
 
-	private PluginManager() {		
+	private PluginManager() {
 		documentManager = new DocumentManager();
 		wsManager = new WSManager(new ConnectionConfig(WS_ADDRESS, RECONNECT, MAX_RETRY_COUNT));
 		dataManager = DataManager.getInstance();
@@ -654,7 +654,6 @@ public class PluginManager {
 			pluginPrefs.flush();
 		} catch (BackingStoreException e) {
 			logger.error("Could not write subscribe preferences", e);
-			e.printStackTrace();
 		}
 	}
 	
