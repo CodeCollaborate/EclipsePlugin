@@ -131,7 +131,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 							// if the new path was used to find it
 							String movedToPathString = delta.getMovedToPath().toString();
 							fileMeta = mm.getFileMetadata(movedToPathString);
-							rm.moveFile(fileMeta.getFileID(), f.getFullPath().toString(),
+							rm.moveFile(fileMeta.getFileID(), f.getFullPath().makeAbsolute().toString(),
 									relativeMovedToPath.removeLastSegments(1).toString());
 						}
 						logger.debug(String.format("Sent file move request; moving from %s to %s",
@@ -221,7 +221,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 							}
 							
 							logger.debug(String.format("Getting metadata from file : %s", movedFromPathString));
-							rm.moveFile(fileMeta.getFileID(), movedFromPathString, 
+							rm.moveFile(fileMeta.getFileID(), f.getFullPath().makeAbsolute().toString(), 
 									f.getProjectRelativePath().removeLastSegments(1).toString());
 							logger.debug(String.format("Sent file move request; moving from %s to %s", 
 											f.getFullPath().toString(), movedFromPathString));

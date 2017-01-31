@@ -9,6 +9,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IWorkspace;
@@ -360,10 +361,11 @@ public class PluginManager {
 			ITextEditor editor = PluginManager.getInstance().getDocumentManager().getEditor(file.getLocation().toString());
 			if(editor != null){
 				System.out.println("Closed editor for file " + file.getLocation().toString());
+				PluginManager.getInstance().getDocumentManager().closedDocument(file.getLocation().toString());
 				editor.close(false);								
 			}
 			
-			if (renameFile(file, newPathToFile, project.getProjectID())) {
+			if (moveFile(p, file, newPathToFile, project.getProjectID())) {
 				mm.fileRenamed(meta.getFileID(), newPathToFile.toString(), n.newName);
 			}
 		});
@@ -385,16 +387,17 @@ public class PluginManager {
 			
 			// new file (workspace-relative path)
 			IPath newPathToFile = new Path(project.getName()).append(
-					new Path(n.newPath)).append(new Path(meta.getFilename()));
+					n.newPath).append(meta.getFilename()).makeAbsolute();
 			
 			// Force close, to make sure changelistener doesn't fire.
 			ITextEditor editor = PluginManager.getInstance().getDocumentManager().getEditor(file.getLocation().toString());
 			if(editor != null){
 				System.out.println("Closed editor for file " + file.getLocation().toString());
+				PluginManager.getInstance().getDocumentManager().closedDocument(file.getLocation().toString());
 				editor.close(false);								
 			}
 			
-			if (renameFile(file, newPathToFile, project.getProjectID())) {
+			if (moveFile(p, file, newPathToFile, project.getProjectID())) {
 				mm.fileMoved(meta.getFileID(), newPathToFile.toString(), n.newPath);
 			}
 		});
@@ -450,13 +453,38 @@ public class PluginManager {
 		}
 	}
 		
-	private boolean renameFile(IFile file, IPath newWorkspaceRelativePath, long projId) {
+	private boolean moveFile(IProject p, IFile file, IPath newWorkspaceRelativePath, long projId) {
 		if (file.exists()) {
+			
+			// Create folders if needed
+			if (!newWorkspaceRelativePath.toString().equals("") && !newWorkspaceRelativePath.toString().equals(".")) {
+				IPath projectRelativePath = newWorkspaceRelativePath.removeFirstSegments(1);
+				
+				Path currentFolder = new Path("/");
+				for (int i = 0; i < projectRelativePath.segmentCount()-1; i++) {
+					// iterate through path segments and create if they don't exist
+					currentFolder = (Path) currentFolder.append(projectRelativePath.segment(i));
+					logger.debug(String.format("Making folder %s", currentFolder.toString()));
+					
+					IFolder newFolder = p.getFolder(currentFolder);
+					try {
+						if (!newFolder.exists()) {
+							newFolder.create(true, true, new NullProgressMonitor());
+						}
+					} catch (Exception e1) {
+						logger.error(String.format("Could not create folder for %s", currentFolder.toString()), e1);
+						return false;
+					}
+					
+				}
+				
+			}
+			
 			try {
 				NullProgressMonitor monitor = new NullProgressMonitor();
 				putFileInWarnList(newWorkspaceRelativePath.toString(), FileRenameNotification.class);
 				// removing first segment to make it project relative
-				file.move(new Path(newWorkspaceRelativePath.lastSegment()), true, monitor);
+				file.move(newWorkspaceRelativePath, true, monitor);
 				return true;
 			} catch (Exception e) {
 				e.printStackTrace();
