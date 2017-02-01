@@ -167,18 +167,19 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 					patches.add(new Patch(stringPatch));
 				}
 				IFile newFile = ResourcesPlugin.getWorkspace().getRoot().getFile(relativePath);
+				newFile = newFile.getProject().getFile(file.getFilePath());
 				fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
 
 				NullProgressMonitor progressMonitor = new NullProgressMonitor();
 				try {
 					if (newFile.exists()) {
-						pm.putFileInWarnList(relativePath.toString(), FileChangeResponse.class);
+						pm.putFileInWarnList(newFile.getFullPath().makeAbsolute().toString(), FileChangeResponse.class);
 						ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 						newFile.setContents(in, false, false, progressMonitor);
 						in.close();
 					} else {
 						// warn directory watching before creating the file
-						pm.putFileInWarnList(relativePath.toString(), FileCreateResponse.class);
+						pm.putFileInWarnList(newFile.getFullPath().makeAbsolute().toString(), FileCreateResponse.class);
 						ByteArrayInputStream in = new ByteArrayInputStream(fileContents.getBytes());
 						newFile.create(in, false, progressMonitor);
 						in.close();
