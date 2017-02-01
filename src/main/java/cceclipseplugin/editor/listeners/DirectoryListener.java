@@ -95,10 +95,10 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		
 		if (delta.getKind() == IResourceDelta.CHANGED) {
 			if (fileMeta == null) {
-			    // rather than deleting the document if metadata doesn't exist, we want to
+				// rather than deleting the document if metadata doesn't exist, we want to
 				//		a) check it's not in the .ccignore
 				//		b) if it's not, add it to the server
-				logger.warn("No metadata found for file change event, resolving");
+				logger.info("No metadata found for file change event, resolving");
 				createFile(f, pm, mm);
 			}
 			
@@ -161,19 +161,19 @@ public class DirectoryListener extends AbstractDirectoryListener {
 					} else {
 						EclipseRequestManager rm = pm.getRequestManager();
 						// I'm really at a loss as to how to make sure this isn't triggering directly after the file
-						// is pulled w/out causing side effects. I thought about putting in at EclipseRequestManager:100, 
-                        // but I'm not sure it's a good idea because it may never get removed. 
-                        //
-                        // The problem stems from the fact that this case of IResource flags isn't specific enough to 
-                        // differentiate when the file is being written to after closing the editor vs from the plugin 
-                        // itself.
+						// is pulled w/out causing side effects. I thought about putting in at EclipseRequestManager:100,
+						// but I'm not sure it's a good idea because it may never get removed.
 						//
-						// I tried looking at IResourceDelta codes and trying to find the more specific case where a file 
-                        // is replaced, but we're already checking IResourceDelta.REPLACED, so I'm quite sure why that's
-                        // not being flipped.
-                        //
-                        // If you have an idea, please let me know - Joel (jshap70)
-                        rm.pullDiffSendChanges(fileMeta);
+						// The problem stems from the fact that this case of IResource flags isn't specific enough to
+						// differentiate when the file is being written to after closing the editor vs from the plugin
+						// itself.
+						//
+						// I tried looking at IResourceDelta codes and trying to find the more specific case where a file
+						// is replaced, but we're already checking IResourceDelta.REPLACED, so I'm quite sure why that's
+						// not being flipped.
+						//
+						// If you have an idea, please let me know - Joel (jshap70)
+						rm.pullDiffSendChanges(fileMeta);
 					}
 				}
 			}
@@ -268,12 +268,11 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		}
 
         try(InputStream in = f.getContents()) {
-				byte[] fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
-				rm.createFile(f.getName(), f.getFullPath().toString(), f.getProjectRelativePath().removeLastSegments(1).toString(), pMeta.getProjectID(), fileBytes);
-				logger.debug(String.format("Sent file create request: %s", f.getName()));
-			} catch (IOException | CoreException e) {
-				e.printStackTrace();
-			}
+			byte[] fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
+			rm.createFile(f.getName(), f.getFullPath().toString(), f.getProjectRelativePath().removeLastSegments(1).toString(), pMeta.getProjectID(), fileBytes);
+			logger.debug(String.format("Sent file create request: %s", f.getName()));
+		} catch (IOException | CoreException e) {
+			e.printStackTrace();
 		}
 	}
 }

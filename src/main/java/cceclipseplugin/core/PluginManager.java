@@ -399,7 +399,7 @@ public class PluginManager {
 			
 			CCIgnore ignoreFile = CCIgnore.createForProject(p);
 			if (ignoreFile.containsEntry(meta.getFilePath())) {
-				System.out.printf("did not delete %s because it was excluded by .ccignore", meta.getFilePath());
+				logger.info(String.format("did not delete %s because it was excluded by .ccignore", meta.getFilePath()));
 				return;
 			}
 
