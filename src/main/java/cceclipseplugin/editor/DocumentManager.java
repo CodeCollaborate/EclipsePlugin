@@ -167,6 +167,7 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 					patches.add(new Patch(stringPatch));
 				}
 				IFile newFile = ResourcesPlugin.getWorkspace().getRoot().getFile(relativePath);
+				newFile = newFile.getProject().getFile(file.getFilePath());
 				fileContents = pm.getDataManager().getPatchManager().applyPatch(fileContents, patches);
 
 				NullProgressMonitor progressMonitor = new NullProgressMonitor();
