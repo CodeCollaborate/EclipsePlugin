@@ -8,10 +8,11 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.NullProgressMonitor;
 
+import cceclipseplugin.core.CCIgnore;
 import cceclipseplugin.core.EclipseRequestManager;
 import cceclipseplugin.core.PluginManager;
 import dataMgmt.MetadataManager;
@@ -31,7 +32,7 @@ import websocket.models.responses.ProjectCreateResponse;
 public class DirectoryListener extends AbstractDirectoryListener {
 	
 	private final Logger logger = LogManager.getLogger("directoryListener");
-	
+
 	/**
 	 * Handles a resource delta in the case that the resource is and IProject.
 	 * 
@@ -94,13 +95,11 @@ public class DirectoryListener extends AbstractDirectoryListener {
 		
 		if (delta.getKind() == IResourceDelta.CHANGED) {
 			if (fileMeta == null) {
-				logger.warn("No metadata found for file change event, deleting file locally");
-				try {
-					f.delete(true, new NullProgressMonitor());
-				} catch (CoreException e) {
-					logger.error("Error deleting untracked file from project.", e);
-				}
-				return;
+				// rather than deleting the document if metadata doesn't exist, we want to
+				//		a) check it's not in the .ccignore
+				//		b) if it's not, add it to the server
+				logger.info("No metadata found for file change event, resolving");
+				createFile(f, pm, mm);
 			}
 			
 			if ((delta.getFlags() & IResourceDelta.MOVED_TO) != 0) {
@@ -124,7 +123,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 									relativeMovedToPath.removeLastSegments(1).toString());
 						}
 						logger.debug(String.format("Sent file move request; moving from %s to %s",
-										f.getProjectRelativePath().toString(), relativeMovedToPath));				
+										f.getProjectRelativePath().toString(), relativeMovedToPath));
 					} else {
 						// send File.Rename request
 						String newName = relativeMovedToPath.lastSegment();
@@ -139,7 +138,6 @@ public class DirectoryListener extends AbstractDirectoryListener {
 				}
 				
 			} else if ((delta.getFlags() & IResourceDelta.CONTENT) != 0) {
-				
 				// don't diff this if this is the actively open file
 				String currFile = pm.getDocumentManager().getCurrFile();
 				if (currFile != null) {					
@@ -153,12 +151,30 @@ public class DirectoryListener extends AbstractDirectoryListener {
 					logger.debug(String.format("File contents were replaced for %s", workspaceRelativePath));
 					return;
 				}
-				
-				EclipseRequestManager rm = pm.getRequestManager();
+
 				if (pm.isFileInWarnList(workspaceRelativePath, FileChangeRequest.class)) {
 					pm.removeFileFromWarnList(workspaceRelativePath, FileChangeRequest.class);
 				} else {
-					rm.pullDiffSendChanges(fileMeta);
+					if (fileMeta == null) {
+						// file should have metadata but doesn't, so send a request to make the file
+						createFile(f, pm, mm);
+					} else {
+						EclipseRequestManager rm = pm.getRequestManager();
+						// I'm really at a loss as to how to make sure this isn't triggering directly after the file
+						// is pulled w/out causing side effects. I thought about putting in at EclipseRequestManager:100,
+						// but I'm not sure it's a good idea because it may never get removed.
+						//
+						// The problem stems from the fact that this case of IResource flags isn't specific enough to
+						// differentiate when the file is being written to after closing the editor vs from the plugin
+						// itself.
+						//
+						// I tried looking at IResourceDelta codes and trying to find the more specific case where a file
+						// is replaced, but we're already checking IResourceDelta.REPLACED, so I'm quite sure why that's
+						// not being flipped.
+						//
+						// If you have an idea, please let me know - Joel (jshap70)
+						rm.pullDiffSendChanges(fileMeta);
+					}
 				}
 			}
 			
@@ -203,7 +219,7 @@ public class DirectoryListener extends AbstractDirectoryListener {
 							logger.debug(String.format("Getting metadata from file : %s", movedFromPathString));
 							rm.moveFile(fileMeta.getFileID(), movedFromPathString, 
 									f.getProjectRelativePath().removeLastSegments(1).toString());
-							logger.debug(String.format("Sent file move request; moving from %s to %s", 
+							logger.debug(String.format("Sent file move request; moving from %s to %s",
 											f.getFullPath().toString(), movedFromPathString));
 						}					
 					} else {
@@ -227,32 +243,36 @@ public class DirectoryListener extends AbstractDirectoryListener {
 				}
 			} else {
 				logger.debug(String.format("File added - %s", f.getName()));
-				logger.debug(pm.fileDirectoryWatchWarnList.keySet().toString());
-				ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getLocation().toString());
 
-				byte[] fileBytes;
-				try {
-					if (pm.isFileInWarnList(workspaceRelativePath, FileCreateNotification.class)) {
-						pm.removeFileFromWarnList(workspaceRelativePath, FileCreateNotification.class);
-					} else if (pm.isFileInWarnList(workspaceRelativePath, FileCreateResponse.class)) {
-						pm.removeFileFromWarnList(workspaceRelativePath, FileCreateResponse.class);
-					} else {
-						InputStream in = f.getContents();
-						fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
-						in.close();
-
-						EclipseRequestManager rm = pm.getRequestManager();
-						
-						rm.createFile(f.getName(), f.getFullPath().toString(),
-								f.getProjectRelativePath().removeLastSegments(1).toString(), pMeta.getProjectID(), fileBytes);						
-						logger.debug(String.format("Sent file create request: %s", f.getName()));
-					}
-				} catch (IOException | CoreException e) {
-					e.printStackTrace();
+				if (pm.isFileInWarnList(workspaceRelativePath, FileCreateNotification.class)) {
+					pm.removeFileFromWarnList(workspaceRelativePath, FileCreateNotification.class);
+				} else if (pm.isFileInWarnList(workspaceRelativePath, FileCreateResponse.class)) {
+					pm.removeFileFromWarnList(workspaceRelativePath, FileCreateResponse.class);
+				} else {
+					createFile(f, pm, mm);
 				}
 			}
-
 		}
 	}
-	
+
+	private void createFile(IFile f, PluginManager pm, MetadataManager mm) {
+		RequestManager rm = pm.getRequestManager();
+
+		ProjectMetadata pMeta = mm.getProjectMetadata(f.getProject().getLocation().toString());
+		IProject p = ResourcesPlugin.getWorkspace().getRoot().getProject(pMeta.getName());
+		CCIgnore ignoreFile = CCIgnore.createForProject(p);
+
+		if (ignoreFile.containsEntry(f.getFullPath().toString())) {
+			logger.debug(String.format("file ignored by .ccignore: %s", f.getFullPath().toString()));
+			return;
+		}
+
+        try(InputStream in = f.getContents()) {
+			byte[] fileBytes = EclipseRequestManager.inputStreamToByteArray(in);
+			rm.createFile(f.getName(), f.getFullPath().toString(), f.getProjectRelativePath().removeLastSegments(1).toString(), pMeta.getProjectID(), fileBytes);
+			logger.debug(String.format("Sent file create request: %s", f.getName()));
+		} catch (IOException | CoreException e) {
+			e.printStackTrace();
+		}
+	}
 }

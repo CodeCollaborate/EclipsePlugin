@@ -16,3 +16,4 @@ bin/*
 # Config files
 /config*
 /target/
+/lib/org.osgi.core*
