@@ -35,6 +35,7 @@ public class CCIgnore {
             ".gradle\n" +
             ".git\n" +
             ".svn\n" +
+            ".settings\n" +
             "\n" +
             "bin\n" +
             "build\n" +
@@ -176,8 +177,10 @@ public class CCIgnore {
 
 			PathMatcher glob = FileSystems.getDefault().getPathMatcher("glob:" + rule);
 			// need to also match with "**/" to follow .gitignore's path glob-ing standard
-			PathMatcher globRecursive = FileSystems.getDefault().getPathMatcher("glob:" + "**/" + rule);
-			if (glob.matches(path) || globRecursive.matches(path)) {
+			PathMatcher globAnywhere = FileSystems.getDefault().getPathMatcher("glob:" + "**/" + rule);
+			PathMatcher globFolder = FileSystems.getDefault().getPathMatcher("glob:" + rule + "/*");
+			PathMatcher globFolderAnywhere = FileSystems.getDefault().getPathMatcher("glob:" + "**/" + rule + "");
+			if (glob.matches(path) || globAnywhere.matches(path) || globFolder.matches(path) || globFolderAnywhere.matches(path)) {
 				return true;
 			}
 		}

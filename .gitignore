@@ -19,3 +19,6 @@ bin/*
 
 # Gradle build folder
 .gradle/
+
+/lib/org.osgi.core*
+

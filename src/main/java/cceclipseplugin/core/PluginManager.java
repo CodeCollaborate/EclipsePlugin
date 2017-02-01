@@ -415,6 +415,12 @@ public class PluginManager {
 			IFile file = p.getFile(meta.getFilePath());
 			String workspaceRelativePath = file.getFullPath().toString();
 			
+			CCIgnore ignoreFile = CCIgnore.createForProject(p);
+			if (ignoreFile.containsEntry(meta.getFilePath())) {
+				logger.info(String.format("did not delete %s because it was excluded by .ccignore", meta.getFilePath()));
+				return;
+			}
+
 			if (file.exists()) {
 				if (documentManager.getEditor(file.getLocation().toString()) != null) {
 					Display.getDefault().asyncExec(() -> {
