@@ -24,4 +24,19 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .,
  lib/ClientCore.jar,
+ lib/log4j-api-2.7.jar,
+ lib/log4j-core-2.7.jar,
  lib/diff-match-patch-1.1.jar
+Export-Package: .,
+ cceclipseplugin,
+ cceclipseplugin.constants,
+ cceclipseplugin.core,
+ cceclipseplugin.editor,
+ cceclipseplugin.editor.listeners,
+ cceclipseplugin.log,
+ cceclipseplugin.preferences,
+ cceclipseplugin.startup,
+ cceclipseplugin.ui,
+ cceclipseplugin.ui.dialogs,
+ cceclipseplugin.util,
+ org.eclipse.wb.swt

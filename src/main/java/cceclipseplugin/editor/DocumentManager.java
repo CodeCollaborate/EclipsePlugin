@@ -387,9 +387,6 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 									} else {
 										document.replace(diff.getStartIndex(), diff.getLength(), "");
 									}
-
-									PluginManager.getInstance().putFileInWarnList(workspaceRelativePath, FileChangeRequest.class);
-									editor.doSave(new NullProgressMonitor());
 								} catch (BadLocationException e) {
 									logger.error( 
 											String.format("Bad Location; Patch: %s, Len: %d, Text: %s\n", 
@@ -404,6 +401,13 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 					}
 				}
 			});
+			
+			Display.getDefault().asyncExec(() -> {
+				PluginManager.getInstance().putFileInWarnList(workspaceRelativePath,
+						FileChangeRequest.class);
+				editor.doSave(new NullProgressMonitor());
+			});
+			
 			return result[0];
 		} else {
 			// If file is not open in an editor, enqueue the patch for

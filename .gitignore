@@ -16,4 +16,9 @@ bin/*
 # Config files
 /config*
 /target/
+
+# Gradle build folder
+.gradle/
+
 /lib/org.osgi.core*
+
