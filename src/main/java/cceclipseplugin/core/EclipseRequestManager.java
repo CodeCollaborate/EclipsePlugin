@@ -89,6 +89,12 @@ public class EclipseRequestManager extends RequestManager {
 			e.printStackTrace();
 		}
 		
+		// If metadata exists, clear it
+		ProjectMetadata projMeta = metaMgr.getProjectMetadata(id);
+		if (projMeta != null){
+			metaMgr.projectDeleted(id);
+		}
+		
 		// create project metadata and write the metadata to disk
 		ProjectMetadata pmeta = new ProjectMetadata();
 		pmeta.setName(p.getName());
