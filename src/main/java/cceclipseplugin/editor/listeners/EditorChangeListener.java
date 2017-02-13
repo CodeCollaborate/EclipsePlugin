@@ -97,7 +97,7 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	@Override
 	public void partActivated(IWorkbenchPartReference ref) {
 		if (ref.getPart(false) instanceof ITextEditor) {
-			ITextEditor editor = (ITextEditor) ref.getPart(false);
+			ITextEditor editor = (ITextEditor) ref.getPart(false);			
 			AbstractDocument document = (AbstractDocument) editor.getDocumentProvider()
 					.getDocument(editor.getEditorInput());
 
@@ -108,9 +108,12 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 
 			String filePath = ((IFileEditorInput) editor.getEditorInput()).getFile().getLocation().toString();
 
-			currListener = new DocumentChangeListener();
-			this.documentMgr.setCurrFile(filePath);
-			document.addDocumentListener(currListener);
+			if(!filePath.equals(this.documentMgr.getCurrFile())){					
+				currListener = new DocumentChangeListener();
+
+				this.documentMgr.setCurrFile(filePath);
+				document.addDocumentListener(currListener);
+			}
 		}
 	}
 
@@ -119,10 +122,10 @@ public class EditorChangeListener extends AbstractEditorChangeListener {
 	 */
 	@Override
 	public void partDeactivated(IWorkbenchPartReference ref) {
+		
 		// TODO Auto-generated method stub
 		if (ref.getPart(false) instanceof ITextEditor) {
-			ITextEditor editor = (ITextEditor) ref.getPart(false);
-
+			ITextEditor editor = (ITextEditor) ref.getPart(false);			
 			IDocument document = editor.getDocumentProvider().getDocument(editor.getEditorInput());
 
 			if (currListener != null) {
