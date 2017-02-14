@@ -403,11 +403,11 @@ public class DocumentManager implements IFileChangeNotificationHandler {
 				}
 			});
 			
-			Display.getDefault().asyncExec(() -> {
-				PluginManager.getInstance().putFileInWarnList(workspaceRelativePath,
-						FileChangeRequest.class);
-				editor.doSave(new NullProgressMonitor());
-			});
+//			Display.getDefault().asyncExec(() -> {
+//				PluginManager.getInstance().putFileInWarnList(workspaceRelativePath,
+//						FileChangeRequest.class);
+//				editor.doSave(new NullProgressMonitor());
+//			});
 			
 			return result[0];
 		} else {
